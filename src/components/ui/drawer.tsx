@@ -56,7 +56,7 @@ export const DrawerContent = React.forwardRef<
         ref={ref}
         className={cn(
           portal ? "absolute" : "fixed",
-          "inset-x-0 bottom-0 z-50 mt-6 flex max-h-[93%] flex-col rounded-t-[34px] border-t border-white/15 bg-[#101118]/98 text-white shadow-2xl outline-none pointer-events-auto",
+          "inset-x-0 bottom-0 z-50 mt-6 flex max-h-[93%] flex-col overscroll-contain rounded-t-[34px] border-t border-white/15 bg-[#101118]/98 text-white shadow-2xl outline-none pointer-events-auto",
           className
         )}
         {...props}
@@ -128,7 +128,7 @@ export const DialogContent = React.forwardRef<
         ref={ref}
         className={cn(
           portal ? "absolute" : "fixed",
-          "t-radix-modal inset-0 z-50 flex flex-col overflow-hidden bg-[#07070c] text-white outline-none pointer-events-auto",
+          "t-radix-modal inset-0 z-50 flex flex-col overflow-hidden overscroll-contain bg-[#07070c] text-white outline-none pointer-events-auto",
           className
         )}
         {...props}

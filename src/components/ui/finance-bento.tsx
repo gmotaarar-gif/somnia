@@ -317,11 +317,23 @@ function mount(root, data) {
     <div class="crb" style="margin-top:16px"></div>
     <div class="crl" style="position:absolute;left:24px;right:24px;bottom:14px"></div></div><div class="rim"></div>`;
   const OHLC=Object.fromEntries(data.crypto.map(a=>[a.symbol,a.ohlc]));
-  function candles(t){const d=OHLC[t].map(x=>x[3]),W=96,H=30,lo=Math.min(...d),hi=Math.max(...d),pad=(hi-lo)*.15||1,Y=v=>H-3-(v-lo+pad)/(hi-lo+2*pad)*(H-6);
+  function candlesEl(t){
+    const d=OHLC[t].map(x=>x[3]),W=96,H=30,lo=Math.min(...d),hi=Math.max(...d),pad=(hi-lo)*.15||1,Y=v=>H-3-(v-lo+pad)/(hi-lo+2*pad)*(H-6);
     const P=d.map((v,i)=>[2+i/(d.length-1)*(W-6),Y(v)]),e=P[P.length-1],up=d[d.length-1]>=d[0],gid='sg'+t;
-    return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><defs><linearGradient id="${gid}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
-      <path d="${smoothPath(P)}L${e[0]},${H}L${P[0][0]},${H}Z" fill="url(#${gid})"/><path d="${smoothPath(P)}" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle cx="${e[0]}" cy="${e[1]}" r="3" fill="${up?ACC:'#fff'}" stroke="rgba(0,0,0,.35)" stroke-width="1"/></svg>`}
+    const ns='http://www.w3.org/2000/svg';
+    const svg=document.createElementNS(ns,'svg');
+    svg.setAttribute('width',String(W));svg.setAttribute('height',String(H));svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('aria-hidden','true');
+    const defs=document.createElementNS(ns,'defs');
+    const lg=document.createElementNS(ns,'linearGradient');
+    lg.setAttribute('id',gid);lg.setAttribute('x1','0');lg.setAttribute('x2','0');lg.setAttribute('y1','0');lg.setAttribute('y2','1');
+    const s1=document.createElementNS(ns,'stop');s1.setAttribute('offset','0%');s1.setAttribute('stop-color','#fff');s1.setAttribute('stop-opacity','.16');
+    const s2=document.createElementNS(ns,'stop');s2.setAttribute('offset','100%');s2.setAttribute('stop-color','#fff');s2.setAttribute('stop-opacity','0');
+    lg.append(s1,s2);defs.appendChild(lg);
+    const area=document.createElementNS(ns,'path');area.setAttribute('d',`${smoothPath(P)}L${e[0]},${H}L${P[0][0]},${H}Z`);area.setAttribute('fill',`url(#${gid})`);
+    const line=document.createElementNS(ns,'path');line.setAttribute('d',smoothPath(P));line.setAttribute('fill','none');line.setAttribute('stroke','#fff');line.setAttribute('stroke-width','1.5');line.setAttribute('stroke-linecap','round');line.setAttribute('stroke-linejoin','round');
+    const dot=document.createElementNS(ns,'circle');dot.setAttribute('cx',String(e[0]));dot.setAttribute('cy',String(e[1]));dot.setAttribute('r','3');dot.setAttribute('fill',up?ACC:'#fff');dot.setAttribute('stroke','rgba(0,0,0,.35)');dot.setAttribute('stroke-width','1');
+    svg.append(defs,area,line,dot);return svg;
+  }
   const CHG=data.crypto.map(a=>a.change);
   function updateCrypto(){
     const qCloses=(data.crypto?.[0]?.ohlc||[]).map(x=>x[3]);
@@ -329,11 +341,26 @@ function mount(root, data) {
     const v=data.summary?.avgQuality??fallbackV;
     tween(cr.querySelector('.crv'),v,x=>Math.round(x)+'%');
     cr.querySelector('.crd').textContent=data.summary?.nightsLabel||(H.length+' н.');
-    cr.querySelector('.crb').innerHTML=`<div style="display:flex;gap:3px;height:6px">${CA.map(([n,s,f],i)=>`<div style="flex:0 0 calc(${f*100}% - 2px);border-radius:3px;background:rgba(255,255,255,${[.95,.6,.32][i]});transform-origin:left;transform:scaleX(0);transition:transform .8s var(--ease) ${.1+i*.1}s" class="crs"></div>`).join('')}</div>`;
+    const crbHost=cr.querySelector('.crb');crbHost.textContent='';
+    const barWrap=document.createElement('div');barWrap.style.cssText='display:flex;gap:3px;height:6px';
+    CA.forEach(([, , f],i)=>{const bar=document.createElement('div');bar.className='crs';bar.style.cssText=`flex:0 0 calc(${f*100}% - 2px);border-radius:3px;background:rgba(255,255,255,${[.95,.6,.32][i]});transform-origin:left;transform:scaleX(0);transition:transform .8s var(--ease) ${.1+i*.1}s`;barWrap.appendChild(bar);});
+    crbHost.appendChild(barWrap);
     RAF(()=>RAF(()=>cr.querySelectorAll('.crs').forEach(b=>b.style.transform='scaleX(1)')));
-    cr.querySelector('.crl').innerHTML=CA.map(([n,s,f],i)=>`<div class="row" style="height:50px;${i?'border-top:1px solid rgba(255,255,255,.1)':''}">
-      <div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600">${n}</div><div class="mono muted" style="font-size:11px">${s} · ${(OHLC[s]?.length||5)} н.</div></div>${candles(s)}
-      <div style="width:80px;text-align:right"><div class="mono" style="font-size:13px">${Math.round(f*100)}%</div><div class="mono" style="font-size:11px;color:${CHG[i].startsWith('+')?ACC:T3}">${CHG[i]}</div></div></div>`).join('')}
+    const crlHost=cr.querySelector('.crl');crlHost.textContent='';
+    CA.forEach(([n,s,f],i)=>{
+      const row=document.createElement('div');row.className='row';row.style.cssText=`height:50px;${i?'border-top:1px solid rgba(255,255,255,.1)':''}`;
+      const left=document.createElement('div');left.style.cssText='flex:1;min-width:0';
+      const titleEl=document.createElement('div');titleEl.style.cssText='font-size:13.5px;font-weight:600';titleEl.textContent=n;
+      const subEl=document.createElement('div');subEl.className='mono muted';subEl.style.cssText='font-size:11px';subEl.textContent=`${s} · ${(OHLC[s]?.length||5)} н.`;
+      left.append(titleEl,subEl);
+      const right=document.createElement('div');right.style.cssText='width:80px;text-align:right';
+      const pctEl=document.createElement('div');pctEl.className='mono';pctEl.style.cssText='font-size:13px';pctEl.textContent=`${Math.round(f*100)}%`;
+      const chgEl=document.createElement('div');chgEl.className='mono';chgEl.style.cssText=`font-size:11px;color:${CHG[i].startsWith('+')?ACC:T3}`;chgEl.textContent=CHG[i];
+      right.append(pctEl,chgEl);
+      row.append(left,candlesEl(s),right);
+      crlHost.appendChild(row);
+    });
+  }
 
   const st=$id('stocks');
   const WK=data.stocks.days,WV=data.stocks.values;

@@ -523,8 +523,8 @@ export function SoftTabs({
   const [inner, setInner] = React.useState<string | undefined>(defaultValue ?? fallbackId)
   const selId = value !== undefined ? value : inner
   const selIndex = Math.max(0, tabs.findIndex((t) => t.id === selId))
-  const [showcaseOn, setShowcaseOn] = React.useState(autoplay)
-  React.useEffect(() => setShowcaseOn(autoplay), [autoplay])
+  const [stoppedShowcase, setStoppedShowcase] = React.useState(false)
+  const showcaseOn = autoplay && !stoppedShowcase
   const startIndex = React.useRef(selIndex)
 
   const select = React.useCallback(
@@ -561,7 +561,11 @@ export function SoftTabs({
   const barW = 2 * PAD + n * pitch
   const totalW = barW + (showAdd ? GAP + capW : 0)
 
+  const irKey = iridescence.join(",")
+  const blKey = glassBlobs.join(",")
   const C = React.useMemo(() => {
+    const irList = irKey.split(",")
+    const blList = blKey.split(",")
     const sf = rgbOf(surface)
     const bg = rgbOf(background)
     const dark = lum(sf) < 0.45
@@ -571,11 +575,11 @@ export function SoftTabs({
     const ink = rgbOf(color)
     const muted = mixRgb(ink, sf, 0.585)
     const acc = rgbOf(accent)
-    const ir = [0, 1, 2, 3].map((i) => rgbOf(iridescence[i] || iridescence[iridescence.length - 1] || "#d7e6fc"))
-    const bl = [0, 1, 2].map((i) => rgbOf(glassBlobs[i] || glassBlobs[glassBlobs.length - 1] || "#6aa0b2"))
+    const ir = [0, 1, 2, 3].map((i) => rgbOf(irList[i] || irList[irList.length - 1] || "#d7e6fc"))
+    const bl = [0, 1, 2].map((i) => rgbOf(blList[i] || blList[blList.length - 1] || "#6aa0b2"))
     const glassShadow = mixRgb(ir[2], BLACK, 0.18)
     return { sf, bg, shade, light, well, ink, muted, acc, ir, bl, glassShadow, dark }
-  }, [surface, background, color, accent, iridescence.join(","), glassBlobs.join(",")])
+  }, [surface, background, color, accent, irKey, blKey])
 
   const wellRef = React.useRef<HTMLDivElement>(null)
   const tabEls = React.useRef<(HTMLButtonElement | null)[]>([])
@@ -604,13 +608,17 @@ export function SoftTabs({
     showV: 0,
   })
   const timeRef = React.useRef(time)
-  timeRef.current = time
+  useIso(() => {
+    timeRef.current = time
+  }, [time])
   const now = () => (timeRef.current !== undefined ? timeRef.current : typeof performance !== "undefined" ? performance.now() / 1000 : 0)
 
-  if (live.current.chosenAt.length !== tabs.length) {
-    live.current.chosenAt = tabs.map(() => -1e9)
-    live.current.tabPress = tabs.map(() => ({ t0: -1e9, from: 0, v0: 0, to: 0, w: UP_W, z: UP_Z }))
-  }
+  useIso(() => {
+    if (live.current.chosenAt.length !== tabs.length) {
+      live.current.chosenAt = tabs.map(() => -1e9)
+      live.current.tabPress = tabs.map(() => ({ t0: -1e9, from: 0, v0: 0, to: 0, w: UP_W, z: UP_Z }))
+    }
+  }, [tabs.length])
 
   useIso(() => {
     const L = live.current
@@ -632,7 +640,7 @@ export function SoftTabs({
     const idx = Math.max(0, Math.min(n - 1, Math.round(L.showWx)))
     L.sel = { t0: now(), from: L.showWx, v0: L.showV, to: idx, w: SEL_W, z: SEL_Z }
     L.chosenAt = tabs.map(() => -1e9)
-    setShowcaseOn(false)
+    setStoppedShowcase(true)
     if (tabs[idx] && tabs[idx].id !== selId) {
       if (value === undefined) setInner(tabs[idx].id)
       onValueChange?.(tabs[idx].id)
@@ -640,7 +648,7 @@ export function SoftTabs({
   }
 
   const frameRef = React.useRef<(t: number) => void>(() => {})
-  frameRef.current = (tAbs: number) => {
+  const renderFrame = (tAbs: number) => {
     const L = live.current
     const still = reduced
     const tm = ((tAbs % LOOP) + LOOP) % LOOP
@@ -765,8 +773,16 @@ export function SoftTabs({
   }
 
   useIso(() => {
+    frameRef.current = renderFrame
+  })
+
+  useIso(() => {
     const cv = canvasRef.current
     if (!cv || !showAdd) return
+    const onLost = () => {
+      glassRef.current = null
+      setNoGL(true)
+    }
     if (!glassRef.current) {
       const g = makeGlass(cv)
       if (!g) {
@@ -774,15 +790,15 @@ export function SoftTabs({
         return
       }
       glassRef.current = g
-      cv.addEventListener("webglcontextlost", () => {
-        glassRef.current = null
-        setNoGL(true)
-      }, { once: true })
     }
+    cv.addEventListener("webglcontextlost", onLost, { once: true })
     const dpr = Math.min(3, typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1)
     cv.width = Math.round((capW + 2 * CAP_M) * k * dpr)
     cv.height = Math.round((CAP_H + 2 * CAP_M) * k * dpr)
     frameRef.current(time !== undefined ? time : now())
+    return () => {
+      cv.removeEventListener("webglcontextlost", onLost)
+    }
   }, [k, capW, showAdd])
 
   useIso(() => {
@@ -956,7 +972,6 @@ export function SoftTabs({
               borderRadius: px(wellH / 2),
               background: rgba(C.well),
               boxShadow: wellShadow,
-              willChange: "transform",
               transformOrigin: "50% 50%",
             }}
           />

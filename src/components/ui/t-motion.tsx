@@ -591,7 +591,9 @@ export function StaggerReveal({
   className,
   children,
 }: StaggerRevealProps) {
-  const [visible, setVisible] = React.useState(shown && index === undefined ? false : shown)
+  const [visible, setVisible] = React.useState(() =>
+    prefersReducedMotion() ? shown : false
+  )
   const [hiding, setHiding] = React.useState(false)
 
   React.useEffect(() => {
@@ -602,8 +604,14 @@ export function StaggerReveal({
     }
     if (shown) {
       setHiding(false)
-      const id = requestAnimationFrame(() => setVisible(true))
-      return () => cancelAnimationFrame(id)
+      let raf2 = 0
+      const raf1 = requestAnimationFrame(() => {
+        raf2 = requestAnimationFrame(() => setVisible(true))
+      })
+      return () => {
+        cancelAnimationFrame(raf1)
+        cancelAnimationFrame(raf2)
+      }
     } else {
       setVisible(false)
       setHiding(true)

@@ -1,19 +1,14 @@
 import * as React from "react"
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
+import { m, AnimatePresence, useReducedMotion } from "framer-motion"
 import { Moon, Pause, Play, Wind } from "lucide-react"
 import { IconSwap, MatrixLoader, SubtleNumber } from "@/components/ui/t-motion"
 import { MOTION_TOKENS, SOMNA_TRANSITIONS } from "@/lib/motion"
-import { useSomna } from "@/store/useSomnaStore"
+import { useSomna, useStressTimer } from "@/store/useSomnaStore"
 
 export function DynamicIsland() {
-  const {
-    stressTimer,
-    setStressTimer,
-    sleepModeActive,
-    setSleepModeActive,
-    wakeGoal,
-    setActiveTab,
-  } = useSomna()
+  const { sleepModeActive, setSleepModeActive, wakeGoal, setActiveTab } =
+    useSomna()
+  const { stressTimer, setStressTimer } = useStressTimer()
 
   const reduceMotion = useReducedMotion()
   const [expanded, setExpanded] = React.useState(false)
@@ -32,26 +27,46 @@ export function DynamicIsland() {
   const ss = String(stressTimer.remainingSec % 60).padStart(2, "0")
 
   const mode = !isActive ? "idle" : expanded ? "expanded" : "compact"
-
   const width = mode === "idle" ? 118 : mode === "compact" ? 190 : 336
   const height = mode === "idle" ? 33 : mode === "compact" ? 34 : 84
-
   const blurVal = reduceMotion ? "0px" : `blur(${MOTION_TOKENS.blurs.small}px)`
 
+  const toggleExpanded = () => {
+    if (isActive) setExpanded((v) => !v)
+  }
+
   return (
-    <motion.div
+    <m.div
       layout
       transition={reduceMotion ? { duration: 0 } : SOMNA_TRANSITIONS.islandSpring}
-      animate={{ width, height }}
-      onClick={() => {
-        if (isActive) setExpanded((v) => !v)
+      role={isActive ? "button" : undefined}
+      tabIndex={isActive ? 0 : undefined}
+      aria-expanded={isActive ? expanded : undefined}
+      aria-label={
+        isActive
+          ? expanded
+            ? "Свернуть Dynamic Island"
+            : "Развернуть Dynamic Island"
+          : undefined
+      }
+      onClick={toggleExpanded}
+      onKeyDown={(e) => {
+        if (!isActive) return
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          toggleExpanded()
+        }
       }}
-      style={{ borderRadius: mode === "expanded" ? 28 : 22 }}
-      className="relative z-50 flex cursor-pointer items-center justify-between overflow-hidden border border-white/12 bg-black text-white shadow-[0_8px_24px_rgba(0,0,0,0.75)] select-none"
+      style={{
+        width,
+        height,
+        borderRadius: mode === "expanded" ? 28 : 22,
+      }}
+      className="relative z-50 flex cursor-pointer items-center justify-between overflow-hidden border border-white/12 bg-black text-white shadow-[0_8px_24px_rgba(0,0,0,0.75)] select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e8ff1f]/50"
     >
       <AnimatePresence mode="popLayout">
         {mode === "idle" && (
-          <motion.div
+          <m.div
             key="idle"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -59,13 +74,12 @@ export function DynamicIsland() {
             transition={reduceMotion ? { duration: 0 } : undefined}
             className="flex h-full w-full items-center justify-end px-3"
           >
-            {/* Front camera lens reflection */}
             <span className="h-2.5 w-2.5 rounded-full bg-[#111322] ring-1 ring-indigo-400/20" />
-          </motion.div>
+          </m.div>
         )}
 
         {mode === "compact" && hasTimer && (
-          <motion.div
+          <m.div
             key="compact-timer"
             initial={{ opacity: 0, filter: blurVal }}
             animate={{ opacity: 1, filter: "blur(0px)" }}
@@ -89,11 +103,11 @@ export function DynamicIsland() {
             <span className="font-mono text-xs font-semibold text-rose-200 tabular-nums">
               <SubtleNumber value={`${mm}:${ss}`} />
             </span>
-          </motion.div>
+          </m.div>
         )}
 
         {mode === "compact" && hasSleep && (
-          <motion.div
+          <m.div
             key="compact-sleep"
             initial={{ opacity: 0, filter: blurVal }}
             animate={{ opacity: 1, filter: "blur(0px)" }}
@@ -106,11 +120,11 @@ export function DynamicIsland() {
               <span className="text-[11px] font-medium">Сон</span>
             </span>
             <span className="font-mono text-[11px] text-[#e8ff1f]">{wakeGoal}</span>
-          </motion.div>
+          </m.div>
         )}
 
         {mode === "expanded" && hasTimer && (
-          <motion.div
+          <m.div
             key="exp-timer"
             initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -118,13 +132,14 @@ export function DynamicIsland() {
             transition={reduceMotion ? { duration: 0 } : SOMNA_TRANSITIONS.modalOpen}
             className="flex h-full w-full items-center justify-between px-4"
           >
-            <div
+            <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation()
                 setActiveTab("practices")
                 setExpanded(false)
               }}
-              className="flex items-center gap-3"
+              className="flex cursor-pointer items-center gap-3 border-0 bg-transparent p-0 text-left text-white focus-visible:outline-none"
             >
               <div className="flex h-11 w-11 items-center justify-center rounded-full border border-rose-400/24 bg-rose-500/20 text-rose-200">
                 <Wind className="h-5 w-5" />
@@ -137,7 +152,7 @@ export function DynamicIsland() {
                   <SubtleNumber value={`${mm}:${ss}`} />
                 </div>
               </div>
-            </div>
+            </button>
 
             <button
               type="button"
@@ -154,11 +169,11 @@ export function DynamicIsland() {
                 iconB={<Play className="ml-0.5 h-4 w-4" />}
               />
             </button>
-          </motion.div>
+          </m.div>
         )}
 
         {mode === "expanded" && hasSleep && (
-          <motion.div
+          <m.div
             key="exp-sleep"
             initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -166,13 +181,14 @@ export function DynamicIsland() {
             transition={reduceMotion ? { duration: 0 } : SOMNA_TRANSITIONS.modalOpen}
             className="flex h-full w-full items-center justify-between px-4"
           >
-            <div
+            <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation()
                 setActiveTab("sleep")
                 setExpanded(false)
               }}
-              className="flex items-center gap-3"
+              className="flex cursor-pointer items-center gap-3 border-0 bg-transparent p-0 text-left text-white focus-visible:outline-none"
             >
               <div className="flex h-11 w-11 items-center justify-center rounded-full border border-indigo-400/24 bg-indigo-500/22 text-indigo-200">
                 <Moon className="h-5 w-5" />
@@ -185,7 +201,7 @@ export function DynamicIsland() {
                   План подъёма {wakeGoal}
                 </div>
               </div>
-            </div>
+            </button>
 
             <button
               type="button"
@@ -197,9 +213,9 @@ export function DynamicIsland() {
             >
               Стоп
             </button>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </m.div>
   )
 }

@@ -295,6 +295,12 @@
     border-color: var(--color-border);
   }
 
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior: none;
+  }
+
   html,
   body {
     margin: 0;
@@ -302,8 +308,29 @@
     background-color: #04040a;
     color: #f8fafc;
     font-family: var(--font-sans);
-    overscroll-behavior-y: none;
+    overscroll-behavior: none;
     -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  a,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+
+  button,
+  [role="button"] {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  @media (pointer: coarse) {
+    input,
+    textarea,
+    select {
+      font-size: 16px;
+    }
   }
 }
 
@@ -441,6 +468,65 @@
 }
 .animate-radar-delayed {
   animation: somna-radar 2.4s var(--ease-smooth-out) 1.2s infinite;
+}
+
+/* Slow ambient OLED aurora breath (GPU transform + opacity only) */
+@keyframes somna-aura-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.84;
+  }
+  50% {
+    transform: translate3d(0, -10px, 0) scale(1.06);
+    opacity: 1;
+  }
+}
+
+.somna-aura-drift {
+  animation: somna-aura-drift 9s var(--ease-in-out) infinite;
+  will-change: transform, opacity;
+}
+
+/* Concentric pulse target & ripple arcs (Reference Superpower Connect card) */
+@keyframes somna-pulse-ring {
+  0% {
+    transform: scale(0.86);
+    opacity: 0.65;
+  }
+  70% {
+    transform: scale(1.24);
+    opacity: 0.08;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+.somna-pulse-ring {
+  animation: somna-pulse-ring 3.2s var(--ease-smooth-out) infinite;
+  will-change: transform, opacity;
+}
+
+.somna-pulse-ring-delayed {
+  animation: somna-pulse-ring 3.2s var(--ease-smooth-out) 1.6s infinite;
+  will-change: transform, opacity;
+}
+
+/* Subtle Veri radial dial rotation */
+@keyframes somna-dial-sweep {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.somna-dial-sweep {
+  animation: somna-dial-sweep 24s linear infinite;
+  transform-origin: center;
 }
 
 /* ── transitions.dev Verbatim Snippets (@layer components keeps Tailwind utilities composable) ── */
@@ -692,9 +778,13 @@
     z-index: 1;
     transition: color var(--tabs-dur) var(--tabs-ease);
   }
-  .t-tab:not([aria-selected="true"]):hover,
   .t-tab[aria-selected="true"] {
     color: var(--tabs-text-active);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .t-tab:not([aria-selected="true"]):hover {
+      color: var(--tabs-text-active);
+    }
   }
   .t-tabs-pill {
     position: absolute;
@@ -1175,17 +1265,22 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
   transition: background-color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out) !important;
 }
-.somna-sl .dd-button:hover {
-  background: rgba(232, 255, 31, 0.2) !important;
-}
 .somna-sl .dd-bar-track i {
   border-radius: 999px !important;
   background: rgba(255, 255, 255, 0.28) !important;
 }
-.somna-sl .dd-bar[aria-pressed="true"] .dd-bar-track i,
-.somna-sl .dd-bar:hover .dd-bar-track i {
+.somna-sl .dd-bar[aria-pressed="true"] .dd-bar-track i {
   background: linear-gradient(180deg, #f3ff80 0%, #c6e60c 100%) !important;
   box-shadow: 0 0 16px rgba(232, 255, 31, 0.35);
+}
+@media (hover: hover) and (pointer: fine) {
+  .somna-sl .dd-button:hover {
+    background: rgba(232, 255, 31, 0.2) !important;
+  }
+  .somna-sl .dd-bar:hover .dd-bar-track i {
+    background: linear-gradient(180deg, #f3ff80 0%, #c6e60c 100%) !important;
+    box-shadow: 0 0 16px rgba(232, 255, 31, 0.35);
+  }
 }
 .somna-sl .dd-legend button,
 .somna-sl .dd-compare-row {
@@ -1237,4 +1332,134 @@
   .somna-sl .dd-cell {
     transition: none !important;
   }
+  .somna-aura-drift,
+  .somna-pulse-ring,
+  .somna-pulse-ring-delayed,
+  .somna-dial-sweep {
+    animation: none !important;
+  }
+}
+
+/* Scoped dark OLED host tokens for SL UI Library Product Controls (topics, weekdays, checklist, volume) */
+.somna-sl-product .pb {
+  --pb-accent: #e8ff1f;
+  --pb-accent-hover: #f3ff7a;
+  --pb-on-accent: #090a0f;
+  --pb-ink: #e8ff1f;
+  --pb-field: rgba(255, 255, 255, 0.065);
+  --pb-field-text: #f8fafc;
+  --pb-hint: rgba(255, 255, 255, 0.54);
+  --pb-line: rgba(255, 255, 255, 0.13);
+  --pb-success: #34d399;
+  --pb-danger: #fb7185;
+  --pb-on-state: #090a0f;
+  font-family: var(--font-sans) !important;
+}
+.somna-sl-product--rose .pb {
+  --pb-accent: #fb7185;
+  --pb-accent-hover: #fda4af;
+  --pb-on-accent: #19050a;
+  --pb-ink: #fb7185;
+}
+.somna-sl-product--indigo .pb {
+  --pb-accent: #818cf8;
+  --pb-accent-hover: #a5b4fc;
+  --pb-on-accent: #090a18;
+  --pb-ink: #818cf8;
+}
+.somna-sl-product--mint .pb {
+  --pb-accent: #34d399;
+  --pb-accent-hover: #6ee7b7;
+  --pb-on-accent: #04170f;
+  --pb-ink: #34d399;
+}
+.somna-sl-product .ck {
+  --ck-note: rgba(255, 255, 255, 0.58);
+}
+.somna-sl-product .pb-topics {
+  width: 100%;
+  gap: 8px;
+}
+.somna-sl-product .ck-chip {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 12.5px;
+  font-weight: 500;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 1px var(--pb-line);
+}
+.somna-sl-product .pb-weekdays {
+  width: 100%;
+  gap: 10px;
+}
+.somna-sl-product .ck-days {
+  width: 100%;
+  justify-content: space-between;
+  gap: 5px;
+}
+.somna-sl-product .ck-day {
+  width: 36px;
+  height: 36px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 1px var(--pb-line);
+}
+.somna-sl-product .ck-plate {
+  width: 100%;
+  padding: 8px 16px 12px;
+  border-radius: 24px;
+  border: 1px solid transparent;
+  background: rgba(8, 9, 15, 0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+.somna-sl-product .ck-row {
+  min-height: 42px;
+  font-size: 13px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.somna-sl-product .ck-row:first-of-type {
+  border-top: 0;
+}
+.somna-sl-product .ck-box {
+  background: rgba(255, 255, 255, 0.12);
+}
+.somna-sl-product .ck-rail {
+  height: 5px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.somna-sl-product .ck-progress .ck-swap {
+  font-size: 13px;
+}
+.somna-sl-product .sd {
+  --sd-note: rgba(255, 255, 255, 0.56);
+  --sd-well: rgba(255, 255, 255, 0.14);
+}
+.somna-sl-product .sd-plate {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.055);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.11);
+  font-size: 13px;
+}
+.somna-sl-product .sd-thumb {
+  background: #ffffff;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.18),
+    0 4px 12px rgba(0, 0, 0, 0.45);
+}
+.somna-sl-product .sd-num {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.82);
 }

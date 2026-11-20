@@ -34,9 +34,8 @@ import {
   pluralRu,
 } from "@/lib/sleepInsights"
 import { EditableBentoGrid } from "@/components/widgets/EditableBentoGrid"
+import { getBedtimeDeviationMin, getTargetDurationMin } from "@/lib/sleepTime"
 import {
-  getBedtimeDeviationMin,
-  getTargetDurationMin,
   useSomna,
   type BentoPeriod,
 } from "@/store/useSomnaStore"
@@ -94,16 +93,20 @@ export function HomeScreen() {
   const last7 = React.useMemo(() => sleepHistory.slice(-7), [sleepHistory])
 
   const targetDur = getTargetDurationMin(bedtimeGoal, wakeGoal)
-  const latestSleep = last7[last7.length - 1] ?? {
-    id: "fallback",
-    date: "Сегодня",
-    dayShort: "Вс",
-    bedtime: bedtimeGoal,
-    wakeTime: wakeGoal,
-    durationMin: targetDur,
-    quality: 82,
-    awakenings: 0,
-  }
+  const latestSleep = React.useMemo(
+    () =>
+      last7[last7.length - 1] ?? {
+        id: "fallback",
+        date: "Сегодня",
+        dayShort: "Вс",
+        bedtime: bedtimeGoal,
+        wakeTime: wakeGoal,
+        durationMin: targetDur,
+        quality: 82,
+        awakenings: 0,
+      },
+    [last7, bedtimeGoal, wakeGoal, targetDur]
+  )
   const latestMood = moodHistory[moodHistory.length - 1]
 
   const sleepGoalPct = Math.min(100, Math.round((latestSleep.durationMin / targetDur) * 100))

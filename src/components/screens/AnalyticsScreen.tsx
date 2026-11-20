@@ -1,20 +1,16 @@
 import * as React from "react"
-import { motion, useReducedMotion } from "framer-motion"
-import { Plus, Sparkles, Wind } from "lucide-react"
-import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from "recharts"
-import { useIPhoneGlimm } from "@/components/iphone/IPhoneFrame"
-import { DotMatrix } from "@/components/ui/dot-matrix"
-import { SpectrumGraph } from "@/components/ui/spectrum-graph"
-import { SoftGlassCard } from "@/components/ui/glow-card"
-import { Card } from "@/components/ui/card"
-import { BarList } from "@/components/ui/bar-list"
-import { RadialGauge } from "@/components/ui/radial-gauge"
+import { m, useReducedMotion } from "framer-motion"
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart"
+  Activity, ArrowDownRight, ArrowUpRight, Check, Clock3, List,
+  Moon, Plus, SlidersHorizontal, Timer, Wind, X,
+} from "lucide-react"
+import { useIPhoneGlimm } from "@/components/iphone/IPhoneFrame"
+import { Sparkline } from "@/components/ballmac/sparkline"
+import { AnimatedSparkles } from "@/components/animate-ui/icons/somna-animated-icons"
+import { DotMatrix } from "@/components/ui/dot-matrix"
+import { DottedTrack } from "@/components/ui/dotted-track"
+import { GlowCard } from "@/components/ui/glow-card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SlidingTabs, TextSwapSoft } from "@/components/ui/t-motion"
 import {
   SLActivityTimelineCard,
@@ -24,15 +20,23 @@ import {
   SLWeeklyMetricCard,
   SLWeeklySeriesChart,
 } from "@/components/ui/sl-data-display"
-import { SOMNA_TRANSITIONS, smoothSvgPath } from "@/lib/motion"
-import { computeSleepInsights, type InsightTone } from "@/lib/sleepInsights"
 import {
-  getBedtimeDeviationMin,
-  getTargetDurationMin,
+  SOMNA_TRANSITIONS,
+  haptic,
+  smoothSvgPath,
+} from "@/lib/motion"
+import {
+  computeSleepInsights,
+  pluralRu,
+  type InsightTone,
+} from "@/lib/sleepInsights"
+import { getBedtimeDeviationMin, getTargetDurationMin } from "@/lib/sleepTime"
+import {
   useSomna,
   type BentoPeriod,
 } from "@/store/useSomnaStore"
 import { cn } from "@/lib/utils"
+import "./analytics.css"
 
 interface WalletCardItem {
   id: string
@@ -51,20 +55,62 @@ const PERIODS: { id: BentoPeriod; label: string }[] = [
   { id: "90D", label: "90Д" },
 ]
 
-type SLAnalyticsTab = "series" | "compare" | "timeline"
-
-const SL_TABS: { id: SLAnalyticsTab; label: string }[] = [
-  { id: "series", label: "Динамика" },
-  { id: "compare", label: "План / Факт" },
-  { id: "timeline", label: "Лента и сон" },
+const CHART_TABS = [
+  { id: "series", label: "Динамика", Icon: Activity },
+  { id: "compare", label: "План / Факт", Icon: SlidersHorizontal },
+  { id: "timeline", label: "Лента и сон", Icon: List },
 ]
 
-const RADAR_CONFIG = {
-  score: {
-    label: "Индекс (%)",
-    color: "#e8ff1f",
-  },
-} satisfies ChartConfig
+const INSIGHT_ICONS = {
+  emerald: Activity,
+  ember: Timer,
+  violet: Clock3,
+  rose: ArrowDownRight,
+  lime: ArrowUpRight,
+  cobalt: Moon,
+} satisfies Record<InsightTone, typeof Activity>
+
+interface RhythmAxis {
+  axis: string
+  score: number
+}
+
+function RhythmRadar({ axes }: { axes: RhythmAxis[] }) {
+  const center = 70
+  const radius = 60
+  const pointAt = (index: number, fraction: number) => {
+    const angle = (index * 2 * Math.PI) / axes.length - Math.PI / 2
+    return {
+      x: center + Math.cos(angle) * radius * fraction,
+      y: center + Math.sin(angle) * radius * fraction,
+    }
+  }
+  const points = axes.map(({ score }, index) => pointAt(index, score / 100))
+
+  return (
+    <svg className="analytics-radar" viewBox="0 0 140 140" aria-hidden="true">
+      <g className="analytics-radar-grid">
+        {[0.25, 0.5, 0.75, 1].map((level) => (
+          <polygon
+            key={level}
+            points={axes.map((_, index) => {
+              const { x, y } = pointAt(index, level)
+              return `${x},${y}`
+            }).join(" ")}
+          />
+        ))}
+        {axes.map(({ axis }, index) => {
+          const { x, y } = pointAt(index, 1)
+          return <line key={axis} x1={center} y1={center} x2={x} y2={y} />
+        })}
+      </g>
+      <polygon className="analytics-radar-shape" points={points.map(({ x, y }) => `${x},${y}`).join(" ")} />
+      {points.map(({ x, y }, index) => (
+        <circle key={axes[index].axis} className="analytics-radar-point" cx={x} cy={y} r={2.6} />
+      ))}
+    </svg>
+  )
+}
 
 export function AnalyticsScreen() {
   const {
@@ -76,22 +122,13 @@ export function AnalyticsScreen() {
     wakeGoal,
     bentoPeriod,
     setBentoPeriod,
-    spectrum,
-    updateSpectrumAxis,
     setWeeklyRecapOpen,
     weeklyGoal,
+    setWeeklyGoal,
     setActiveTab,
     setMoodDrawerOpen,
+    setSleepLogOpen,
   } = useSomna()
-
-  const INSIGHT_ACCENTS: Record<InsightTone, string> = {
-    emerald: "#34d399",
-    ember: "#fb923c",
-    violet: "#a78bfa",
-    rose: "#fb7185",
-    lime: "#e8ff1f",
-    cobalt: "#38bdf8",
-  }
 
   const { playPhoneSweep } = useIPhoneGlimm()
   const reduceMotion = useReducedMotion()
@@ -105,7 +142,6 @@ export function AnalyticsScreen() {
   const latestSleep = subset[subset.length - 1]
   const latestMood = moodHistory[moodHistory.length - 1]
   const [expandedId, setExpandedId] = React.useState<string>("duration")
-  const [slTab, setSlTab] = React.useState<SLAnalyticsTab>("series")
 
   const targetMin = getTargetDurationMin(bedtimeGoal, wakeGoal)
   const avgDurMin = Math.round(
@@ -131,7 +167,6 @@ export function AnalyticsScreen() {
     (subset.filter((n) => n.awakenings <= 1).length / Math.max(1, subset.length)) * 100
   )
 
-  // Honest Mood Factors ranking loop (closes MoodCheckInDrawer promise!)
   const factorStats = React.useMemo(() => {
     const map = new Map<string, { count: number; totalPct: number }>()
     for (const m of moodWindow) {
@@ -184,7 +219,6 @@ export function AnalyticsScreen() {
     [subset, moodWindow, bedtimeGoal, wakeGoal]
   )
 
-  // Honest 6-card Apple Wallet stack driven 100% by user-logged data (zero placeholders)
   const cards: WalletCardItem[] = [
     {
       id: "schedule",
@@ -264,11 +298,21 @@ export function AnalyticsScreen() {
   const stackHeight = runningTop + 18
 
   return (
-    <div className="space-y-3.5 px-4 pt-2.5 pb-34">
-      <header className="flex items-center justify-between gap-2">
+    <div className="analytics-screen relative space-y-4 px-4 pt-2.5 pb-34">
+      {/* Ambient Oceanic-Emerald Top Glow */}
+      <div
+        aria-hidden
+        className="somna-aura-drift pointer-events-none absolute inset-x-0 top-0 h-[320px]"
+        style={{
+          backgroundImage:
+            "radial-gradient(88% 58% at 50% 10%, rgba(45, 212, 191, 0.2), rgba(99, 102, 241, 0.1) 48%, rgba(5, 5, 8, 0) 76%)",
+        }}
+      />
+
+      <header className="relative z-10 flex items-center justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h1 className="text-[23px] font-bold tracking-tight text-white">
+            <h1 className="text-[22px] font-bold tracking-tight text-white">
               Аналитика
             </h1>
             <SlidingTabs
@@ -279,29 +323,94 @@ export function AnalyticsScreen() {
               size="xs"
             />
           </div>
-          <p className="mt-0.5 text-[10.5px] text-white/48">
+          <p className="mt-0.5 text-[10.5px] text-white/50">
             <TextSwapSoft
-              value={`Показаны ${subset.length} ночей · ${moodWindow.length} чек-инов`}
+              value={`${subset.length} ${pluralRu(subset.length, ["ночь", "ночи", "ночей"])} · ${moodWindow.length} ${pluralRu(moodWindow.length, ["чек-ин", "чек-ина", "чек-инов"])}`}
             />
           </p>
         </div>
 
         <button
           type="button"
-          onClick={() =>
+          onClick={() => {
+            haptic(8)
             playPhoneSweep({
               change: () => setWeeklyRecapOpen(true),
             })
-          }
-          className="flex shrink-0 cursor-pointer items-center gap-1 rounded-full border border-[#e8ff1f]/25 bg-[#e8ff1f]/[0.13] px-3 py-1.5 text-[11px] font-semibold text-[#f1ff76] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-md transition-[background-color,transform] duration-[var(--duration-quick)] ease-[var(--ease-smooth-out)] hover:bg-[#e8ff1f]/[0.2] active:scale-95 motion-reduce:transition-none"
+          }}
+          className="flex shrink-0 cursor-pointer items-center gap-1 rounded-full border border-[#e8ff1f]/28 bg-[#e8ff1f]/[0.14] px-3 py-1.5 text-[11px] font-semibold text-[#f1ff76] shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] backdrop-blur-md transition-[background-color,transform] duration-[var(--duration-quick)] ease-[var(--ease-smooth-out)] hover:bg-[#e8ff1f]/[0.22] active:scale-95 motion-reduce:transition-none"
         >
-          <Sparkles className="h-3 w-3" />
+          <AnimatedSparkles size={13} />
           <span>Итоги</span>
         </button>
       </header>
 
-      {/* Apple Wallet Stack (Real Self-Tracked Data Only, GPU transform y without layout thrashing) */}
-      <div className="relative w-full" style={{ height: stackHeight }}>
+      {/* Reference-Grade Twin Hero Summary Strip (Veri Mint + Crimson Mood Glow) */}
+      <div className="relative z-10 grid grid-cols-2 gap-2.5">
+        <GlowCard
+          theme="emerald-lime"
+          coreOpacity={0.9}
+          className="min-h-[126px] rounded-[24px]"
+          contentClassName="flex flex-col justify-between p-3.5"
+        >
+          <div className="flex items-center justify-between text-[11px] font-medium text-white/82">
+            <span>Индекс ритма</span>
+            <span className="font-mono text-[9.5px] text-[#e8ff1f]">5 осей</span>
+          </div>
+          <div className="my-1.5 flex items-end justify-between gap-2">
+            <div className="flex items-baseline gap-1">
+              <DotMatrix value={sleepBalanceIndex} size="md" countUp glow />
+              <span className="font-mono text-xs text-white/75">%</span>
+            </div>
+            <Sparkline
+              values={subset.map((n) => n.quality)}
+              label="Динамика бодрости"
+              height={22}
+              className="w-14 shrink-0 text-[#e8ff1f]/90"
+            />
+          </div>
+          <DottedTrack value={sleepBalanceIndex / 100} dots={14} color="#e8ff1f" />
+        </GlowCard>
+
+        <GlowCard
+          theme="crimson-rose"
+          coreOpacity={0.9}
+          className="min-h-[126px] rounded-[24px]"
+          contentClassName="flex flex-col justify-between p-3.5"
+        >
+          <div className="flex items-center justify-between text-[11px] font-medium text-white/82">
+            <span>{insightsReport.linkPct > 3 ? "Сон → эмоции" : "Эмоц. баланс"}</span>
+            <span className="font-mono text-[9.5px] text-rose-200">
+              {moodWindow.length} зап.
+            </span>
+          </div>
+          <div className="my-1.5 flex items-end justify-between gap-2">
+            <div className="flex items-baseline gap-1">
+              <DotMatrix
+                value={insightsReport.linkPct > 3 ? `+${insightsReport.linkPct}` : avgMoodPct}
+                size="md"
+                countUp={insightsReport.linkPct <= 3}
+                glow
+              />
+              <span className="font-mono text-xs text-white/75">%</span>
+            </div>
+            <Sparkline
+              values={moodWindow.map((m) => Math.round((m.valence + 1) * 50))}
+              label="Динамика эмоций"
+              height={22}
+              className="w-14 shrink-0 text-rose-200/90"
+            />
+          </div>
+          <div className="truncate text-[10px] text-white/62">
+            {insightsReport.linkPct > 3
+              ? "выше после 7+ ч сна"
+              : `Отбой ±${avgDev} мин`}
+          </div>
+        </GlowCard>
+      </div>
+
+      {/* Apple Wallet Stack (Pure GPU translateY + layout FLIP, keyboard-accessible) */}
+      <div className="relative z-10 w-full" style={{ height: stackHeight }}>
         {cards.map((card, index) => {
           const pos = positions[index]
           const isExp = pos.isExp
@@ -314,18 +423,18 @@ export function AnalyticsScreen() {
             24 - ((v - sLo) / Math.max(1, sHi - sLo)) * 18,
           ])
 
+          const toggleCard = () => {
+            haptic(5)
+            setExpandedId((prev) => (prev === card.id ? "" : card.id))
+          }
+
           return (
-            <motion.div
+            <m.div
               key={card.id}
+              layout
               initial={false}
-              animate={{
-                y: pos.top,
-                height: isExp ? 228 : 96,
-              }}
+              animate={{ y: pos.top }}
               transition={reduceMotion ? { duration: 0 } : SOMNA_TRANSITIONS.cardSpring}
-              onClick={() =>
-                setExpandedId((prev) => (prev === card.id ? "" : card.id))
-              }
               style={{
                 top: 0,
                 background: card.bg,
@@ -333,7 +442,10 @@ export function AnalyticsScreen() {
                 boxShadow:
                   "0 -8px 24px rgba(0,0,0,0.52), inset 0 1px 0 rgba(255,255,255,0.34)",
               }}
-              className="absolute inset-x-0 flex cursor-pointer flex-col justify-between overflow-hidden rounded-[28px] p-4 text-white select-none"
+              className={cn(
+                "absolute inset-x-0 flex flex-col justify-between overflow-hidden rounded-[28px] p-4 text-white select-none",
+                isExp ? "h-[228px]" : "h-[96px]"
+              )}
             >
               <div
                 aria-hidden
@@ -344,7 +456,15 @@ export function AnalyticsScreen() {
                 className="specular-rim pointer-events-none absolute inset-0 z-20 rounded-[inherit]"
               />
 
-              <div className="relative z-10 flex items-center justify-between">
+              <button
+                type="button"
+                aria-expanded={isExp}
+                onClick={toggleCard}
+                className={cn(
+                  "relative z-10 flex w-full cursor-pointer items-center justify-between border-0 bg-transparent p-0 text-left text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e8ff1f]/55 focus-visible:rounded-lg",
+                  !isExp && "h-full items-start"
+                )}
+              >
                 <span className="text-[16px] font-semibold tracking-tight drop-shadow-xs">
                   {card.title}
                 </span>
@@ -355,7 +475,6 @@ export function AnalyticsScreen() {
                       <TextSwapSoft value={card.chip} align="end" />
                     </span>
                   ) : null}
-                  {/* 21-accordion symmetric scaleY(-1) chevron */}
                   <span
                     aria-hidden
                     className={cn(
@@ -375,10 +494,10 @@ export function AnalyticsScreen() {
                     </svg>
                   </span>
                 </div>
-              </div>
+              </button>
 
               {isExp ? (
-                <motion.div
+                <m.div
                   initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={reduceMotion ? { duration: 0 } : SOMNA_TRANSITIONS.modalOpen}
@@ -386,7 +505,7 @@ export function AnalyticsScreen() {
                 >
                   <div className="flex items-center justify-between px-1">
                     <div>
-                      <span className="font-mono text-[9.5px] tracking-widest text-white/70 uppercase">
+                      <span className="font-mono text-[10.5px] text-white/70">
                         {card.unit}
                       </span>
                       <div className="mt-1">
@@ -444,9 +563,22 @@ export function AnalyticsScreen() {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation()
-                        setMoodDrawerOpen(true)
+                        if (card.id === "mood" || card.id === "habits") {
+                          setMoodDrawerOpen(true)
+                        } else {
+                          setSleepLogOpen(true)
+                        }
                       }}
-                      title="Записать состояние"
+                      title={
+                        card.id === "mood" || card.id === "habits"
+                          ? "Записать состояние"
+                          : "Записать сон"
+                      }
+                      aria-label={
+                        card.id === "mood" || card.id === "habits"
+                          ? "Записать состояние"
+                          : "Записать сон"
+                      }
                       className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-white/22 bg-white/[0.12] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] backdrop-blur-md transition-[background-color,transform] duration-[var(--duration-quick)] ease-[var(--ease-smooth-out)] hover:bg-white/[0.2] active:scale-95 motion-reduce:transition-none"
                     >
                       <Plus className="h-3.5 w-3.5" />
@@ -468,190 +600,167 @@ export function AnalyticsScreen() {
                       <Wind className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                </motion.div>
+                </m.div>
               ) : null}
-            </motion.div>
+            </m.div>
           )
         })}
       </div>
 
-      {/* Honest 5-Axis Sleep & Balance Profile (Official shadcn RadarChart + RadialGauge) */}
-      <Card className="border-white/[0.11] bg-[#08090f]/76 p-4">
-        <div className="mb-1 flex items-center justify-between gap-3">
+      <section className="analytics-card analytics-profile" aria-labelledby="rhythm-profile-title">
+        <div className="analytics-card-heading">
           <div>
-            <h2 className="text-sm font-semibold text-white">
-              Профиль сна и ритма
-            </h2>
-            <p className="text-[11px] text-white/50">
-              Сводка 5 отслеживаемых осей за {subset.length} ночей
-            </p>
+            <h2 id="rhythm-profile-title">Профиль сна и ритма</h2>
+            <p>За {subset.length} {pluralRu(subset.length, ["ночь", "ночи", "ночей"])}</p>
           </div>
-          <RadialGauge
-            value={sleepBalanceIndex}
-            max={100}
-            size={62}
-            thickness={5}
-            segments={18}
-            gap={3}
-            sweep={360}
-            color="#e8ff1f"
-            glow
-          >
-            <span className="font-mono text-[11px] font-semibold text-white tabular-nums">
-              {sleepBalanceIndex}%
-            </span>
-          </RadialGauge>
+          {subset.length > 0 && (
+            <div className="analytics-profile-index">
+              <strong>{sleepBalanceIndex}<span>%</span></strong>
+              <span>Индекс ритма</span>
+            </div>
+          )}
         </div>
 
-        <ChartContainer
-          config={RADAR_CONFIG}
-          className="mx-auto aspect-square max-h-[215px] w-full"
-        >
-          <RadarChart data={radarData} outerRadius="70%">
-            <PolarGrid gridType="circle" />
-            <PolarAngleAxis
-              dataKey="axis"
-              tick={{ fill: "rgba(255,255,255,0.68)", fontSize: 10 }}
-            />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent indicator="dot" />}
-            />
-            <Radar
-              dataKey="score"
-              stroke="#e8ff1f"
-              strokeWidth={2}
-              fill="#e8ff1f"
-              fillOpacity={0.22}
-              isAnimationActive={!reduceMotion}
-            />
-          </RadarChart>
-        </ChartContainer>
-      </Card>
-
-      {/* Honest Data-Driven Sleep & Mood Insights */}
-      {insightsReport.insights.length > 0 ? (
-        <Card className="space-y-2.5 border-white/[0.11] bg-[#08090f]/76 p-4">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <h2 className="text-sm font-semibold text-white">Инсайты ритма</h2>
-              <p className="text-[11px] text-white/50">
-                Связь сна, отбоя и факторов настроения
-              </p>
-            </div>
-            {weeklyGoal ? (
-              <span className="max-w-[140px] truncate rounded-full border border-[#e8ff1f]/25 bg-[#e8ff1f]/[0.1] px-2.5 py-0.5 text-[10px] font-medium text-[#e8ff1f]">
-                Цель: {weeklyGoal.text}
-              </span>
-            ) : null}
-          </div>
-
-          <div className="space-y-2">
-            {insightsReport.insights.map((ins) => {
-              const dotColor = INSIGHT_ACCENTS[ins.tone]
-              return (
-                <div
-                  key={ins.id}
-                  className="rounded-2xl border border-white/[0.08] bg-white/[0.035] p-3"
-                >
-                  <div className="flex items-center gap-2 text-xs font-semibold text-white">
-                    <span
-                      className="h-2 w-2 shrink-0 rounded-full"
-                      style={{
-                        backgroundColor: dotColor,
-                        boxShadow: `0 0 8px ${dotColor}80`,
-                      }}
-                    />
-                    <span>{ins.title}</span>
-                  </div>
-                  <p className="mt-1 text-[11px] leading-relaxed text-white/68">
-                    {ins.body}
-                  </p>
+        {subset.length > 0 ? (
+          <div className="analytics-profile-body">
+            <RhythmRadar axes={radarData} />
+            <dl className="analytics-profile-scores">
+              {radarData.map(({ axis, score }) => (
+                <div key={axis}>
+                  <dt>{axis}</dt>
+                  <dd>{score}%</dd>
                 </div>
-              )
-            })}
+              ))}
+            </dl>
           </div>
-        </Card>
-      ) : null}
+        ) : (
+          <p className="analytics-empty">Добавьте запись о сне, чтобы увидеть профиль ритма.</p>
+        )}
+      </section>
 
-      {/* Honest Mood Factors Impact Ranking (@dashboardcn BarList) */}
-      {factorStats.length > 0 ? (
-        <Card className="border-white/[0.11] bg-[#08090f]/76 p-4">
-          <div className="mb-3 flex items-center justify-between">
+      {(insightsReport.insights.length > 0 || weeklyGoal) && (
+        <section className="analytics-card analytics-insights" aria-labelledby="rhythm-insights-title">
+          <div className="analytics-card-heading">
             <div>
-              <h2 className="text-sm font-semibold text-white">
-                Факторы состояния
-              </h2>
-              <p className="text-[11px] text-white/50">
-                Частота отметок и средний баланс по {moodWindow.length} чек-инам
+              <h2 id="rhythm-insights-title">Инсайты ритма</h2>
+              <p>Сон и самочувствие по записям журнала</p>
+            </div>
+          </div>
+
+          {weeklyGoal && (
+            <div className="analytics-weekly-goal">
+              <span className="analytics-insight-icon"><Check size={15} aria-hidden="true" /></span>
+              <div>
+                <span>Фокус недели</span>
+                <strong>{weeklyGoal.text}</strong>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  haptic(5)
+                  setWeeklyGoal(null)
+                }}
+                aria-label="Снять фокус недели"
+              >
+                <X size={16} aria-hidden="true" />
+              </button>
+            </div>
+          )}
+
+          {insightsReport.insights.length > 0 && (
+            <ul className="analytics-insight-list">
+              {insightsReport.insights.map((insight) => {
+                const Icon = INSIGHT_ICONS[insight.tone]
+                return (
+                  <li key={insight.id} className="analytics-insight" data-tone={insight.tone}>
+                    <span className="analytics-insight-icon"><Icon size={17} aria-hidden="true" /></span>
+                    <div>
+                      <h3>{insight.title}</h3>
+                      <p>{insight.body}</p>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {factorStats.length > 0 && (
+        <section className="analytics-card analytics-factors" aria-labelledby="rhythm-factors-title">
+          <div className="analytics-card-heading">
+            <div>
+              <h2 id="rhythm-factors-title">Факторы состояния</h2>
+              <p>
+                По {moodWindow.length} {pluralRu(moodWindow.length, ["чек-ину", "чек-инам", "чек-инам"])}
               </p>
             </div>
-            <span className="rounded-full border border-white/12 bg-white/[0.06] px-2.5 py-0.5 font-mono text-[10px] text-white/75">
-              топ-{factorStats.length}
-            </span>
           </div>
-          <BarList
-            data={factorStats.map((fac) => ({
-              name: `${fac.name} · ${fac.count}×`,
-              value: fac.avgPct,
-            }))}
-            color="#e8ff1f"
-            valueFormatter={(v) => `${Math.round(v)}%`}
-          />
-        </Card>
-      ) : null}
+          <table className="analytics-factor-table" aria-labelledby="rhythm-factors-title">
+            <thead>
+              <tr>
+                <th scope="col">Фактор</th>
+                <th scope="col">Отметки</th>
+                <th scope="col">Ср. баланс</th>
+              </tr>
+            </thead>
+            <tbody>
+              {factorStats.map(({ name, count, avgPct }) => (
+                <tr key={name}>
+                  <th scope="row">
+                    <span>{name}</span>
+                    <span className="analytics-factor-track" aria-hidden="true">
+                      <span style={{ width: `${avgPct}%` }} />
+                    </span>
+                  </th>
+                  <td>{count}×</td>
+                  <td>{avgPct}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
 
-      {/* Interactive SL UI Library Analytics Showcase with SlidingTabs */}
-      <div className="space-y-2.5">
-        <SlidingTabs
-          items={SL_TABS}
-          value={slTab}
-          onValueChange={setSlTab}
-          ariaLabel="Режим графиков SL UI"
-          fullWidth
-          size="sm"
-        />
+      <Tabs defaultValue="series" className="analytics-charts">
+        <TabsList aria-label="Графики аналитики" className="analytics-chart-tabs">
+          {CHART_TABS.map(({ id, label, Icon }) => (
+            <TabsTrigger key={id} value={id} className="analytics-chart-tab">
+              <Icon size={16} aria-hidden="true" />
+              <span>{label}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-        {slTab === "series" && (
-          <div className="space-y-3">
-            <SLWeeklySeriesChart />
-            <SLWeeklyMetricCard />
-          </div>
-        )}
-        {slTab === "compare" && (
-          <div className="space-y-3">
-            <SLScheduleComparisonCard />
-            <SLWeeklyDonutChart />
-          </div>
-        )}
-        {slTab === "timeline" && (
-          <div className="space-y-3">
+        <TabsContent value="series" className="analytics-chart-panel">
+          {subset.length > 0 ? (
+            <>
+              <SLWeeklySeriesChart />
+              <SLWeeklyMetricCard />
+            </>
+          ) : (
+            <p className="analytics-card analytics-empty">Динамика появится после первой записи о сне.</p>
+          )}
+        </TabsContent>
+        <TabsContent value="compare" className="analytics-chart-panel">
+          {subset.length > 0 ? (
+            <>
+              <SLScheduleComparisonCard />
+              <SLWeeklyDonutChart />
+            </>
+          ) : (
+            <p className="analytics-card analytics-empty">Добавьте запись о сне, чтобы сравнить её с планом.</p>
+          )}
+        </TabsContent>
+        <TabsContent value="timeline" className="analytics-chart-panel">
+          {subset.length > 0 || moodHistory.length > 0 ? (
             <SLActivityTimelineCard />
-            <SLWeeklyBarChart />
-          </div>
-        )}
-      </div>
-
-      {/* Interactive Self-Assessment Axis Vector with Baseline Legend */}
-      <SoftGlassCard>
-        <div className="mb-2 flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-white">
-              Ручная самооценка состояния
-            </h2>
-            <p className="text-[11px] text-white/50">
-              Передвигайте точки на осях — сравнение с вашим стартовым профилем
-            </p>
-          </div>
-        </div>
-        <SpectrumGraph
-          axes={spectrum}
-          interactive
-          showBaseline
-          showLegend
-          onChangeAxis={(id, val) => updateSpectrumAxis(id, val, false)}
-        />
-      </SoftGlassCard>
+          ) : (
+            <p className="analytics-card analytics-empty">Здесь появятся записи о сне и настроении.</p>
+          )}
+          {subset.length > 0 && <SLWeeklyBarChart />}
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

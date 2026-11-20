@@ -92,14 +92,13 @@ function RadialGauge({
   return (
     <div
       data-slot="radial-gauge"
-      role="meter"
-      aria-valuemin={min}
-      aria-valuemax={max}
-      aria-valuenow={value}
       className={cn("relative inline-flex shrink-0", className)}
       style={{ width: size, height }}
       {...props}
     >
+      <meter className="sr-only" min={min} max={max} value={value}>
+        {value}
+      </meter>
       <svg
         width={size}
         height={height}

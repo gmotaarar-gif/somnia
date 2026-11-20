@@ -4,13 +4,13 @@ import * as React from "react"
 import { ChevronsLeft, ChevronsRight } from "lucide-react"
 import {
   type MotionValue,
-  motion,
+  m,
   useMotionValue,
   useMotionValueEvent,
   useReducedMotion,
   useSpring,
   useTransform,
-} from "motion/react"
+} from "framer-motion"
 import { SubtleNumber } from "@/components/ui/t-motion"
 import { cn } from "@/lib/utils"
 
@@ -74,8 +74,8 @@ export function ExposureSlider({
   className,
 }: ExposureSliderProps) {
   const shouldReduceMotion = useReducedMotion()
-  const isDraggingRef = useRef(false)
-  const lastEmittedRef = useRef<number>(value ?? defaultValue)
+  const isDraggingRef = React.useRef(false)
+  const lastEmittedRef = React.useRef<number>(value ?? defaultValue)
 
   const initialVal = clamp(value ?? defaultValue, min, max)
   const [displayNum, setDisplayNum] = React.useState(() =>
@@ -86,7 +86,7 @@ export function ExposureSlider({
   const springVal = useSpring(rawVal, SPRING_CONFIG)
   const smoothVal = shouldReduceMotion ? rawVal : springVal
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (value === undefined || isDraggingRef.current) return
     const clamped = clamp(value, min, max)
     lastEmittedRef.current = clamped
@@ -99,7 +99,7 @@ export function ExposureSlider({
     setDisplayNum((prev) => (prev === rounded ? prev : rounded))
   })
 
-  const emitIfChanged = useCallback(
+  const emitIfChanged = React.useCallback(
     (nextSnapped: number) => {
       if (nextSnapped !== lastEmittedRef.current) {
         lastEmittedRef.current = nextSnapped
@@ -109,7 +109,7 @@ export function ExposureSlider({
     [onChange]
   )
 
-  const stepBy = useCallback(
+  const stepBy = React.useCallback(
     (deltaSteps: number) => {
       if (onStep) {
         onStep(deltaSteps)
@@ -124,7 +124,7 @@ export function ExposureSlider({
     [onStep, value, step, min, max, rawVal, emitIfChanged]
   )
 
-  const handleKeyDown = useCallback(
+  const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent) => {
       const current = value ?? lastEmittedRef.current
       let next: number | null = null
@@ -193,19 +193,6 @@ export function ExposureSlider({
       )}
     </div>
   )
-}
-
-function useRef<T>(initial: T) {
-  return React.useRef<T>(initial)
-}
-function useEffect(fn: React.EffectCallback, deps: React.DependencyList) {
-  return React.useEffect(fn, deps)
-}
-function useCallback<T extends (...args: never[]) => unknown>(
-  fn: T,
-  deps: React.DependencyList
-) {
-  return React.useCallback(fn, deps)
 }
 
 /** 54px smoked-glass center orb matching the Stress 04:00 reference */
@@ -310,75 +297,76 @@ function ConvexArcDial({
   const nextNeighbour = displayNum + step <= max ? displayNum + step : null
 
   return (
-    <div
-      ref={dialRef}
-      role="slider"
-      tabIndex={0}
-      aria-label="Шкала интенсивности"
-      aria-valuemin={min}
-      aria-valuemax={max}
-      aria-valuenow={displayNum}
-      onKeyDown={onKeyDown}
-      onPointerDown={handlePointerDown}
-      style={{ touchAction: "pan-y" }}
-      className="relative flex h-[104px] w-full max-w-[288px] cursor-grab flex-col items-center justify-start select-none active:cursor-grabbing focus-visible:outline-none"
-    >
-      {/* Flanking tilted ghost digits sitting on the visible curved arc shoulders */}
-      {prevNeighbour !== null ? (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute top-[14px] left-[54px] -rotate-[24deg] font-sans text-[13px] font-light text-white/32 tabular-nums transition-opacity duration-[var(--duration-quick)] motion-reduce:transition-none"
-        >
-          {prevNeighbour}
-        </span>
-      ) : null}
-      {nextNeighbour !== null ? (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute top-[14px] right-[54px] rotate-[24deg] font-sans text-[13px] font-light text-white/32 tabular-nums transition-opacity duration-[var(--duration-quick)] motion-reduce:transition-none"
-        >
-          {nextNeighbour}
-        </span>
-      ) : null}
-
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="pointer-events-none h-[98px] w-full overflow-visible"
+    <div className="relative flex h-[104px] w-full max-w-[288px] flex-col items-center justify-start select-none">
+      <div
+        ref={dialRef}
+        role="slider"
+        tabIndex={0}
+        aria-label="Шкала интенсивности"
+        aria-valuemin={min}
+        aria-valuemax={max}
+        aria-valuenow={displayNum}
+        onKeyDown={onKeyDown}
+        onPointerDown={handlePointerDown}
+        style={{ touchAction: "pan-y" }}
+        className="relative flex h-full w-full cursor-grab flex-col items-center justify-start active:cursor-grabbing focus-visible:outline-none"
       >
-        <defs>
-          {/* 140° convex edge-fade mask */}
-          <linearGradient id={`es-arc-fade-${uid}`} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="white" stopOpacity="0" />
-            <stop offset="14%" stopColor="white" stopOpacity="0.16" />
-            <stop offset="32%" stopColor="white" stopOpacity="0.62" />
-            <stop offset="50%" stopColor="white" stopOpacity="1" />
-            <stop offset="68%" stopColor="white" stopOpacity="0.62" />
-            <stop offset="86%" stopColor="white" stopOpacity="0.16" />
-            <stop offset="100%" stopColor="white" stopOpacity="0" />
-          </linearGradient>
-          <mask id={`es-arc-mask-${uid}`}>
-            <rect x="0" y="0" width={W} height={H} fill={`url(#es-arc-fade-${uid})`} />
-          </mask>
-        </defs>
-
-        {/* Soft interior dome arc line */}
-        <path
-          d={`M ${(cx - R * Math.sin((70 * Math.PI) / 180)).toFixed(1)} ${(cy - R * Math.cos((70 * Math.PI) / 180)).toFixed(1)} A ${R} ${R} 0 0 1 ${(cx + R * Math.sin((70 * Math.PI) / 180)).toFixed(1)} ${(cy - R * Math.cos((70 * Math.PI) / 180)).toFixed(1)}`}
-          fill="none"
-          stroke="rgba(255,255,255,0.08)"
-          strokeWidth="1"
-          mask={`url(#es-arc-mask-${uid})`}
-        />
-
-        {/* Rotating radial ticks wheel */}
-        <g mask={`url(#es-arc-mask-${uid})`}>
-          <motion.g
-            style={{
-              rotate: wheelRotation,
-              originX: `${cx}px`,
-              originY: `${cy}px`,
-            }}
+        {/* Flanking tilted ghost digits sitting on the visible curved arc shoulders */}
+        {prevNeighbour !== null ? (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute top-[14px] left-[54px] -rotate-[24deg] font-sans text-[13px] font-light text-white/32 tabular-nums transition-opacity duration-[var(--duration-quick)] motion-reduce:transition-none"
           >
+            {prevNeighbour}
+          </span>
+        ) : null}
+        {nextNeighbour !== null ? (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute top-[14px] right-[54px] rotate-[24deg] font-sans text-[13px] font-light text-white/32 tabular-nums transition-opacity duration-[var(--duration-quick)] motion-reduce:transition-none"
+          >
+            {nextNeighbour}
+          </span>
+        ) : null}
+
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="pointer-events-none h-[98px] w-full overflow-visible"
+        >
+          <defs>
+            {/* 140° convex edge-fade mask */}
+            <linearGradient id={`es-arc-fade-${uid}`} x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="white" stopOpacity="0" />
+              <stop offset="14%" stopColor="white" stopOpacity="0.16" />
+              <stop offset="32%" stopColor="white" stopOpacity="0.62" />
+              <stop offset="50%" stopColor="white" stopOpacity="1" />
+              <stop offset="68%" stopColor="white" stopOpacity="0.62" />
+              <stop offset="86%" stopColor="white" stopOpacity="0.16" />
+              <stop offset="100%" stopColor="white" stopOpacity="0" />
+            </linearGradient>
+            <mask id={`es-arc-mask-${uid}`}>
+              <rect x="0" y="0" width={W} height={H} fill={`url(#es-arc-fade-${uid})`} />
+            </mask>
+          </defs>
+
+          {/* Soft interior dome arc line */}
+          <path
+            d={`M ${(cx - R * Math.sin((70 * Math.PI) / 180)).toFixed(1)} ${(cy - R * Math.cos((70 * Math.PI) / 180)).toFixed(1)} A ${R} ${R} 0 0 1 ${(cx + R * Math.sin((70 * Math.PI) / 180)).toFixed(1)} ${(cy - R * Math.cos((70 * Math.PI) / 180)).toFixed(1)}`}
+            fill="none"
+            stroke="rgba(255,255,255,0.08)"
+            strokeWidth="1"
+            mask={`url(#es-arc-mask-${uid})`}
+          />
+
+          {/* Rotating radial ticks wheel */}
+          <g mask={`url(#es-arc-mask-${uid})`}>
+            <m.g
+              style={{
+                rotate: wheelRotation,
+                originX: `${cx}px`,
+                originY: `${cy}px`,
+              }}
+            >
             {ticks.map((t) => {
               const rad = (t.angle * Math.PI) / 180
               const outerR = R + (t.major ? 2.5 : 0.5)
@@ -406,33 +394,31 @@ function ConvexArcDial({
                 />
               )
             })}
-          </motion.g>
-        </g>
+            </m.g>
+          </g>
 
-        {/* Fixed 12 o'clock apex needle & dot */}
-        <line
-          x1={cx}
-          y1={cy - R + 7.5}
-          x2={cx}
-          y2={cy - R - 5.5}
-          stroke="var(--es-accent)"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-        />
-        <circle
-          cx={cx}
-          cy={cy - R - 10}
-          r="2.2"
-          fill="var(--es-accent)"
-        />
-      </svg>
+          {/* Fixed 12 o'clock apex needle & dot */}
+          <line
+            x1={cx}
+            y1={cy - R + 7.5}
+            x2={cx}
+            y2={cy - R - 5.5}
+            stroke="var(--es-accent)"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+          />
+          <circle
+            cx={cx}
+            cy={cy - R - 10}
+            r="2.2"
+            fill="var(--es-accent)"
+          />
+        </svg>
+      </div>
 
-      {/* Soft glass `<<` / `>>` stepper pills inside dark radial dome */}
+      {/* Soft glass `<<` / `>>` stepper pills rendered outside role="slider" */}
       {showDomeSteppers ? (
-        <div
-          className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-10"
-          onPointerDown={(e) => e.stopPropagation()}
-        >
+        <div className="absolute bottom-2 left-1/2 z-10 flex -translate-x-1/2 items-center gap-10">
           <button
             type="button"
             aria-label="Уменьшить"
@@ -543,14 +529,14 @@ function LinearTickerDial({
           touchAction: "pan-y",
         }}
       >
-        <motion.ul
+        <m.ul
           className="relative m-0 flex h-full list-none items-center p-0"
           style={{ marginLeft: -midIdx * NOTCH_WIDTH, x }}
         >
           {Array.from({ length: count }, (_, i) => (
             <LinearNotch key={i} index={i} midIdx={midIdx} x={x} />
           ))}
-        </motion.ul>
+        </m.ul>
       </div>
     </div>
   )
@@ -579,7 +565,7 @@ function LinearNotch({
   return (
     <li className="relative shrink-0 grow-0" style={{ height: "fit-content" }}>
       <div style={{ padding: "0 5px" }}>
-        <motion.div
+        <m.div
           className="rounded-full"
           style={{
             backgroundColor: bg,
@@ -588,7 +574,6 @@ function LinearNotch({
             scaleY,
             transformOrigin: "bottom",
             width: 3,
-            willChange: "transform, opacity",
           }}
         />
       </div>

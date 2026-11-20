@@ -269,7 +269,7 @@ export function RollLinks({
                       const lk = stateRef.current.links[idx]
                       if (lk?.letters[cIdx]) lk.letters[cIdx].el = el
                     }}
-                    className="flex flex-col will-change-transform"
+                    className="flex flex-col"
                   >
                     <i className="h-[1.12em] not-italic">{ch}</i>
                     <i className="h-[1.12em] not-italic text-[#e8ff1f]">{ch}</i>

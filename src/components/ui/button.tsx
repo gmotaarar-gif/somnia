@@ -23,9 +23,9 @@ const buttonVariants = cva(
           "border border-rose-400/26 bg-rose-500/[0.15] text-rose-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-md hover:bg-rose-500/[0.24]",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-8 rounded-full px-3.5 text-xs",
-        lg: "h-12 rounded-full px-6 text-[15px]",
+        default: "h-10 px-4 py-2 has-[>svg:first-child]:pl-3.5 has-[>svg:last-child]:pr-3.5",
+        sm: "h-8 rounded-full px-3.5 text-xs has-[>svg:first-child]:pl-2.5 has-[>svg:last-child]:pr-2.5",
+        lg: "h-12 rounded-full px-6 text-[15px] has-[>svg:first-child]:pl-5 has-[>svg:last-child]:pr-5",
         icon: "h-9 w-9 rounded-full",
       },
     },

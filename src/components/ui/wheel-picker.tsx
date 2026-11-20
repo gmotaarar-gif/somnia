@@ -10,12 +10,12 @@ import {
   type AnimationPlaybackControls,
   animate,
   type MotionValue,
-  motion,
+  m,
   useMotionValue,
   useMotionValueEvent,
   useReducedMotion,
   useTransform,
-} from "motion/react"
+} from "framer-motion"
 import {
   type KeyboardEvent,
   type PointerEvent,
@@ -23,46 +23,12 @@ import {
   useRef,
   useState,
 } from "react"
+import {
+  SOMNA_TIME_COLUMNS,
+  type WheelColumn,
+  type WheelOption,
+} from "@/lib/wheelColumns"
 import { cn } from "@/lib/utils"
-
-export interface WheelOption {
-  value: string
-  label: string
-}
-
-export interface WheelColumn {
-  id: string
-  label: string
-  options: WheelOption[]
-  loop?: boolean
-  className?: string
-}
-
-const range = (count: number, format: (i: number) => string) =>
-  Array.from({ length: count }, (_, i) => ({
-    value: format(i),
-    label: format(i),
-  }))
-
-export const SOMNA_TIME_COLUMNS: WheelColumn[] = [
-  {
-    id: "hour",
-    label: "Часы",
-    loop: true,
-    className: "w-15",
-    options: range(24, (i) => String(i).padStart(2, "0")),
-  },
-  {
-    id: "minute",
-    label: "Минуты",
-    loop: true,
-    className: "w-15",
-    options: Array.from({ length: 12 }, (_, i) => {
-      const m = String(i * 5).padStart(2, "0")
-      return { value: m, label: m }
-    }),
-  },
-]
 
 const DEFAULT_VALUE: Record<string, string> = {
   hour: "23",
@@ -114,7 +80,9 @@ export function WheelPicker({
   const [internal, setInternal] = useState(defaultValue)
   const value = valueProp ?? internal
   const latestValue = useRef(value)
-  latestValue.current = value
+  useEffect(() => {
+    latestValue.current = value
+  }, [value])
 
   const select = (columnId: string, optionValue: string) => {
     const current = latestValue.current
@@ -373,7 +341,9 @@ function WheelColumnView({
   }
 
   const wheel = useRef({ loop, count, goTo, clampIndex })
-  wheel.current = { loop, count, goTo, clampIndex }
+  useEffect(() => {
+    wheel.current = { loop, count, goTo, clampIndex }
+  })
   useEffect(() => {
     const node = columnRef.current
     if (!node) return
@@ -484,7 +454,7 @@ function Drum({
           : undefined,
       }}
     >
-      <motion.div
+      <m.div
         className="absolute inset-x-0 top-1/2"
         style={{ transform: drum, transformStyle: "preserve-3d" }}
       >
@@ -504,7 +474,7 @@ function Drum({
             {optionAt(index).label}
           </div>
         ))}
-      </motion.div>
+      </m.div>
     </div>
   )
 }

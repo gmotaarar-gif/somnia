@@ -1,5 +1,11 @@
 import * as React from "react"
-import { Bell, Clock, Moon, Play, RotateCcw, Sparkles } from "lucide-react"
+import { Play, RotateCcw } from "lucide-react"
+import {
+  AnimatedBellRing,
+  AnimatedMoonStar,
+  AnimatedSparkles,
+} from "@/components/animate-ui/icons/somna-animated-icons"
+import { AlarmClockCheck } from "@/components/icons/alarm-clock-check"
 import {
   Drawer,
   DrawerContent,
@@ -39,6 +45,9 @@ export function ProfileDrawer() {
     resetDemoData,
   } = useSomna()
 
+  const nameInputId = React.useId()
+  const chronoLabelId = React.useId()
+
   return (
     <Drawer open={profileOpen} onOpenChange={setProfileOpen}>
       <DrawerContent className="max-h-[90%]">
@@ -56,20 +65,23 @@ export function ProfileDrawer() {
           </div>
         </DrawerHeader>
 
-        <div className="space-y-3.5 overflow-y-auto px-5 pb-8 no-scrollbar">
+        <div className="space-y-3.5 overflow-y-auto overscroll-contain px-5 pb-8 no-scrollbar">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-white/65">Имя</label>
+            <label htmlFor={nameInputId} className="text-xs font-medium text-white/65">
+              Имя
+            </label>
             <Input
+              id={nameInputId}
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
             />
           </div>
 
           {/* Real Sleep Schedule Summary */}
-          <div className="flex items-center justify-between rounded-[22px] border border-white/10 bg-white/[0.04] p-3.5">
+          <div className="flex items-center justify-between rounded-[18px] border border-white/10 bg-white/[0.04] p-3.5">
             <div className="flex items-center gap-2.5">
               <span className="flex h-9 w-9 items-center justify-center rounded-full border border-indigo-400/25 bg-indigo-500/15 text-indigo-200">
-                <Clock className="h-4 w-4" />
+                <AlarmClockCheck size={16} />
               </span>
               <div>
                 <div className="text-xs font-medium text-white/65">
@@ -95,11 +107,12 @@ export function ProfileDrawer() {
 
           {/* Chronotype Selector */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-white/65">
+            <span id={chronoLabelId} className="block text-xs font-medium text-white/65">
               Привычный ритм
-            </label>
+            </span>
             <ToggleGroup
               type="single"
+              aria-labelledby={chronoLabelId}
               value={chronotype}
               onValueChange={(v) =>
                 v && setChronotype(v as "early" | "balanced" | "night")
@@ -113,10 +126,10 @@ export function ProfileDrawer() {
           </div>
 
           {/* Real Evening Detox Switch */}
-          <div className="flex items-center justify-between rounded-[22px] border border-white/10 bg-white/[0.04] p-3.5">
+          <div className="flex items-center justify-between rounded-[18px] border border-white/10 bg-white/[0.04] p-3.5">
             <div className="flex items-center gap-2.5">
               <span className="flex h-9 w-9 items-center justify-center rounded-full border border-indigo-400/22 bg-indigo-500/15 text-indigo-200">
-                <Moon className="h-4 w-4" />
+                <AnimatedMoonStar size={16} trigger={eveningDetox} />
               </span>
               <div>
                 <div className="text-sm font-medium text-white">
@@ -136,11 +149,11 @@ export function ProfileDrawer() {
           </div>
 
           {/* Real Reminder Toggle + Wired Reminder Time */}
-          <div className="space-y-2.5 rounded-[22px] border border-white/10 bg-white/[0.04] p-3.5">
+          <div className="space-y-2.5 rounded-[18px] border border-white/10 bg-white/[0.04] p-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <span className="flex h-9 w-9 items-center justify-center rounded-full border border-pink-400/24 bg-pink-500/15 text-pink-200">
-                  <Bell className="h-4 w-4" />
+                  <AnimatedBellRing size={16} trigger={reminderEnabled} />
                 </span>
                 <div>
                   <div className="text-sm font-medium text-white">
@@ -171,7 +184,7 @@ export function ProfileDrawer() {
                       type="button"
                       onClick={() => setReminderTime(t)}
                       className={cn(
-                        "cursor-pointer rounded-full border px-2.5 py-1 font-mono text-[11px] transition-[background-color,border-color,color] duration-[var(--duration-quick)] motion-reduce:transition-none",
+                        "cursor-pointer rounded-full border px-2.5 py-1 font-mono text-[11px] transition-[background-color,border-color,color,transform] duration-[var(--duration-quick)] active:scale-[0.97] motion-reduce:transition-none",
                         active
                           ? "border-[#e8ff1f]/42 bg-[#e8ff1f]/[0.16] font-semibold text-[#f2ff78]"
                           : "border-white/12 bg-white/[0.06] text-white/65 hover:bg-white/[0.12]"
@@ -218,7 +231,7 @@ export function ProfileDrawer() {
                 setProfileOpen(false)
               }}
             >
-              <Sparkles className="h-4 w-4 text-emerald-300" />
+              <AnimatedSparkles size={16} className="text-emerald-300" />
               <span>Обновить демо-данные</span>
             </Button>
           </div>

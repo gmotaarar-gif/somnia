@@ -46,10 +46,10 @@ export function useCountUp(target: number, duration = 850, enabled = true): numb
   const reduced = useReducedMotionPref()
   const [value, setValue] = React.useState(enabled && !reduced ? 0 : target)
   const curRef = React.useRef(value)
-  curRef.current = value
 
   React.useEffect(() => {
     if (!enabled || reduced || !Number.isFinite(target)) {
+      curRef.current = target
       setValue(target)
       return
     }
@@ -59,7 +59,9 @@ export function useCountUp(target: number, duration = 850, enabled = true): numb
     const t0 = performance.now()
     const tick = (now: number) => {
       const t = Math.min(1, (now - t0) / duration)
-      setValue(from + (target - from) * easeOutExpo(t))
+      const next = from + (target - from) * easeOutExpo(t)
+      curRef.current = next
+      setValue(next)
       if (t < 1) raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
@@ -114,6 +116,17 @@ export function useNow(ms = 30_000): Date {
     return () => window.clearInterval(id)
   }, [ms])
   return now
+}
+
+/** Gentle mobile haptic tap (gracefully ignored on unsupported desktop browsers). */
+export function haptic(ms = 8) {
+  try {
+    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+      navigator.vibrate(ms)
+    }
+  } catch {
+    // ignore unsupported environments
+  }
 }
 
 /** Reads a CSS custom property duration (`ms` or `s`) in milliseconds from `:root`. */
@@ -284,4 +297,112 @@ export const SOMNA_TRANSITIONS = {
     duration: MOTION_TOKENS.durations.verySlow,
     ease: MOTION_EASINGS.smoothOut,
   },
+  subtleFade: {
+    duration: MOTION_TOKENS.durations.quick,
+    ease: MOTION_EASINGS.smoothOut,
+  },
+  storyEnter: {
+    duration: MOTION_TOKENS.durations.fast,
+    ease: MOTION_EASINGS.smoothOut,
+  },
+  storyExit: {
+    duration: MOTION_TOKENS.durations.quick,
+    ease: MOTION_EASINGS.smoothOut,
+  },
+}
+
+/** Calibrated spring curves for tactile interactions across Somna */
+export const SOMNA_SPRINGS = {
+  snappy: { type: "spring" as const, stiffness: 460, damping: 32, mass: 0.85 },
+  gentle: { type: "spring" as const, stiffness: 280, damping: 26, mass: 1 },
+  bouncy: { type: "spring" as const, stiffness: 420, damping: 22, mass: 0.85 },
+  dial: { type: "spring" as const, stiffness: 320, damping: 28, mass: 0.9 },
+}
+
+/** Choreographed screen section cascade (40ms stagger, capped total <= 280ms) */
+export const STAGGER_CONTAINER = {
+  hidden: { opacity: 1 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: MOTION_TOKENS.durations.stagger,
+      delayChildren: 0.02,
+    },
+  },
+}
+
+export const STAGGER_ITEM = {
+  hidden: { opacity: 0, y: MOTION_TOKENS.distances.medium, scale: MOTION_TOKENS.scales.small },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      duration: MOTION_TOKENS.durations.medium,
+      ease: MOTION_EASINGS.smoothOut,
+    },
+  },
+}
+
+/** Fast, blur-free directional swap for high-frequency bottom-dock tab navigation (<200ms) */
+export const TAB_SLIDE_VARIANTS = {
+  enter: ({ dir, reduced }: { dir: number; reduced: boolean }) =>
+    reduced
+      ? { opacity: 0 }
+      : {
+          opacity: 0,
+          x: dir * 10,
+        },
+  center: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      duration: 0.18,
+      ease: MOTION_EASINGS.smoothOut,
+    },
+  },
+  exit: ({ dir, reduced }: { dir: number; reduced: boolean }) =>
+    reduced
+      ? { opacity: 0, transition: { duration: 0.06 } }
+      : {
+          opacity: 0,
+          x: dir * -6,
+          transition: {
+            duration: 0.11,
+            ease: MOTION_EASINGS.smoothOut,
+          },
+        },
+}
+
+/** Asymmetric page & onboarding directional slide with 3px optical blur dissolve */
+export const STEP_SLIDE_VARIANTS = {
+  enter: ({ dir, reduced }: { dir: number; reduced: boolean }) =>
+    reduced
+      ? { opacity: 0 }
+      : {
+          opacity: 0,
+          x: dir * MOTION_TOKENS.distances.medium,
+          scale: MOTION_TOKENS.scales.tiny,
+          filter: `blur(${MOTION_TOKENS.blurs.medium}px)`,
+        },
+  center: {
+    opacity: 1,
+    x: 0,
+    scale: 1,
+    filter: "blur(0px)",
+    transition: SOMNA_TRANSITIONS.pageSlide,
+  },
+  exit: ({ dir, reduced }: { dir: number; reduced: boolean }) =>
+    reduced
+      ? { opacity: 0, transition: { duration: 0.08 } }
+      : {
+          opacity: 0,
+          x: dir * -MOTION_TOKENS.distances.base,
+          scale: MOTION_TOKENS.scales.tiny,
+          filter: `blur(${MOTION_TOKENS.blurs.small}px)`,
+          transition: {
+            duration: MOTION_TOKENS.durations.quick,
+            ease: MOTION_EASINGS.smoothOut,
+          },
+        },
 }

@@ -75,43 +75,49 @@ Switch.displayName = SwitchPrimitives.Root.displayName
 export interface SliderProps
   extends React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root> {
   rainbow?: boolean
+  spectrum?: "default" | "rainbow" | "sleep"
+}
+
+const SLIDER_GRADIENTS: Record<"rainbow" | "sleep", string> = {
+  rainbow:
+    "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 24%, #14b8a6 46%, #84cc16 68%, #facc15 84%, #f97316 100%)",
+  sleep:
+    "linear-gradient(90deg, #fb7185 0%, #818cf8 32%, #38bdf8 56%, #34d399 78%, #e8ff1f 100%)",
 }
 
 export const Slider = React.forwardRef<
   React.ElementRef<typeof SliderPrimitive.Root>,
   SliderProps
->(({ className, rainbow = false, ...props }, ref) => (
-  <SliderPrimitive.Root
-    ref={ref}
-    className={cn("relative flex w-full touch-none items-center select-none", className)}
-    {...props}
-  >
-    <SliderPrimitive.Track
-      className={cn(
-        "relative h-2.5 w-full grow overflow-hidden rounded-full",
-        rainbow ? "" : "bg-white/12"
-      )}
-      style={
-        rainbow
-          ? {
-              background:
-                "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 24%, #14b8a6 46%, #84cc16 68%, #facc15 84%, #f97316 100%)",
-            }
-          : undefined
-      }
+>(({ className, rainbow = false, spectrum, ...props }, ref) => {
+  const mode = spectrum ?? (rainbow ? "rainbow" : "default")
+  const isSpectrum = mode !== "default"
+
+  return (
+    <SliderPrimitive.Root
+      ref={ref}
+      className={cn("relative flex w-full touch-none items-center select-none", className)}
+      {...props}
     >
-      {!rainbow ? (
-        <SliderPrimitive.Range className="absolute h-full bg-[#e8ff1f]" />
-      ) : null}
-    </SliderPrimitive.Track>
-    <SliderPrimitive.Thumb
-      className={cn(
-        "block cursor-grab rounded-full bg-white shadow-[0_2px_12px_rgba(0,0,0,0.55)] ring-offset-background transition-transform duration-[var(--duration-quick)] ease-[var(--ease-smooth-out)] focus-visible:outline-none active:scale-110 active:cursor-grabbing motion-reduce:transition-none motion-reduce:active:scale-100",
-        rainbow ? "h-7 w-7 border-2 border-white" : "h-5 w-5"
-      )}
-    />
-  </SliderPrimitive.Root>
-))
+      <SliderPrimitive.Track
+        className={cn(
+          "relative h-2.5 w-full grow overflow-hidden rounded-full",
+          isSpectrum ? "" : "bg-white/12"
+        )}
+        style={isSpectrum ? { background: SLIDER_GRADIENTS[mode] } : undefined}
+      >
+        {!isSpectrum ? (
+          <SliderPrimitive.Range className="absolute h-full bg-[#e8ff1f]" />
+        ) : null}
+      </SliderPrimitive.Track>
+      <SliderPrimitive.Thumb
+        className={cn(
+          "block cursor-grab rounded-full bg-white shadow-[0_2px_12px_rgba(0,0,0,0.55)] ring-offset-background transition-transform duration-[var(--duration-quick)] ease-[var(--ease-smooth-out)] focus-visible:outline-none active:scale-110 active:cursor-grabbing motion-reduce:transition-none motion-reduce:active:scale-100",
+          isSpectrum ? "h-7 w-7 border-2 border-white" : "h-5 w-5"
+        )}
+      />
+    </SliderPrimitive.Root>
+  )
+})
 Slider.displayName = SliderPrimitive.Root.displayName
 
 // ---------- shadcn Badge (Soft Frosted Glass ONLY) ----------

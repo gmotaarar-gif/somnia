@@ -57,9 +57,13 @@ export function WordRoll({
   className,
 }: WordRollProps) {
   const slotRef = React.useRef<HTMLSpanElement>(null)
-  const widthSpringRef = React.useRef<SpringState>(
-    createSpring(0, ...DB_SPRINGS.wordRollWidth)
-  )
+  const widthSpringRef = React.useRef<SpringState | null>(null)
+  const getWidthSpring = React.useCallback(() => {
+    if (!widthSpringRef.current) {
+      widthSpringRef.current = createSpring(0, ...DB_SPRINGS.wordRollWidth)
+    }
+    return widthSpringRef.current
+  }, [])
   const liveRef = React.useRef<LiveWordInstance[]>([])
   const indexRef = React.useRef(0)
   const idCounterRef = React.useRef(0)
@@ -99,8 +103,9 @@ export function WordRoll({
           const inst = liveRef.current[0]
           if (inst?.el && slotRef.current) {
             const measured = inst.el.offsetWidth
-            widthSpringRef.current.t = measured
-            widthSpringRef.current.x = measured
+            const ws = getWidthSpring()
+            ws.t = measured
+            ws.x = measured
             slotRef.current.style.width = `${measured.toFixed(1)}px`
           }
         })
@@ -149,13 +154,14 @@ export function WordRoll({
       requestAnimationFrame(() => {
         if (inst.el) {
           const measured = inst.el.offsetWidth
-          widthSpringRef.current.t = measured
-          if (first) widthSpringRef.current.x = measured
+          const ws = getWidthSpring()
+          ws.t = measured
+          if (first) ws.x = measured
         }
         ensureRafRef.current?.()
       })
     },
-    [after]
+    [after, getWidthSpring]
   )
 
   const scheduleNext = React.useCallback(() => {
@@ -189,9 +195,10 @@ export function WordRoll({
       document.fonts.ready.then(() => {
         const latest = liveRef.current[liveRef.current.length - 1]
         if (latest?.el) {
-          widthSpringRef.current.t = latest.el.offsetWidth
+          const ws = getWidthSpring()
+          ws.t = latest.el.offsetWidth
           if (prefersReducedMotion() && slotRef.current) {
-            widthSpringRef.current.x = latest.el.offsetWidth
+            ws.x = latest.el.offsetWidth
             slotRef.current.style.width = `${latest.el.offsetWidth.toFixed(1)}px`
           } else {
             ensureRafRef.current?.()
@@ -216,9 +223,10 @@ export function WordRoll({
         }
       }
 
+      const ws = getWidthSpring()
       const sub = 4
       for (let k = 0; k < sub; k++) {
-        stepSpring(widthSpringRef.current, dt / sub)
+        stepSpring(ws, dt / sub)
         for (const w of liveRef.current) {
           for (const l of w.letters) {
             stepSpring(l.s, dt / sub)
@@ -226,11 +234,11 @@ export function WordRoll({
         }
       }
 
-      if (slotRef.current && widthSpringRef.current.x > 0) {
-        slotRef.current.style.width = `${widthSpringRef.current.x.toFixed(1)}px`
+      if (slotRef.current && ws.x > 0) {
+        slotRef.current.style.width = `${ws.x.toFixed(1)}px`
       }
 
-      let active = timersRef.current.length > 0 || !springSettled(widthSpringRef.current)
+      let active = timersRef.current.length > 0 || !springSettled(ws)
       for (const w of liveRef.current) {
         for (const l of w.letters) {
           if (!springSettled(l.s)) active = true
@@ -326,7 +334,7 @@ export function WordRoll({
                 ref={(el) => {
                   l.el = el
                 }}
-                className="inline-block whitespace-pre will-change-[transform,opacity]"
+                className="inline-block whitespace-pre"
               >
                 {l.ch}
               </span>

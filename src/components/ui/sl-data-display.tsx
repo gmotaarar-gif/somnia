@@ -4,9 +4,9 @@ import "@/components/sl-ui/series-legend/buttons.css"
 import "@/components/sl-ui/heatmap-display/buttons.css"
 import "@/components/sl-ui/comparison-display/buttons.css"
 import "@/components/sl-ui/timeline-display/buttons.css"
+import { getBedtimeDeviationMin, getTargetDurationMin } from "@/lib/sleepTime"
+import { pluralRu } from "@/lib/sleepInsights"
 import {
-  getBedtimeDeviationMin,
-  getTargetDurationMin,
   useSomna,
   type MoodEntry,
   type SleepNight,
@@ -99,7 +99,7 @@ export function SLWeeklyBarChart({ className }: { className?: string }) {
 
   const nights = React.useMemo(() => sleepHistory.slice(-7), [sleepHistory])
   const [period, setPeriod] = React.useState<"current" | "previous">("current")
-  const [selectedIdx, setSelectedIdx] = React.useState<number>(Math.max(0, nights.length - 1))
+  const [selectedIdx, setSelectedIdx] = React.useState<number>(() => Math.max(0, nights.length - 1))
 
   React.useEffect(() => {
     setSelectedIdx(Math.max(0, nights.length - 1))
@@ -384,7 +384,7 @@ export function SLWeeklyMetricCard({ className }: { className?: string }) {
   const secondAvg =
     subset.slice(-half).reduce((s, n) => s + n.quality, 0) / half
   const diff = +(secondAvg - firstAvg).toFixed(1)
-  const trendText = `${diff >= 0 ? "+" : ""}${diff}%`
+  const trendText = `${diff > 0 ? "+" : ""}${diff.toLocaleString("ru-RU")} п. п.`
 
   const { points, coords } = React.useMemo(() => {
     const vals = subset.map((n) => n.quality)
@@ -425,7 +425,7 @@ export function SLWeeklyMetricCard({ className }: { className?: string }) {
         <div className="dd-scene">
           <section className="dd-card dd-card--metric" aria-label="Утренняя бодрость">
             <div className="dd-head">
-              <h3>Утренняя бодрость (самооценка)</h3>
+              <h3>Утренняя бодрость</h3>
               <span className="dd-icon">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <path d="M4 16 10 10l4 4 6-6M14 8h6v6" />
@@ -461,9 +461,11 @@ export function SLWeeklyMetricCard({ className }: { className?: string }) {
               <span className="dd-sr" data-number>
                 {avgQuality}% средняя утренняя бодрость
               </span>
-              <span className="dd-trend" data-trend>
-                <TextSwapSoft value={trendText} />
-              </span>
+              {subset.length > 1 && (
+                <span className="dd-trend" data-trend={Math.sign(diff)}>
+                  <TextSwapSoft value={trendText} />
+                </span>
+              )}
             </div>
 
             <p className="dd-muted" data-comparison>
@@ -567,13 +569,13 @@ export function SLWeeklySeriesChart({ className }: { className?: string }) {
         aria-label="Сравнение показателей недели"
       >
         <div className="dd-head">
-          <h2>Ритм недели по сериям</h2>
+          <h2>Динамика сна и настроения</h2>
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path d="M3 17 8 10l5 3 8-9M3 5l5 3 5-2 8 11" />
           </svg>
         </div>
         <p className="dd-subtitle">
-          {nights.length} последних ночей · шкала 0–100% от цели
+          {nights.length} {pluralRu(nights.length, ["ночь", "ночи", "ночей"])} по шкале 0–100%
         </p>
 
         <div className="dd-line-chart">
@@ -595,7 +597,7 @@ export function SLWeeklySeriesChart({ className }: { className?: string }) {
               </linearGradient>
             </defs>
             <path className="dd-guide" d="M0 0h240M0 50h240M0 100h240" />
-            {visible[0] ? (
+            {visible[0] && nights.length > 1 ? (
               <polygon
                 points={`0,100 ${chartData.pts0} 240,100`}
                 fill={`url(#sls-${gradId})`}
@@ -620,6 +622,12 @@ export function SLWeeklySeriesChart({ className }: { className?: string }) {
               points={chartData.pts2}
               style={{ opacity: visible[2] ? 1 : 0 }}
             />
+            {nights.length === 1 && [chartData.pts0, chartData.pts1, chartData.pts2].map((point, index) => {
+              const [cx, cy] = point.split(",")
+              return visible[index] ? (
+                <circle key={index} className={`dd-series-${index}`} cx={cx} cy={cy} r="2.5" />
+              ) : null
+            })}
           </svg>
         </div>
 
@@ -656,9 +664,9 @@ export function SLWeeklySeriesChart({ className }: { className?: string }) {
         </div>
 
         <p className="dd-summary" data-summary role="status" aria-live="polite" aria-atomic="true">
-          Активно линий: {activeCount} из 3 · средн. сон {chartData.avgHrs} ч · бодрость {chartData.avg1}%
+          Показано линий: {activeCount} из {seriesMeta.length}
         </p>
-        <p className="dd-hint">Минимум одна линия остаётся видимой.</p>
+        {activeCount === 1 && <p className="dd-hint">Оставьте хотя бы одну линию на графике.</p>}
       </section>
     </div>
   )
@@ -671,7 +679,7 @@ export function SLWeeklySeriesChart({ className }: { className?: string }) {
 export function SLSleepHeatmapCard({ className }: { className?: string }) {
   const { sleepHistory, bedtimeGoal } = useSomna()
   const nights = React.useMemo(() => sleepHistory.slice(-5), [sleepHistory])
-  const [selected, setSelected] = React.useState<number>(Math.max(0, nights.length - 1))
+  const [selected, setSelected] = React.useState<number>(() => Math.max(0, nights.length - 1))
   const gridRef = React.useRef<HTMLDivElement | null>(null)
 
   const rows = React.useMemo(() => {
@@ -880,12 +888,12 @@ export function SLScheduleComparisonCard({ className }: { className?: string }) 
         aria-label="Сравнение плана и факта"
       >
         <div className="dd-head">
-          <h2>План и факт за 7 ночей</h2>
+          <h2>План и факт за {nights.length} {pluralRu(nights.length, ["ночь", "ночи", "ночей"])}</h2>
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path d="M4 6h16M4 18h16M8 3v6m8 6v6M6 12h12" />
           </svg>
         </div>
-        <p className="dd-subtitle">Расписание {bedtimeGoal}–{wakeGoal} против реального журнала</p>
+        <p className="dd-subtitle">Целевое расписание {bedtimeGoal}–{wakeGoal}</p>
 
         <div className="dd-modes" role="group" aria-label="Формат отклонения">
           <button
@@ -902,7 +910,7 @@ export function SLScheduleComparisonCard({ className }: { className?: string }) 
             aria-pressed={mode === "percent"}
             onClick={() => setMode("percent")}
           >
-            В процентах %
+            В процентах
           </button>
         </div>
 

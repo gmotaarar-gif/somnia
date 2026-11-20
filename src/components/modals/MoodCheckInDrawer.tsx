@@ -1,17 +1,15 @@
 import * as React from "react"
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
+import { m, AnimatePresence, useReducedMotion } from "framer-motion"
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer"
-import {
-  StateOfMindOrb,
-  getValenceLabel,
-  sampleValencePalette,
-} from "@/components/ui/state-of-mind-orb"
+import { StateOfMindOrb } from "@/components/ui/state-of-mind-orb"
+import { getValenceLabel, sampleValencePalette } from "@/lib/valence"
 import { WordRoll } from "@/components/ui/word-roll"
 import { Slider } from "@/components/ui/controls"
 import { Textarea } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
+import { SLFocusTopics } from "@/components/ui/sl-product-controls"
 import { StaggerReveal } from "@/components/ui/t-motion"
-import { MOTION_TOKENS, SOMNA_TRANSITIONS } from "@/lib/motion"
+import { STEP_SLIDE_VARIANTS, haptic } from "@/lib/motion"
 import { useSomna } from "@/store/useSomnaStore"
 import { cn } from "@/lib/utils"
 
@@ -51,6 +49,7 @@ const FACTORS = [
 export function MoodCheckInDrawer() {
   const { moodDrawerOpen, setMoodDrawerOpen, addMoodEntry } = useSomna()
   const reduceMotion = useReducedMotion()
+  const noteInputId = React.useId()
 
   const [step, setStep] = React.useState(0) // 0: orb slider, 1: emotions, 2: factors, 3: Записано
   const [dir, setDir] = React.useState<1 | -1>(1)
@@ -95,25 +94,20 @@ export function MoodCheckInDrawer() {
   // Prune opposite-polarity emotions automatically when crossing neutral threshold
   const handleValenceChange = (nextVal: number) => {
     setValence(nextVal)
-    const nextPool = nextVal >= -0.05 ? POSITIVE_EMOTIONS : NEGATIVE_EMOTIONS
-    setSelectedEmotions((prev) => prev.filter((em) => nextPool.includes(em)))
+    const nextPoolSet = new Set(
+      nextVal >= -0.05 ? POSITIVE_EMOTIONS : NEGATIVE_EMOTIONS
+    )
+    setSelectedEmotions((prev) => prev.filter((em) => nextPoolSet.has(em)))
   }
 
   const goStep = (next: number) => {
+    haptic(6)
     setDir(next >= step ? 1 : -1)
     setStep(next)
   }
 
-  const toggleItem = (
-    setList: React.Dispatch<React.SetStateAction<string[]>>,
-    item: string
-  ) => {
-    setList((prev) =>
-      prev.includes(item) ? prev.filter((x) => x !== item) : [...prev, item]
-    )
-  }
-
   const handleSave = () => {
+    haptic(12)
     addMoodEntry({
       valence,
       label,
@@ -131,8 +125,6 @@ export function MoodCheckInDrawer() {
 
   const orbSize = step === 0 ? 196 : step === 1 ? 104 : step === 2 ? 78 : 196
   const accentColor = `rgb(${pal.mid[0]}, ${pal.mid[1]}, ${pal.mid[2]})`
-  const slideOffset = reduceMotion ? 0 : MOTION_TOKENS.distances.base
-  const stepTransition = reduceMotion ? { duration: 0 } : SOMNA_TRANSITIONS.pageSlide
 
   return (
     <Drawer open={moodDrawerOpen} onOpenChange={setMoodDrawerOpen}>
@@ -184,16 +176,16 @@ export function MoodCheckInDrawer() {
           />
         </div>
 
-        <AnimatePresence mode="wait" custom={dir}>
+        <AnimatePresence mode="wait" custom={{ dir, reduced: !!reduceMotion }}>
           {/* STEP 0: ("Как вы себя чувствуете прямо сейчас?") */}
           {step === 0 && (
-            <motion.div
+            <m.div
               key="checkin-0"
-              custom={dir}
-              initial={{ opacity: 0, x: dir * slideOffset }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: dir * -slideOffset }}
-              transition={stepTransition}
+              custom={{ dir, reduced: !!reduceMotion }}
+              variants={STEP_SLIDE_VARIANTS}
+              initial="enter"
+              animate="center"
+              exit="exit"
               className="flex flex-1 flex-col items-center justify-between px-6 pt-2 pb-8 text-center"
             >
               <div>
@@ -219,9 +211,9 @@ export function MoodCheckInDrawer() {
                     value={[Math.round(valence * 100)]}
                     onValueChange={([v]) => handleValenceChange(v / 100)}
                   />
-                  <div className="flex justify-between text-[10px] font-semibold tracking-wider text-white/45 uppercase">
-                    <span>ОЧЕНЬ НЕПРИЯТНО</span>
-                    <span>ОЧЕНЬ ПРИЯТНО</span>
+                  <div className="flex justify-between text-[11px] font-medium text-white/48">
+                    <span>Очень неприятно</span>
+                    <span>Очень приятно</span>
                   </div>
                 </div>
 
@@ -234,18 +226,18 @@ export function MoodCheckInDrawer() {
                   Далее
                 </Button>
               </div>
-            </motion.div>
+            </m.div>
           )}
 
-          {/* STEP 1: Specific Emotions (zero chip backdrop-blur inside opaque drawer) */}
+          {/* STEP 1: Specific Emotions powered by SL UI `product-topics` */}
           {step === 1 && (
-            <motion.div
+            <m.div
               key="checkin-1"
-              custom={dir}
-              initial={{ opacity: 0, x: dir * slideOffset }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: dir * -slideOffset }}
-              transition={stepTransition}
+              custom={{ dir, reduced: !!reduceMotion }}
+              variants={STEP_SLIDE_VARIANTS}
+              initial="enter"
+              animate="center"
+              exit="exit"
               className="flex flex-1 flex-col justify-between px-6 pt-2 pb-8"
             >
               <div className="text-center">
@@ -254,25 +246,14 @@ export function MoodCheckInDrawer() {
                 </h2>
                 <p className="mt-1 text-xs text-white/55">{label}</p>
 
-                <div className="mt-4 flex flex-wrap justify-center gap-2">
-                  {emotionPool.map((em) => {
-                    const on = selectedEmotions.includes(em)
-                    return (
-                      <button
-                        key={em}
-                        type="button"
-                        onClick={() => toggleItem(setSelectedEmotions, em)}
-                        className={cn(
-                          "cursor-pointer rounded-full border px-3.5 py-2 text-xs font-medium transition-[background-color,border-color,color,transform] duration-[var(--duration-quick)] ease-[var(--ease-smooth-out)] active:scale-95 motion-reduce:transition-none",
-                          on
-                            ? "border-white/32 bg-white/[0.18] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]"
-                            : "border-white/12 bg-white/[0.06] text-white/78 hover:bg-white/[0.12]"
-                        )}
-                      >
-                        {em}
-                      </button>
-                    )
-                  })}
+                <div className="mt-4">
+                  <SLFocusTopics
+                    options={emotionPool}
+                    selected={selectedEmotions}
+                    onChange={setSelectedEmotions}
+                    ariaLabel="Выбор эмоций"
+                    tone={valence >= -0.05 ? "mint" : "rose"}
+                  />
                 </div>
               </div>
 
@@ -294,19 +275,19 @@ export function MoodCheckInDrawer() {
                   Далее
                 </Button>
               </div>
-            </motion.div>
+            </m.div>
           )}
 
-          {/* STEP 2: Context Factors + Note */}
+          {/* STEP 2: Context Factors powered by SL UI `product-topics` + Note */}
           {step === 2 && (
-            <motion.div
+            <m.div
               key="checkin-2"
-              custom={dir}
-              initial={{ opacity: 0, x: dir * slideOffset }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: dir * -slideOffset }}
-              transition={stepTransition}
-              className="flex flex-1 flex-col justify-between px-6 pt-1 pb-8"
+              custom={{ dir, reduced: !!reduceMotion }}
+              variants={STEP_SLIDE_VARIANTS}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="flex flex-1 flex-col justify-between overflow-y-auto overscroll-contain px-6 pt-1 pb-8 no-scrollbar"
             >
               <div className="space-y-3.5">
                 <div className="text-center">
@@ -318,32 +299,23 @@ export function MoodCheckInDrawer() {
                   </p>
                 </div>
 
-                <div className="flex flex-wrap justify-center gap-2">
-                  {FACTORS.map((fac) => {
-                    const on = selectedFactors.includes(fac)
-                    return (
-                      <button
-                        key={fac}
-                        type="button"
-                        onClick={() => toggleItem(setSelectedFactors, fac)}
-                        className={cn(
-                          "cursor-pointer rounded-full border px-3.5 py-1.5 text-xs font-medium transition-[background-color,border-color,color,transform] duration-[var(--duration-quick)] ease-[var(--ease-smooth-out)] active:scale-95 motion-reduce:transition-none",
-                          on
-                            ? "border-[#e8ff1f]/42 bg-[#e8ff1f]/[0.16] text-[#f2ff78] shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
-                            : "border-white/14 bg-white/[0.06] text-white/75 hover:bg-white/[0.11]"
-                        )}
-                      >
-                        {fac}
-                      </button>
-                    )
-                  })}
-                </div>
+                <SLFocusTopics
+                  options={FACTORS}
+                  selected={selectedFactors}
+                  onChange={setSelectedFactors}
+                  ariaLabel="Факторы состояния"
+                  tone="lime"
+                />
 
                 <div className="pt-1">
-                  <label className="text-xs font-medium text-white/60">
+                  <label
+                    htmlFor={noteInputId}
+                    className="text-xs font-medium text-white/60"
+                  >
                     Короткая заметка (необязательно)
                   </label>
                   <Textarea
+                    id={noteInputId}
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     placeholder="Пара слов о моменте..."
@@ -353,7 +325,7 @@ export function MoodCheckInDrawer() {
                 </div>
               </div>
 
-              <div className="flex gap-2.5">
+              <div className="flex gap-2.5 pt-3">
                 <Button
                   size="lg"
                   variant="glass"
@@ -371,16 +343,18 @@ export function MoodCheckInDrawer() {
                   Записать
                 </Button>
               </div>
-            </motion.div>
+            </m.div>
           )}
 
           {/* STEP 3: ("Записано / Слегка приятно") */}
           {step === 3 && (
-            <motion.div
+            <m.div
               key="checkin-3"
-              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={stepTransition}
+              custom={{ dir, reduced: !!reduceMotion }}
+              variants={STEP_SLIDE_VARIANTS}
+              initial="enter"
+              animate="center"
+              exit="exit"
               className="flex flex-1 flex-col items-center justify-start px-6 pt-4 text-center"
             >
               <StaggerReveal index={0}>
@@ -391,7 +365,7 @@ export function MoodCheckInDrawer() {
               <StaggerReveal index={1}>
                 <p className="mt-1 text-sm font-medium text-white/60">{label}</p>
               </StaggerReveal>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       </DrawerContent>

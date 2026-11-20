@@ -1,4 +1,5 @@
 import * as React from "react"
+import { m, useReducedMotion } from "framer-motion"
 import {
   ArrowLeft,
   CheckCircle2,
@@ -10,6 +11,8 @@ import {
   X,
 } from "lucide-react"
 import { ExposureSlider } from "@/components/ui/exposure-slider"
+import { HopArcs } from "@/components/ui/dotted-track"
+import { SLSoundVolumeSlider } from "@/components/ui/sl-product-controls"
 import {
   IconSwap,
   SlidingTabs,
@@ -18,7 +21,12 @@ import {
   TextStatesSwap,
 } from "@/components/ui/t-motion"
 import { setSoundVolume, type SoundMode } from "@/lib/audioEngine"
-import { useSomna, type StressTimerState } from "@/store/useSomnaStore"
+import { SOMNA_SPRINGS, haptic } from "@/lib/motion"
+import {
+  useSomna,
+  useStressTimer,
+  type StressTimerState,
+} from "@/store/useSomnaStore"
 import { cn } from "@/lib/utils"
 
 const SOUND_OPTIONS: { id: SoundMode; label: string }[] = [
@@ -40,13 +48,15 @@ const TECHNIQUE_TABS: {
 
 export function PracticesScreen() {
   const {
-    stressTimer,
-    setStressTimer,
+    soundVolume,
+    setSoundVolumePct,
     breathMinutes,
     addBreathMinutes,
     setActiveTab,
   } = useSomna()
+  const { stressTimer, setStressTimer } = useStressTimer()
 
+  const reduceMotion = useReducedMotion()
   const [soundMenuOpen, setSoundMenuOpen] = React.useState(false)
   const [loggedBanner, setLoggedBanner] = React.useState<number | null>(null)
   const bannerTimerRef = React.useRef<number | null>(null)
@@ -59,29 +69,34 @@ export function PracticesScreen() {
     }
   }, [])
 
-  // Synchronized breathing cue per technique (`stress` 4-4-6 = 14s, `478` = 19s, `box` 4-4-4-4 = 16s)
-  const breathPhase = React.useMemo(() => {
+  // Synchronized breathing cue + physical halo expansion phase
+  const breathMeta = React.useMemo(() => {
     if (!stressTimer.running) {
-      return "При напряжении попробуйте 4 минуты. При сильном стрессе — 6 минут."
+      return {
+        label: "При напряжении попробуйте 4 минуты. При сильном стрессе — 6 минут.",
+        kind: "idle" as const,
+        scale: 1,
+        hopStep: 0,
+      }
     }
     const elapsed = stressTimer.totalSec - stressTimer.remainingSec
     if (stressTimer.technique === "478") {
       const m = elapsed % 19
-      if (m < 4) return "Вдох носом · 4 сек"
-      if (m < 11) return "Задержка · 7 сек"
-      return "Плавный выдох · 8 сек"
+      if (m < 4) return { label: "Вдох носом · 4 сек", kind: "inhale" as const, scale: 1.18, hopStep: 1 }
+      if (m < 11) return { label: "Задержка · 7 сек", kind: "hold" as const, scale: 1.2, hopStep: 2 }
+      return { label: "Плавный выдох · 8 сек", kind: "exhale" as const, scale: 0.9, hopStep: 3 }
     }
     if (stressTimer.technique === "box") {
       const m = elapsed % 16
-      if (m < 4) return "Вдох · 4 сек"
-      if (m < 8) return "Пауза на вдохе · 4 сек"
-      if (m < 12) return "Выдох · 4 сек"
-      return "Пауза на выдохе · 4 сек"
+      if (m < 4) return { label: "Вдох · 4 сек", kind: "inhale" as const, scale: 1.16, hopStep: 1 }
+      if (m < 8) return { label: "Пауза на вдохе · 4 сек", kind: "hold" as const, scale: 1.18, hopStep: 2 }
+      if (m < 12) return { label: "Выдох · 4 сек", kind: "exhale" as const, scale: 0.9, hopStep: 3 }
+      return { label: "Пауза на выдохе · 4 сек", kind: "rest" as const, scale: 0.88, hopStep: 4 }
     }
     const m = elapsed % 14
-    if (m < 4) return "Глубокий вдох · 4 сек"
-    if (m < 8) return "Спокойная пауза · 4 сек"
-    return "Длинный выдох · 6 сек"
+    if (m < 4) return { label: "Глубокий вдох · 4 сек", kind: "inhale" as const, scale: 1.18, hopStep: 1 }
+    if (m < 8) return { label: "Спокойная пауза · 4 сек", kind: "hold" as const, scale: 1.2, hopStep: 2 }
+    return { label: "Длинный выдох · 6 сек", kind: "exhale" as const, scale: 0.9, hopStep: 3 }
   }, [
     stressTimer.running,
     stressTimer.remainingSec,
@@ -91,22 +106,36 @@ export function PracticesScreen() {
 
   const mm = String(Math.floor(stressTimer.remainingSec / 60)).padStart(2, "0")
   const ss = String(stressTimer.remainingSec % 60).padStart(2, "0")
-  const elapsedMin = +((stressTimer.totalSec - stressTimer.remainingSec) / 60).toFixed(1)
+  const elapsedSec = Math.max(0, stressTimer.totalSec - stressTimer.remainingSec)
+  const elapsedMin = +(elapsedSec / 60).toFixed(1)
+  const sessionProgress =
+    stressTimer.totalSec > 0 ? Math.min(1, elapsedSec / stressTimer.totalSec) : 0
 
   const adjustMinutes = (deltaMin: number) => {
+    haptic(6)
     setStressTimer((prev) => {
       const nextTotal = Math.max(60, Math.min(900, prev.totalSec + deltaMin * 60))
-      const nextRem = Math.max(30, Math.min(nextTotal, prev.remainingSec + deltaMin * 60))
+      const nextRem = Math.max(
+        30,
+        Math.min(nextTotal, prev.remainingSec + deltaMin * 60)
+      )
       return { ...prev, totalSec: nextTotal, remainingSec: nextRem }
     })
   }
 
   const handleIntensityChange = (val: number) => {
     setStressTimer((prev) => ({ ...prev, intensity: val }))
-    setSoundVolume(0.12 + val * 0.06)
+    const volScale = Math.max(0, Math.min(1, soundVolume / 100))
+    setSoundVolume(volScale * (0.28 + val * 0.045))
+  }
+
+  const handleVolumeChange = (nextPct: number) => {
+    setSoundVolumePct(nextPct)
+    setSoundVolume((nextPct / 100) * (0.28 + stressTimer.intensity * 0.045))
   }
 
   const finishAndLog = () => {
+    haptic(12)
     const loggedMin = Math.max(1, Math.round(elapsedMin))
     addBreathMinutes(loggedMin)
     setStressTimer((prev) => ({
@@ -133,7 +162,7 @@ export function PracticesScreen() {
       {/* Soft radial coral bloom behind Intensity dial (Ref #2) */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 transition-opacity duration-[var(--duration-medium)] ease-[var(--ease-smooth-out)] motion-reduce:transition-none"
+        className="somna-aura-drift pointer-events-none absolute inset-0 transition-opacity duration-[var(--duration-medium)] ease-[var(--ease-smooth-out)] motion-reduce:transition-none"
         style={{
           backgroundImage: `radial-gradient(84% 42% at 50% 62%, rgba(218, 92, 84, ${bloomAlpha}), rgba(5, 3, 4, 0) 74%)`,
         }}
@@ -143,7 +172,10 @@ export function PracticesScreen() {
       <header className="relative z-10 flex items-center justify-between">
         <button
           type="button"
-          onClick={() => setActiveTab("home")}
+          onClick={() => {
+            haptic(5)
+            setActiveTab("home")
+          }}
           aria-label="Назад на главную"
           className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.07] text-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur-md transition-[background-color,transform] duration-[var(--duration-quick)] ease-[var(--ease-smooth-out)] hover:bg-white/[0.14] active:scale-95 motion-reduce:transition-none"
         >
@@ -163,6 +195,7 @@ export function PracticesScreen() {
         <button
           type="button"
           onClick={() => {
+            haptic(5)
             setStressTimer((prev) => ({
               ...prev,
               running: false,
@@ -180,51 +213,112 @@ export function PracticesScreen() {
       {/* Main Stress 04:00 Breathing Stage */}
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center pt-2 text-center">
         {/* Compact Breathing Technique SlidingTabs */}
-        <SlidingTabs
-          items={TECHNIQUE_TABS}
-          value={stressTimer.technique}
-          onValueChange={(id) =>
-            setStressTimer((prev) => ({ ...prev, technique: id }))
-          }
-          ariaLabel="Схема дыхания"
-          size="xs"
-        />
+        <div>
+          <SlidingTabs
+            items={TECHNIQUE_TABS}
+            value={stressTimer.technique}
+            onValueChange={(id) => {
+              haptic(5)
+              setStressTimer((prev) => ({ ...prev, technique: id }))
+            }}
+            ariaLabel="Схема дыхания"
+            size="xs"
+          />
+        </div>
 
-        {/* Giant Tabular Timer Readout */}
-        <div className="mt-4 font-sans text-[54px] leading-none font-extralight tracking-tight text-white tabular-nums">
-          <SubtleNumber value={`${mm}:${ss}`} />
+        {/* Giant Tabular Timer Readout with Live Phase-Synchronized Breathing Halo */}
+        <div className="relative mt-4 flex flex-col items-center justify-center">
+          <m.div
+            aria-hidden
+            animate={
+              reduceMotion
+                ? undefined
+                : {
+                    scale: breathMeta.scale,
+                    opacity: stressTimer.running ? 0.9 : 0.35,
+                  }
+            }
+            transition={{
+              duration:
+                breathMeta.kind === "exhale"
+                  ? 3.2
+                  : breathMeta.kind === "inhale"
+                    ? 2.4
+                    : 1.2,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            className="pointer-events-none absolute h-32 w-56 rounded-full"
+            style={{
+              background:
+                "radial-gradient(circle, rgba(251,113,133,0.28) 0%, rgba(251,113,133,0.06) 52%, transparent 74%)",
+            }}
+          />
+          {stressTimer.running ? (
+            <span
+              aria-hidden
+              className="somna-pulse-ring pointer-events-none absolute h-24 w-44 rounded-full border border-rose-300/24"
+            />
+          ) : null}
+
+          <div className="relative z-10 font-sans text-[54px] leading-none font-extralight tracking-tight text-white tabular-nums">
+            <SubtleNumber value={`${mm}:${ss}`} />
+          </div>
+
+          {/* Subtle session progress hairline */}
+          {sessionProgress > 0 ? (
+            <div className="mt-2 h-1 w-32 overflow-hidden rounded-full bg-white/12">
+              <div
+                className="h-full origin-left rounded-full bg-gradient-to-r from-rose-300 to-[#e8ff1f] transition-transform duration-700 ease-linear"
+                style={{ transform: `scaleX(${sessionProgress.toFixed(4)})` }}
+              />
+            </div>
+          ) : null}
         </div>
 
         {/* Live Breathing Cue / Guidance Caption */}
-        <div className="mx-auto mt-2.5 flex min-h-[38px] max-w-[264px] items-center justify-center text-[11.5px] leading-relaxed">
+        <div className="mx-auto mt-2 flex min-h-[38px] max-w-[268px] flex-col items-center justify-center text-[11.5px] leading-relaxed">
           <TextStatesSwap
-            value={breathPhase}
+            value={breathMeta.label}
             className={cn(
               stressTimer.running ? "font-medium text-rose-200" : "text-white/55"
             )}
           />
+          {stressTimer.running ? (
+            <div className="mt-1 w-36">
+              <HopArcs
+                count={stressTimer.technique === "box" ? 5 : 4}
+                active={breathMeta.hopStep}
+                accentColor="#fb7185"
+                className="h-6"
+              />
+            </div>
+          ) : null}
         </div>
 
         {/* Plush Squircle -1 мин / +1 мин Pillows (Ref #2) */}
-        <div className="mt-3.5 grid w-full grid-cols-2 gap-3">
-          <button
+        <div className="mt-3 grid w-full grid-cols-2 gap-3">
+          <m.button
             type="button"
+            whileTap={reduceMotion ? undefined : { scale: 0.96 }}
+            transition={SOMNA_SPRINGS.snappy}
             onClick={() => adjustMinutes(-1)}
-            className="h-[58px] cursor-pointer rounded-[22px] border border-white/[0.09] bg-[#140c0d]/55 text-[13px] font-medium text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md transition-[background-color,transform] duration-[var(--duration-quick)] ease-[var(--ease-smooth-out)] hover:bg-white/[0.11] active:scale-[0.97] motion-reduce:transition-none"
+            className="h-[56px] cursor-pointer rounded-[22px] border border-white/[0.09] bg-[#140c0d]/55 text-[13px] font-medium text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md transition-[background-color] duration-[var(--duration-quick)] hover:bg-white/[0.11] motion-reduce:transition-none"
           >
             −1 мин
-          </button>
-          <button
+          </m.button>
+          <m.button
             type="button"
+            whileTap={reduceMotion ? undefined : { scale: 0.96 }}
+            transition={SOMNA_SPRINGS.snappy}
             onClick={() => adjustMinutes(1)}
-            className="h-[58px] cursor-pointer rounded-[22px] border border-white/[0.09] bg-[#140c0d]/55 text-[13px] font-medium text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md transition-[background-color,transform] duration-[var(--duration-quick)] ease-[var(--ease-smooth-out)] hover:bg-white/[0.11] active:scale-[0.97] motion-reduce:transition-none"
+            className="h-[56px] cursor-pointer rounded-[22px] border border-white/[0.09] bg-[#140c0d]/55 text-[13px] font-medium text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md transition-[background-color] duration-[var(--duration-quick)] hover:bg-white/[0.11] motion-reduce:transition-none"
           >
             +1 мин
-          </button>
+          </m.button>
         </div>
 
         {/* Curved 140° Radial Intensity Dial (Ref #2 ExposureSlider variant="arc") */}
-        <div className="mt-4 w-full">
+        <div className="mt-3.5 w-full">
           <ExposureSlider
             variant="arc"
             label="Интенсивность"
@@ -238,7 +332,7 @@ export function PracticesScreen() {
           />
         </div>
 
-        {/* Smooth Grid-Collapsed Sound Palette Pills */}
+        {/* Smooth Grid-Collapsed Sound Mode + Authentic SL UI Library `product-volume` Slider */}
         <div
           aria-hidden={!soundMenuOpen}
           className={cn(
@@ -249,15 +343,24 @@ export function PracticesScreen() {
           )}
         >
           <div className="overflow-hidden">
-            <div className="flex justify-center pt-1 pb-1">
-              <SlidingTabs
-                items={SOUND_OPTIONS}
-                value={stressTimer.sound}
-                onValueChange={(id) =>
-                  setStressTimer((prev) => ({ ...prev, sound: id }))
-                }
-                ariaLabel="Фоновый звук"
-                size="xs"
+            <div className="space-y-2.5 pt-1 pb-1.5">
+              <div className="flex justify-center">
+                <SlidingTabs
+                  items={SOUND_OPTIONS}
+                  value={stressTimer.sound}
+                  onValueChange={(id) => {
+                    haptic(5)
+                    setStressTimer((prev) => ({ ...prev, sound: id }))
+                  }}
+                  ariaLabel="Фоновый звук"
+                  size="xs"
+                />
+              </div>
+              <SLSoundVolumeSlider
+                value={soundVolume}
+                onChange={handleVolumeChange}
+                ariaLabel="Громкость фона дыхания"
+                tone="rose"
               />
             </div>
           </div>
@@ -265,13 +368,18 @@ export function PracticesScreen() {
 
         {/* Bottom 3 Frosted Circular Glass Orbs (Ref #2) */}
         <div className="mt-3 flex w-full items-center justify-around px-4">
-          <button
+          <m.button
             type="button"
-            onClick={() => setSoundMenuOpen((v) => !v)}
+            whileTap={reduceMotion ? undefined : { scale: 0.92 }}
+            transition={SOMNA_SPRINGS.snappy}
+            onClick={() => {
+              haptic(6)
+              setSoundMenuOpen((v) => !v)
+            }}
             aria-label={`Фоновый звук: ${activeSoundLabel}`}
             title={`Звук: ${activeSoundLabel}`}
             className={cn(
-              "relative flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border backdrop-blur-md transition-[background-color,border-color,transform] duration-[var(--duration-quick)] ease-[var(--ease-smooth-out)] active:scale-95 motion-reduce:transition-none",
+              "relative flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border backdrop-blur-md transition-[background-color,border-color] duration-[var(--duration-quick)] motion-reduce:transition-none",
               stressTimer.sound !== "off" || soundMenuOpen
                 ? "border-rose-300/38 bg-rose-500/[0.22] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
                 : "border-white/[0.12] bg-white/[0.07] text-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] hover:bg-white/[0.14]"
@@ -282,18 +390,21 @@ export function PracticesScreen() {
               iconA={<VolumeX className="h-4.5 w-4.5" />}
               iconB={<Volume2 className="h-4.5 w-4.5 text-rose-100" />}
             />
-          </button>
+          </m.button>
 
-          <button
+          <m.button
             type="button"
-            onClick={() =>
+            whileTap={reduceMotion ? undefined : { scale: 0.92 }}
+            transition={SOMNA_SPRINGS.bouncy}
+            onClick={() => {
+              haptic(10)
               setStressTimer((prev) => ({ ...prev, running: !prev.running }))
-            }
+            }}
             aria-label={stressTimer.running ? "Пауза" : "Старт"}
             className={cn(
-              "flex h-[58px] w-[58px] cursor-pointer items-center justify-center rounded-full border text-white backdrop-blur-md transition-[background-color,border-color,box-shadow,transform] duration-[var(--duration-quick)] ease-[var(--ease-smooth-out)] active:scale-95 motion-reduce:transition-none",
+              "flex h-[58px] w-[58px] cursor-pointer items-center justify-center rounded-full border text-white backdrop-blur-md transition-[background-color,border-color,box-shadow] duration-[var(--duration-quick)] motion-reduce:transition-none",
               stressTimer.running
-                ? "border-rose-300/45 bg-rose-500/[0.28] shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_0_32px_rgba(251,113,133,0.42)]"
+                ? "border-rose-300/45 bg-rose-500/[0.28] shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_0_32px_rgba(251,113,133,0.44)]"
                 : "border-white/22 bg-white/[0.12] shadow-[inset_0_-1px_0_rgba(255,255,255,0.26),0_0_24px_rgba(251,113,133,0.24)] hover:bg-white/[0.18]"
             )}
           >
@@ -302,28 +413,37 @@ export function PracticesScreen() {
               iconA={<Pause className="h-5.5 w-5.5" />}
               iconB={<Play className="ml-0.5 h-5.5 w-5.5" />}
             />
-          </button>
+          </m.button>
 
-          <button
+          <m.button
             type="button"
-            onClick={() =>
+            whileTap={reduceMotion ? undefined : { scale: 0.92 }}
+            transition={SOMNA_SPRINGS.snappy}
+            onClick={() => {
+              haptic(6)
               setStressTimer((prev) => ({
                 ...prev,
                 running: false,
                 remainingSec: prev.totalSec,
               }))
-            }
+            }}
             aria-label="Сбросить сессию"
-            className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.07] text-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-md transition-[background-color,transform] duration-[var(--duration-quick)] ease-[var(--ease-smooth-out)] hover:bg-white/[0.14] active:scale-95 motion-reduce:transition-none"
+            className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.07] text-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-md transition-[background-color] duration-[var(--duration-quick)] hover:bg-white/[0.14] motion-reduce:transition-none"
           >
             <RotateCcw className="h-4.5 w-4.5" />
-          </button>
+          </m.button>
         </div>
 
         {/* Active sound indicator + Session Log Pill */}
         <div className="mt-2.5 flex min-h-[34px] flex-col items-center justify-center gap-1.5">
           <span className="text-[10.5px] text-white/45">
-            Звук: <TextStatesSwap value={activeSoundLabel} className="text-white/75" />
+            Звук:{" "}
+            <TextStatesSwap value={activeSoundLabel} className="text-white/75" />
+            {stressTimer.sound !== "off" ? (
+              <span className="ml-1 font-mono text-[10px] text-rose-200/80">
+                · {soundVolume}%
+              </span>
+            ) : null}
           </span>
 
           {loggedBanner !== null ? (

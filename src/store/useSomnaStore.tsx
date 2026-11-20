@@ -5,6 +5,7 @@ import {
   stopSound,
   type SoundMode,
 } from "@/lib/audioEngine"
+import { toLocalDateKey } from "@/lib/sleepTime"
 
 export type GlowTheme =
   | "emerald-lime"
@@ -92,30 +93,9 @@ export interface StressTimerState {
   sound: SoundMode
 }
 
-export function timeToMinutes(hhmm: string): number {
-  const [h = 0, m = 0] = hhmm.split(":").map(Number)
-  return ((h % 24) * 60 + (m % 60) + 1440) % 1440
-}
-
-export function getTargetDurationMin(bedGoal: string, wakeGoal: string): number {
-  let diff = timeToMinutes(wakeGoal) - timeToMinutes(bedGoal)
-  if (diff <= 0) diff += 1440
-  return diff
-}
-
-/** Signed deviation in minutes on a 24-hour clock (+ = позже цели, - = раньше цели) */
-export function getBedtimeDeviationMin(bedtime: string, goal: string): number {
-  let d = timeToMinutes(bedtime) - timeToMinutes(goal)
-  if (d > 720) d -= 1440
-  if (d < -720) d += 1440
-  return d
-}
-
-export function toLocalDateKey(d: Date): string {
-  const yyyy = d.getFullYear()
-  const mm = String(d.getMonth() + 1).padStart(2, "0")
-  const dd = String(d.getDate()).padStart(2, "0")
-  return `${yyyy}-${mm}-${dd}`
+export interface SomnaTimerStore {
+  stressTimer: StressTimerState
+  setStressTimer: React.Dispatch<React.SetStateAction<StressTimerState>>
 }
 
 const DEFAULT_SLEEP_HISTORY: SleepNight[] = [
@@ -509,6 +489,14 @@ export interface SomnaStore {
   setReminderEnabled: (v: boolean) => void
   reminderTime: string
   setReminderTime: (t: string) => void
+  reminderDays: number[]
+  setReminderDays: (days: number[]) => void
+  focusGoals: string[]
+  setFocusGoals: (goals: string[]) => void
+  ritualDoneIds: string[]
+  setRitualDoneIds: (ids: string[]) => void
+  soundVolume: number
+  setSoundVolumePct: (pct: number) => void
   eveningDetox: boolean
   setEveningDetox: (v: boolean) => void
   waterMl: number
@@ -554,13 +542,12 @@ export interface SomnaStore {
   setSleepLogOpen: (v: boolean) => void
   profileOpen: boolean
   setProfileOpen: (v: boolean) => void
-  stressTimer: StressTimerState
-  setStressTimer: React.Dispatch<React.SetStateAction<StressTimerState>>
 }
 
 const STORAGE_KEY = "somna-app-state-v5"
 
 const SomnaContext = React.createContext<SomnaStore | null>(null)
+const SomnaTimerContext = React.createContext<SomnaTimerStore | null>(null)
 
 export function SomnaProvider({ children }: { children: React.ReactNode }) {
   const saved = React.useMemo(() => {
@@ -586,6 +573,20 @@ export function SomnaProvider({ children }: { children: React.ReactNode }) {
   const [wakeGoal, setWakeGoal] = React.useState<string>(saved?.wakeGoal ?? "07:30")
   const [reminderEnabled, setReminderEnabled] = React.useState<boolean>(saved?.reminderEnabled ?? true)
   const [reminderTime, setReminderTime] = React.useState<string>(saved?.reminderTime ?? "22:30")
+  const [reminderDays, setReminderDays] = React.useState<number[]>(
+    Array.isArray(saved?.reminderDays) ? saved.reminderDays : [0, 1, 2, 3, 4]
+  )
+  const [focusGoals, setFocusGoals] = React.useState<string[]>(
+    Array.isArray(saved?.focusGoals)
+      ? saved.focusGoals
+      : ["Стабильный подъём", "Снять вечерний стресс"]
+  )
+  const [ritualDoneIds, setRitualDoneIds] = React.useState<string[]>(
+    Array.isArray(saved?.ritualDoneIds) ? saved.ritualDoneIds : ["dim-lights"]
+  )
+  const [soundVolume, setSoundVolumePct] = React.useState<number>(
+    typeof saved?.soundVolume === "number" ? saved.soundVolume : 64
+  )
   const [eveningDetox, setEveningDetox] = React.useState<boolean>(saved?.eveningDetox ?? true)
   const [waterMl, setWaterMl] = React.useState<number>(saved?.waterMl ?? 1500)
   const [breathMinutes, setBreathMinutes] = React.useState<number>(saved?.breathMinutes ?? 6)
@@ -652,6 +653,10 @@ export function SomnaProvider({ children }: { children: React.ReactNode }) {
           wakeGoal,
           reminderEnabled,
           reminderTime,
+          reminderDays,
+          focusGoals,
+          ritualDoneIds,
+          soundVolume,
           eveningDetox,
           waterMl,
           breathMinutes,
@@ -676,6 +681,10 @@ export function SomnaProvider({ children }: { children: React.ReactNode }) {
     wakeGoal,
     reminderEnabled,
     reminderTime,
+    reminderDays,
+    focusGoals,
+    ritualDoneIds,
+    soundVolume,
     eveningDetox,
     waterMl,
     breathMinutes,
@@ -693,8 +702,7 @@ export function SomnaProvider({ children }: { children: React.ReactNode }) {
       setStressTimer((prev) => {
         if (!prev.running) return prev
         if (prev.remainingSec <= 1) {
-          setBreathMinutes((m) => +(m + prev.totalSec / 60).toFixed(1))
-          return { ...prev, running: false, remainingSec: prev.totalSec }
+          return { ...prev, running: false, remainingSec: 0 }
         }
         return { ...prev, remainingSec: prev.remainingSec - 1 }
       })
@@ -702,13 +710,25 @@ export function SomnaProvider({ children }: { children: React.ReactNode }) {
     return () => window.clearInterval(id)
   }, [stressTimer.running])
 
+  // Pure completion side-effect separated from state updater (StrictMode-safe)
   React.useEffect(() => {
+    if (stressTimer.remainingSec !== 0) return
+    setBreathMinutes((m) => +(m + stressTimer.totalSec / 60).toFixed(1))
+    setStressTimer((prev) =>
+      prev.remainingSec === 0
+        ? { ...prev, running: false, remainingSec: prev.totalSec }
+        : prev
+    )
+  }, [stressTimer.remainingSec, stressTimer.totalSec])
+
+  React.useEffect(() => {
+    const volScale = Math.max(0, Math.min(1, soundVolume / 100))
     if (stressTimer.running && stressTimer.sound !== "off") {
-      setSoundVolume(0.12 + stressTimer.intensity * 0.06)
+      setSoundVolume(volScale * (0.28 + stressTimer.intensity * 0.045))
       startSound(stressTimer.sound)
     } else if (sleepModeActive) {
       const mode = stressTimer.sound !== "off" ? stressTimer.sound : "pink"
-      setSoundVolume(0.24)
+      setSoundVolume(volScale * 0.42)
       startSound(mode)
     } else {
       stopSound()
@@ -716,7 +736,7 @@ export function SomnaProvider({ children }: { children: React.ReactNode }) {
     return () => {
       stopSound()
     }
-  }, [stressTimer.running, stressTimer.sound, stressTimer.intensity, sleepModeActive])
+  }, [stressTimer.running, stressTimer.sound, stressTimer.intensity, sleepModeActive, soundVolume])
 
   const setSleepSchedule = React.useCallback((bed: string, wake: string) => {
     setBedtimeGoal(bed)
@@ -852,82 +872,164 @@ export function SomnaProvider({ children }: { children: React.ReactNode }) {
     setEveningDetox(true)
     setReminderEnabled(true)
     setReminderTime("22:30")
+    setReminderDays([0, 1, 2, 3, 4])
+    setFocusGoals(["Стабильный подъём", "Снять вечерний стресс"])
+    setRitualDoneIds(["dim-lights"])
+    setSoundVolumePct(64)
     setChronotype("balanced")
     setBedtimeGoal("23:30")
     setWakeGoal("07:30")
     setWeeklyGoalState(null)
   }, [])
 
-  const value: SomnaStore = {
-    onboarded,
-    setOnboarded,
-    activeTab,
-    setActiveTab,
-    bentoPeriod,
-    setBentoPeriod,
-    dockMode,
-    setDockMode,
-    anyOverlayOpen,
-    userName,
-    setUserName,
-    chronotype,
-    setChronotype,
-    bedtimeGoal,
-    wakeGoal,
-    setSleepSchedule,
-    reminderEnabled,
-    setReminderEnabled,
-    reminderTime,
-    setReminderTime,
-    eveningDetox,
-    setEveningDetox,
-    waterMl,
-    addWater,
-    breathMinutes,
-    addBreathMinutes,
-    streakDays,
-    sleepHistory,
-    addSleepNight,
-    sleepModeActive,
-    setSleepModeActive,
-    moodHistory,
-    addMoodEntry,
-    spectrum,
-    updateSpectrumAxis,
-    widgets,
-    setWidgets,
-    toggleWidgetSize,
-    removeWidget,
-    restoreWidget,
-    addCustomWidget,
-    incrementCustomWidget,
-    resetWidgets,
-    resetDemoData,
-    editWidgetsMode,
-    setEditWidgetsMode,
-    moodDrawerOpen,
-    setMoodDrawerOpen,
-    widgetGalleryOpen,
-    setWidgetGalleryOpen,
-    weeklyRecapOpen,
-    setWeeklyRecapOpen,
-    weeklyGoal,
-    setWeeklyGoal,
-    sleepLogOpen,
-    setSleepLogOpen,
-    profileOpen,
-    setProfileOpen,
-    stressTimer,
-    setStressTimer,
-  }
+  const value = React.useMemo<SomnaStore>(
+    () => ({
+      onboarded,
+      setOnboarded,
+      activeTab,
+      setActiveTab,
+      bentoPeriod,
+      setBentoPeriod,
+      dockMode,
+      setDockMode,
+      anyOverlayOpen,
+      userName,
+      setUserName,
+      chronotype,
+      setChronotype,
+      bedtimeGoal,
+      wakeGoal,
+      setSleepSchedule,
+      reminderEnabled,
+      setReminderEnabled,
+      reminderTime,
+      setReminderTime,
+      reminderDays,
+      setReminderDays,
+      focusGoals,
+      setFocusGoals,
+      ritualDoneIds,
+      setRitualDoneIds,
+      soundVolume,
+      setSoundVolumePct,
+      eveningDetox,
+      setEveningDetox,
+      waterMl,
+      addWater,
+      breathMinutes,
+      addBreathMinutes,
+      streakDays,
+      sleepHistory,
+      addSleepNight,
+      sleepModeActive,
+      setSleepModeActive,
+      moodHistory,
+      addMoodEntry,
+      spectrum,
+      updateSpectrumAxis,
+      widgets,
+      setWidgets,
+      toggleWidgetSize,
+      removeWidget,
+      restoreWidget,
+      addCustomWidget,
+      incrementCustomWidget,
+      resetWidgets,
+      resetDemoData,
+      editWidgetsMode,
+      setEditWidgetsMode,
+      moodDrawerOpen,
+      setMoodDrawerOpen,
+      widgetGalleryOpen,
+      setWidgetGalleryOpen,
+      weeklyRecapOpen,
+      setWeeklyRecapOpen,
+      weeklyGoal,
+      setWeeklyGoal,
+      sleepLogOpen,
+      setSleepLogOpen,
+      profileOpen,
+      setProfileOpen,
+    }),
+    [
+      onboarded,
+      activeTab,
+      bentoPeriod,
+      dockMode,
+      setDockMode,
+      anyOverlayOpen,
+      userName,
+      chronotype,
+      bedtimeGoal,
+      wakeGoal,
+      setSleepSchedule,
+      reminderEnabled,
+      reminderTime,
+      reminderDays,
+      focusGoals,
+      ritualDoneIds,
+      soundVolume,
+      eveningDetox,
+      waterMl,
+      addWater,
+      breathMinutes,
+      addBreathMinutes,
+      streakDays,
+      sleepHistory,
+      addSleepNight,
+      sleepModeActive,
+      moodHistory,
+      addMoodEntry,
+      spectrum,
+      updateSpectrumAxis,
+      widgets,
+      toggleWidgetSize,
+      removeWidget,
+      restoreWidget,
+      addCustomWidget,
+      incrementCustomWidget,
+      resetWidgets,
+      resetDemoData,
+      editWidgetsMode,
+      moodDrawerOpen,
+      widgetGalleryOpen,
+      weeklyRecapOpen,
+      weeklyGoal,
+      setWeeklyGoal,
+      sleepLogOpen,
+      profileOpen,
+    ]
+  )
 
-  return <SomnaContext.Provider value={value}>{children}</SomnaContext.Provider>
+  const timerValue = React.useMemo<SomnaTimerStore>(
+    () => ({
+      stressTimer,
+      setStressTimer,
+    }),
+    [stressTimer]
+  )
+
+  return (
+    <SomnaContext.Provider value={value}>
+      <SomnaTimerContext.Provider value={timerValue}>
+        {children}
+      </SomnaTimerContext.Provider>
+    </SomnaContext.Provider>
+  )
 }
 
 export function useSomna(): SomnaStore {
   const ctx = React.useContext(SomnaContext)
   if (!ctx) {
     throw new Error("useSomna must be used within SomnaProvider")
+  }
+  return ctx
+}
+
+export function useStressTimer(): SomnaTimerStore {
+  const ctx = React.useContext(SomnaTimerContext)
+  if (!ctx) {
+    throw new Error("useStressTimer must be used within SomnaProvider")
   }
   return ctx
 }

@@ -1,5 +1,6 @@
 import * as React from "react"
-import { Wifi, BatteryFull, Signal } from "lucide-react"
+import { AnimatePresence, m, useReducedMotion } from "framer-motion"
+import { ChevronRight, Wifi, BatteryFull, Signal } from "lucide-react"
 import { accentChain } from "glimm"
 import {
   GlimmScope,
@@ -9,8 +10,15 @@ import {
 import { IPhonePortalContext } from "@/context/IPhonePortalContext"
 import { DynamicIsland } from "@/components/iphone/DynamicIsland"
 import { SoftTabs, type SoftTab } from "@/components/ui/soft-tabs"
-import { prefersReducedMotion } from "@/lib/motion"
-import { useSomna, type TabId } from "@/store/useSomnaStore"
+import { StateOfMindOrb } from "@/components/ui/state-of-mind-orb"
+import { AnimatedMoonStar } from "@/components/animate-ui/icons/somna-animated-icons"
+import {
+  SOMNA_SPRINGS,
+  haptic,
+  prefersReducedMotion,
+  useNow,
+} from "@/lib/motion"
+import { useSomna, useStressTimer, type TabId } from "@/store/useSomnaStore"
 import { cn } from "@/lib/utils"
 
 const PHONE_GLIMM_PALETTE = accentChain(["#6366f1", "#2dd4bf", "#e8ff1f"])
@@ -72,6 +80,161 @@ const SOMNA_TABS: SoftTab[] = [
   { id: "practices", label: "Практики", icon: "heart" },
 ]
 
+function StressEdgeOverlay({
+  onboarded,
+  activeTab,
+}: {
+  onboarded: boolean
+  activeTab: TabId
+}) {
+  const { stressTimer } = useStressTimer()
+  if (!onboarded || activeTab !== "practices") return null
+
+  const stressAlpha = +(0.26 + stressTimer.intensity * 0.056).toFixed(3)
+  const stressCycle =
+    stressTimer.technique === "478"
+      ? "19s"
+      : stressTimer.technique === "box"
+        ? "16s"
+        : "14s"
+
+  return (
+    <div
+      aria-hidden
+      data-running={stressTimer.running ? "true" : "false"}
+      style={
+        {
+          "--stress-glow-alpha": stressAlpha,
+          "--stress-cycle": stressCycle,
+        } as React.CSSProperties
+      }
+      className="stress-edge-viewport pointer-events-none absolute inset-0 z-35 rounded-[49px]"
+    />
+  )
+}
+
+function QuickAddPopover({
+  open,
+  bedtimeGoal,
+  wakeGoal,
+  onClose,
+  onSelectMood,
+  onSelectSleep,
+}: {
+  open: boolean
+  bedtimeGoal: string
+  wakeGoal: string
+  onClose: () => void
+  onSelectMood: () => void
+  onSelectSleep: () => void
+}) {
+  const reduceMotion = useReducedMotion()
+
+  React.useEffect(() => {
+    if (!open) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [open, onClose])
+
+  return (
+    <AnimatePresence>
+      {open ? (
+        <>
+          <m.button
+            key="quick-add-scrim"
+            type="button"
+            aria-label="Закрыть меню записи"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.16 }}
+            onClick={onClose}
+            className="absolute inset-0 z-34 cursor-default bg-black/48 backdrop-blur-[2px]"
+          />
+
+          <m.div
+            key="quick-add-menu"
+            role="menu"
+            aria-label="Добавить запись"
+            initial={
+              reduceMotion
+                ? { opacity: 0 }
+                : { opacity: 0, scale: 0.9, y: 12 }
+            }
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={
+              reduceMotion
+                ? { opacity: 0 }
+                : { opacity: 0, scale: 0.94, y: 8 }
+            }
+            transition={
+              reduceMotion
+                ? { duration: 0 }
+                : SOMNA_SPRINGS.snappy
+            }
+            className="pointer-events-auto absolute right-3.5 bottom-[96px] z-36 w-[256px] origin-bottom-right rounded-[26px] border border-white/14 bg-[#0d0f18]/92 p-2.5 shadow-[0_24px_56px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,255,255,0.2)] backdrop-blur-xl select-none"
+          >
+            <div className="px-2.5 pt-1 pb-2 text-[11px] font-medium text-white/48">
+              Новая запись
+            </div>
+
+            <div className="space-y-1.5">
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  haptic(8)
+                  onSelectMood()
+                }}
+                className="group flex w-full cursor-pointer items-center gap-3 rounded-[16px] border border-white/[0.08] bg-white/[0.045] px-3 py-2.5 text-left transition-[background-color,border-color,transform] duration-[var(--duration-quick)] ease-[var(--ease-smooth-out)] hover:border-emerald-300/28 hover:bg-emerald-500/[0.11] active:scale-[0.98] motion-reduce:transition-none"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/35">
+                  <StateOfMindOrb valence={0.42} size={36} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[13.5px] font-semibold text-white">
+                    Настроение
+                  </div>
+                  <div className="truncate text-[11px] text-white/52">
+                    Эмоции и факторы дня
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 shrink-0 text-white/35 transition-transform duration-[var(--duration-quick)] group-hover:translate-x-0.5 group-hover:text-white/75 motion-reduce:transition-none" />
+              </button>
+
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  haptic(8)
+                  onSelectSleep()
+                }}
+                className="group flex w-full cursor-pointer items-center gap-3 rounded-[16px] border border-white/[0.08] bg-white/[0.045] px-3 py-2.5 text-left transition-[background-color,border-color,transform] duration-[var(--duration-quick)] ease-[var(--ease-smooth-out)] hover:border-indigo-300/30 hover:bg-indigo-500/[0.14] active:scale-[0.98] motion-reduce:transition-none"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-indigo-300/28 bg-[radial-gradient(circle_at_35%_30%,rgba(232,255,31,0.22),rgba(99,102,241,0.32)_62%,rgba(12,13,24,0.9))] text-[#e8ff1f] shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]">
+                  <AnimatedMoonStar size={19} trigger={open} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[13.5px] font-semibold text-white">
+                    Сон
+                  </div>
+                  <div className="truncate font-mono text-[10.5px] text-white/52">
+                    Бодрость · {bedtimeGoal}–{wakeGoal}
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 shrink-0 text-white/35 transition-transform duration-[var(--duration-quick)] group-hover:translate-x-0.5 group-hover:text-white/75 motion-reduce:transition-none" />
+              </button>
+            </div>
+          </m.div>
+        </>
+      ) : null}
+    </AnimatePresence>
+  )
+}
+
 export function IPhoneFrame({ children }: { children: React.ReactNode }) {
   const {
     onboarded,
@@ -79,12 +242,17 @@ export function IPhoneFrame({ children }: { children: React.ReactNode }) {
     setActiveTab,
     anyOverlayOpen,
     setMoodDrawerOpen,
-    stressTimer,
+    setSleepLogOpen,
+    bedtimeGoal,
+    wakeGoal,
     weeklyRecapOpen,
   } = useSomna()
 
+  const [quickAddOpen, setQuickAddOpen] = React.useState(false)
   const [portalEl, setPortalEl] = React.useState<HTMLElement | null>(null)
   const [scale, setScale] = React.useState(1)
+  const now = useNow(15_000)
+  const statusClock = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
   const scopeRef = React.useRef<GlimmScopeHandle>(null)
   const lastSweepAtRef = React.useRef(0)
   const prevWeeklyRef = React.useRef(weeklyRecapOpen)
@@ -123,15 +291,6 @@ export function IPhoneFrame({ children }: { children: React.ReactNode }) {
     window.addEventListener("resize", updateScale)
     return () => window.removeEventListener("resize", updateScale)
   }, [])
-
-  const showStressEdge = onboarded && activeTab === "practices"
-  const stressAlpha = +(0.26 + stressTimer.intensity * 0.056).toFixed(3)
-  const stressCycle =
-    stressTimer.technique === "478"
-      ? "19s"
-      : stressTimer.technique === "box"
-        ? "16s"
-        : "14s"
 
   const glimmValue = React.useMemo(
     () => ({ playPhoneSweep }),
@@ -180,25 +339,13 @@ export function IPhoneFrame({ children }: { children: React.ReactNode }) {
           <div className="relative flex h-full w-full flex-col overflow-hidden rounded-[49px] bg-[#050508] text-white">
             <IPhonePortalContext.Provider value={portalEl}>
               <IPhoneGlimmContext.Provider value={glimmValue}>
-                {/* Full-bleed Stress 04:00 OLED Perimeter Vignette (GPU opacity-only) */}
-                {showStressEdge ? (
-                  <div
-                    aria-hidden
-                    data-running={stressTimer.running ? "true" : "false"}
-                    style={
-                      {
-                        "--stress-glow-alpha": stressAlpha,
-                        "--stress-cycle": stressCycle,
-                      } as React.CSSProperties
-                    }
-                    className="stress-edge-viewport pointer-events-none absolute inset-0 z-35 rounded-[49px]"
-                  />
-                ) : null}
+                {/* Full-bleed Stress 04:00 OLED Perimeter Vignette (isolated from main shell re-renders) */}
+                <StressEdgeOverlay onboarded={onboarded} activeTab={activeTab} />
 
                 {/* iOS Status Bar + Dynamic Island */}
                 <div className="pointer-events-none relative z-50 flex h-[52px] shrink-0 items-center justify-between px-7 pt-2 select-none">
-                  <span className="w-14 font-sans text-[14px] font-semibold tracking-tight text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.28)]">
-                    19:53
+                  <span className="w-14 font-sans text-[14px] font-semibold tracking-tight text-white tabular-nums drop-shadow-[0_1px_4px_rgba(0,0,0,0.28)]">
+                    {statusClock}
                   </span>
 
                   <div className="pointer-events-auto absolute top-2.5 left-1/2 -translate-x-1/2">
@@ -229,7 +376,7 @@ export function IPhoneFrame({ children }: { children: React.ReactNode }) {
                 >
                   <main
                     className={cn(
-                      "relative h-full w-full flex-1 overflow-x-hidden overflow-y-auto transition-[transform,border-radius] duration-[var(--duration-medium)] [transition-timing-function:var(--ease-ios-drawer)] will-change-transform motion-reduce:transition-none motion-reduce:transform-none no-scrollbar",
+                      "relative h-full w-full flex-1 overflow-x-hidden overflow-y-auto overscroll-contain transition-[transform,border-radius] duration-[var(--duration-medium)] [transition-timing-function:var(--ease-ios-drawer)] motion-reduce:transition-none motion-reduce:transform-none no-scrollbar",
                       anyOverlayOpen
                         ? "translate-y-[6px] scale-[0.94] overflow-hidden rounded-[34px]"
                         : "translate-y-0 scale-100"
@@ -248,12 +395,30 @@ export function IPhoneFrame({ children }: { children: React.ReactNode }) {
                   )}
                 />
 
+                {/* Origin-aware Quick-Add Menu above the SoftTabs `+` button */}
+                <QuickAddPopover
+                  open={quickAddOpen && onboarded && !anyOverlayOpen}
+                  bedtimeGoal={bedtimeGoal}
+                  wakeGoal={wakeGoal}
+                  onClose={() => setQuickAddOpen(false)}
+                  onSelectMood={() => {
+                    setQuickAddOpen(false)
+                    setMoodDrawerOpen(true)
+                  }}
+                  onSelectSleep={() => {
+                    setQuickAddOpen(false)
+                    setSleepLogOpen(true)
+                  }}
+                />
+
                 {/* Floating Bottom Dock: SoftTabs only */}
                 {onboarded ? (
                   <div
                     className={cn(
-                      "pointer-events-none absolute inset-x-0 bottom-0 z-30 flex flex-col items-center pb-5 transition-opacity duration-[var(--duration-quick)] ease-[var(--ease-smooth-out)] motion-reduce:transition-none",
-                      anyOverlayOpen && "pointer-events-none opacity-0"
+                      "pointer-events-none absolute inset-x-0 bottom-0 z-35 flex flex-col items-center pb-5 transition-[opacity,transform] duration-[var(--duration-fast)] ease-[var(--ease-smooth-out)] motion-reduce:transition-none",
+                      anyOverlayOpen
+                        ? "pointer-events-none translate-y-4 opacity-0"
+                        : "translate-y-0 opacity-100"
                     )}
                   >
                     <div
@@ -265,9 +430,15 @@ export function IPhoneFrame({ children }: { children: React.ReactNode }) {
                       <SoftTabs
                         tabs={SOMNA_TABS}
                         value={activeTab}
-                        onValueChange={(id) => setActiveTab(id as TabId)}
-                        onAdd={() => setMoodDrawerOpen(true)}
-                        addLabel="Записать состояние"
+                        onValueChange={(id) => {
+                          setQuickAddOpen(false)
+                          setActiveTab(id as TabId)
+                        }}
+                        onAdd={() => {
+                          haptic(6)
+                          setQuickAddOpen((prev) => !prev)
+                        }}
+                        addLabel="Добавить запись сна или настроения"
                         ariaLabel="Разделы Somna"
                         surface="#181924"
                         background="#07070c"

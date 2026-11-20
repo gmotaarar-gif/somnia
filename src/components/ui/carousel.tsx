@@ -33,8 +33,13 @@ export function Carousel({
     setApi(api)
   }, [api, setApi])
 
+  const contextValue = React.useMemo(
+    () => ({ carouselRef, api }),
+    [carouselRef, api]
+  )
+
   return (
-    <CarouselContext.Provider value={{ carouselRef, api }}>
+    <CarouselContext.Provider value={contextValue}>
       <div className={cn("relative", className)} role="region" {...props}>
         {children}
       </div>

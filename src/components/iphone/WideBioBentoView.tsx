@@ -8,9 +8,8 @@ import {
   SLWeeklySeriesChart,
 } from "@/components/ui/sl-data-display"
 import { Button } from "@/components/ui/button"
+import { getBedtimeDeviationMin, getTargetDurationMin } from "@/lib/sleepTime"
 import {
-  getBedtimeDeviationMin,
-  getTargetDurationMin,
   useSomna,
   type MoodEntry,
   type SleepNight,
@@ -201,7 +200,7 @@ export function WideBioBentoView({ onBackToPhone }: { onBackToPhone: () => void 
   ])
 
   return (
-    <div className="min-h-screen w-full bg-black px-4 py-5 sm:px-6">
+    <div className="min-h-dvh w-full bg-black px-4 py-5 sm:px-6">
       <div className="mx-auto mb-3 flex max-w-[1320px] items-center justify-between">
         <span className="text-xs font-medium text-white/50">
           Somna Wide Bento · Сводка только по реальным записям

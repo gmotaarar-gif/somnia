@@ -1,7 +1,7 @@
 import * as React from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { motion } from "framer-motion"
+import { m } from "framer-motion"
 import {
   ArrowUpRight,
   ChevronRight,
@@ -34,10 +34,10 @@ import {
   useNow,
 } from "@/lib/motion"
 import { computeBedtimeCountdown, pluralRu } from "@/lib/sleepInsights"
+import { getBedtimeDeviationMin, getTargetDurationMin } from "@/lib/sleepTime"
 import {
-  getBedtimeDeviationMin,
-  getTargetDurationMin,
   useSomna,
+  useStressTimer,
   type BentoPeriod,
   type BentoWidgetItem,
   type MoodEntry,
@@ -57,6 +57,11 @@ const TECHNIQUE_LABELS: Record<StressTimerState["technique"], string> = {
   box: "4×4",
 }
 
+function BreathTechniqueText() {
+  const { stressTimer } = useStressTimer()
+  return <>{TECHNIQUE_LABELS[stressTimer.technique]}</>
+}
+
 export function BentoWidgetCard({ widget, index = 0 }: BentoWidgetCardProps) {
   const {
     sleepHistory,
@@ -71,7 +76,6 @@ export function BentoWidgetCard({ widget, index = 0 }: BentoWidgetCardProps) {
     setEveningDetox,
     breathMinutes,
     addBreathMinutes,
-    stressTimer,
     waterMl,
     addWater,
     editWidgetsMode,
@@ -149,7 +153,7 @@ export function BentoWidgetCard({ widget, index = 0 }: BentoWidgetCardProps) {
           : "opacity-100"
       )}
     >
-      <motion.div
+      <m.div
         layout
         transition={SOMNA_TRANSITIONS.cardSpring}
         style={{
@@ -237,7 +241,6 @@ export function BentoWidgetCard({ widget, index = 0 }: BentoWidgetCardProps) {
               setEveningDetox={setEveningDetox}
               breathMinutes={breathMinutes}
               addBreathMinutes={addBreathMinutes}
-              stressTechnique={stressTimer.technique}
               waterMl={waterMl}
               addWater={addWater}
               incrementCustomWidget={incrementCustomWidget}
@@ -246,7 +249,7 @@ export function BentoWidgetCard({ widget, index = 0 }: BentoWidgetCardProps) {
             />
           </GlowCard>
         </TiltCard>
-      </motion.div>
+      </m.div>
     </div>
   )
 }
@@ -266,7 +269,6 @@ function InnerWidgetContent({
   setEveningDetox,
   breathMinutes,
   addBreathMinutes,
-  stressTechnique,
   waterMl,
   addWater,
   incrementCustomWidget,
@@ -287,7 +289,6 @@ function InnerWidgetContent({
   setEveningDetox: (v: boolean) => void
   breathMinutes: number
   addBreathMinutes: (min: number) => void
-  stressTechnique: StressTimerState["technique"]
   waterMl: number
   addWater: (ml: number) => void
   incrementCustomWidget: (id: string) => void
@@ -1215,7 +1216,7 @@ function InnerWidgetContent({
               <div className="min-w-0 flex-1 space-y-1">
                 <HopArcs count={5} active={activeHops} accentColor="#fb7185" />
                 <div className="text-[10px] text-white/55">
-                  Ритм {TECHNIQUE_LABELS[stressTechnique]} · {pct}% цели
+                  Ритм <BreathTechniqueText /> · {pct}% цели
                 </div>
               </div>
             </div>
@@ -1245,7 +1246,7 @@ function InnerWidgetContent({
           )}
 
           <div className="flex items-center justify-between text-[10px]">
-            <span className="text-white/55">Схема {TECHNIQUE_LABELS[stressTechnique]}</span>
+            <span className="text-white/55">Схема <BreathTechniqueText /></span>
             <span className="font-mono font-semibold text-rose-200">{pct}%</span>
           </div>
         </>

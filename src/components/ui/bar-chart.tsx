@@ -296,13 +296,13 @@ function BarChart({
           }
           className={onBarClick ? "cursor-pointer" : undefined}
         >
-          {data.map((_, index) => (
-            <Cell key={index} fill={fillFor(index)} />
+          {data.map((row, index) => (
+            <Cell key={String(row.id ?? row[xKey] ?? row[yKey])} fill={fillFor(index)} />
           ))}
         </Bar>
-        {referenceLines.map((line, index) => (
+        {referenceLines.map((line) => (
           <ReferenceLine
-            key={index}
+            key={`${line.y}-${line.label ?? "ref"}`}
             y={line.y}
             ifOverflow="extendDomain"
             stroke={line.color ?? "var(--muted-foreground)"}

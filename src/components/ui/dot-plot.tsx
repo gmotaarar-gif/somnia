@@ -90,12 +90,19 @@ function DotPlot({
         // While a column is hovered it alone is lit; otherwise the emphasized columns are.
         const lit = active === null ? strong : active === index
         const label = labels?.[index]
+        const colKey = label ? `${label}-${value}` : `pt-${value}-${count}`
         return (
-          <div
-            key={index}
+          <button
+            key={colKey}
+            type="button"
             data-slot="dot-plot-column"
             data-emphasis={strong}
             data-active={active === index}
+            aria-label={
+              label !== undefined
+                ? `${label}: ${valueFormatter(value)}`
+                : valueFormatter(value)
+            }
             onPointerEnter={() => setActive(index)}
             onClick={() => {
               setActive(active === index ? null : index)
@@ -103,7 +110,7 @@ function DotPlot({
             }}
             // Columns stretch to the full height and carry the gap as padding, so the hover target has no dead zones.
             // They share the width equally and cap at the dot size, so dots shrink in narrow cards instead of overflowing.
-            className="relative flex min-w-0 flex-1 cursor-pointer flex-col-reverse justify-start gap-(--dot-gap) px-[calc(var(--dot-gap)/2)] max-w-[calc(var(--dot-size)+var(--dot-gap))]"
+            className="relative flex min-w-0 flex-1 cursor-pointer flex-col-reverse justify-start gap-(--dot-gap) border-0 bg-transparent p-0 px-[calc(var(--dot-gap)/2)] max-w-[calc(var(--dot-size)+var(--dot-gap))] focus-visible:outline-none"
           >
             {Array.from({ length: count }, (_, dot) => (
               <span
@@ -123,7 +130,7 @@ function DotPlot({
                 <span className="font-mono font-semibold tabular-nums">{valueFormatter(value)}</span>
               </span>
             ) : null}
-          </div>
+          </button>
         )
       })}
     </div>

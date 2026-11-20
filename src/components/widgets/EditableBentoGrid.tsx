@@ -14,7 +14,7 @@ import {
   rectSortingStrategy,
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable"
-import { AnimatePresence, motion } from "framer-motion"
+import { AnimatePresence, m } from "framer-motion"
 import { Plus } from "lucide-react"
 import { BentoWidgetCard } from "@/components/widgets/BentoWidgetCard"
 import { SOMNA_TRANSITIONS } from "@/lib/motion"
@@ -67,7 +67,7 @@ export function EditableBentoGrid() {
           {/* Add new widget soft-glass tile shown in Edit Mode (07-panel-reveal timing) */}
           <AnimatePresence initial={false}>
             {editWidgetsMode ? (
-              <motion.button
+              <m.button
                 key="add-widget-tile"
                 type="button"
                 initial={{ opacity: 0, y: 12 }}
@@ -90,7 +90,7 @@ export function EditableBentoGrid() {
                 <span className="text-xs font-semibold">
                   Добавить или создать новый Bento-виджет
                 </span>
-              </motion.button>
+              </m.button>
             ) : null}
           </AnimatePresence>
         </div>

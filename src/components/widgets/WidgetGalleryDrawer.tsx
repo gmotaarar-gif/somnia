@@ -1,5 +1,5 @@
 import * as React from "react"
-import { motion } from "framer-motion"
+import { m } from "framer-motion"
 import {
   Activity,
   BarChart3,
@@ -33,14 +33,15 @@ import {
   Input,
 } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { GlowCard, GLOW_PALETTES } from "@/components/ui/glow-card"
+import { GlowCard } from "@/components/ui/glow-card"
+import { GLOW_PALETTES } from "@/lib/glowPalettes"
 import { DotMatrix } from "@/components/ui/dot-matrix"
 import { TickBar } from "@/components/ui/tick-bar"
 import { Scrubber } from "@/components/ui/scrubber"
 import { IconSwap, TextMorph } from "@/components/ui/t-motion"
 import { SOMNA_TRANSITIONS } from "@/lib/motion"
+import { getTargetDurationMin } from "@/lib/sleepTime"
 import {
-  getTargetDurationMin,
   useSomna,
   type BentoWidgetItem,
   type GlowTheme,
@@ -106,6 +107,10 @@ export function WidgetGalleryDrawer() {
   const [target, setTarget] = React.useState<number>(15)
   const [size, setSize] = React.useState<WidgetSize>("1x1")
   const [theme, setTheme] = React.useState<GlowTheme>("plum-violet")
+  const titleId = React.useId()
+  const unitId = React.useId()
+  const sizeLabelId = React.useId()
+  const themeLabelId = React.useId()
 
   const availableWidgets = React.useMemo(
     () => widgets.filter((w) => !w.visible),
@@ -184,16 +189,16 @@ export function WidgetGalleryDrawer() {
   const renderCatalogRow = (w: BentoWidgetItem) => (
     <div
       key={w.id}
-      className="flex items-center justify-between rounded-[20px] border border-white/10 bg-white/[0.045] p-3 transition-[border-color,background-color] duration-[var(--duration-quick)] hover:border-white/16 hover:bg-white/[0.065] motion-reduce:transition-none"
+      className="flex items-center justify-between rounded-[22px] border border-white/10 bg-white/[0.045] p-3 transition-[border-color,background-color] duration-[var(--duration-quick)] hover:border-white/16 hover:bg-white/[0.065] motion-reduce:transition-none"
     >
       <div className="flex min-w-0 items-center gap-3">
         <span
-          className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]"
+          className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]"
           style={{ background: GLOW_PALETTES[w.theme].outer }}
         >
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-1 rounded-xl opacity-75"
+            className="pointer-events-none absolute inset-1 rounded-[6px] opacity-75"
             style={{
               background: `radial-gradient(circle, ${GLOW_PALETTES[w.theme].core} 0%, transparent 85%)`,
             }}
@@ -247,14 +252,14 @@ export function WidgetGalleryDrawer() {
           <button
             type="button"
             onClick={resetWidgets}
-            className="flex cursor-pointer items-center gap-1 rounded-full border border-white/14 bg-white/[0.08] px-2.5 py-1 text-[11px] text-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur-md transition-[background-color,color] duration-[var(--duration-quick)] hover:bg-white/[0.14] hover:text-white motion-reduce:transition-none"
+            className="flex cursor-pointer items-center gap-1 rounded-full border border-white/14 bg-white/[0.08] px-2.5 py-1 text-[11px] text-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur-md transition-[background-color,color,transform] duration-[var(--duration-quick)] hover:bg-white/[0.14] hover:text-white active:scale-[0.97] motion-reduce:transition-none"
           >
             <RotateCcw className="h-3 w-3" />
             <span>Сброс</span>
           </button>
         </DrawerHeader>
 
-        <div className="overflow-y-auto px-5 pb-7 no-scrollbar">
+        <div className="overflow-y-auto overscroll-contain px-5 pb-7 no-scrollbar">
           <Tabs defaultValue="catalog" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="catalog">Библиотека</TabsTrigger>
@@ -268,7 +273,7 @@ export function WidgetGalleryDrawer() {
               {availableWidgets.length > 0 ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between px-1">
-                    <span className="text-[11px] font-semibold tracking-wide text-[#f1ff76] uppercase">
+                    <span className="text-xs font-medium text-[#f1ff76]">
                       Доступные для добавления
                     </span>
                     <span className="font-mono text-[10px] text-white/45">
@@ -283,7 +288,7 @@ export function WidgetGalleryDrawer() {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between px-1">
-                  <span className="text-[11px] font-semibold tracking-wide text-white/55 uppercase">
+                  <span className="text-xs font-medium text-white/60">
                     На главном экране
                   </span>
                   <span className="font-mono text-[10px] text-white/45">
@@ -299,7 +304,7 @@ export function WidgetGalleryDrawer() {
             <TabsContent value="create">
               <form onSubmit={handleCreateCustom} className="space-y-3.5 pt-1.5">
                 <div className="flex justify-center">
-                  <motion.div
+                  <m.div
                     layout
                     transition={SOMNA_TRANSITIONS.cardSpring}
                     className={cn(size === "2x1" ? "w-full" : "w-[56%]")}
@@ -334,25 +339,27 @@ export function WidgetGalleryDrawer() {
                         />
                       </div>
                     </GlowCard>
-                  </motion.div>
+                  </m.div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
                   <div className="col-span-2 space-y-1">
-                    <label className="text-xs font-medium text-white/70">
+                    <label htmlFor={titleId} className="text-xs font-medium text-white/70">
                       Название виджета
                     </label>
                     <Input
+                      id={titleId}
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="Медитация, Чтение, Магний"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-white/70">
+                    <label htmlFor={unitId} className="text-xs font-medium text-white/70">
                       Единица
                     </label>
                     <Input
+                      id={unitId}
                       value={unit}
                       onChange={(e) => setUnit(e.target.value)}
                       placeholder="мин"
@@ -361,9 +368,9 @@ export function WidgetGalleryDrawer() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-white/70">
+                  <span className="block text-xs font-medium text-white/70">
                     Потяните ползунок дневной цели
-                  </label>
+                  </span>
                   <Scrubber
                     label="Дневная цель"
                     unit={unit || "мин"}
@@ -378,11 +385,12 @@ export function WidgetGalleryDrawer() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-white/70">
+                  <span id={sizeLabelId} className="block text-xs font-medium text-white/70">
                     Формат на сетке
-                  </label>
+                  </span>
                   <ToggleGroup
                     type="single"
+                    aria-labelledby={sizeLabelId}
                     value={size}
                     onValueChange={(v) => v && setSize(v as WidgetSize)}
                     className="w-full"
@@ -397,17 +405,21 @@ export function WidgetGalleryDrawer() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-white/70">
+                  <span id={themeLabelId} className="block text-xs font-medium text-white/70">
                     Купольное свечение
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
+                  </span>
+                  <div
+                    role="group"
+                    aria-labelledby={themeLabelId}
+                    className="flex flex-wrap gap-1.5"
+                  >
                     {THEME_KEYS.map((key) => (
                       <button
                         key={key}
                         type="button"
                         onClick={() => setTheme(key)}
                         className={cn(
-                          "flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] backdrop-blur-md transition-[background-color,border-color,color] duration-[var(--duration-quick)] motion-reduce:transition-none",
+                          "flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] backdrop-blur-md transition-[background-color,border-color,color,transform] duration-[var(--duration-quick)] active:scale-[0.97] motion-reduce:transition-none",
                           theme === key
                             ? "border-white/35 bg-white/[0.16] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
                             : "border-white/10 bg-white/[0.05] text-white/62 hover:bg-white/[0.1]"

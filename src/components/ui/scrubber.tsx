@@ -1,7 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { motion, useReducedMotion } from "motion/react"
+import { m, useReducedMotion } from "framer-motion"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 export interface ScrubberProps {
@@ -214,7 +214,7 @@ export function Scrubber({
             zIndex: 3,
           }}
         >
-          <motion.div
+          <m.div
             animate={{
               opacity: isActive ? 1 : 0.45,
               scaleX: isActive ? 1 : 0.78,
