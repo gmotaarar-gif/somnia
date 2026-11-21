@@ -26,3 +26,21 @@ To run on an emulator or a USB device with debugging enabled:
 ```sh
 adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 ```
+
+## App icon
+
+`public/app-icon.svg` is the editable source for the moon, star, and tide mark.
+After editing its paths or gradients, regenerate the Android vectors, legacy
+launcher PNGs, favicon fallbacks, and Apple touch icon:
+
+```sh
+python -m pip install CairoSVG==2.8.2 Pillow==12.0.0
+python scripts/generate_icons.py
+```
+
+Python is only needed to update the artwork, not for web or Android builds.
+The native foreground is transparent and fits the central 66dp adaptive-icon
+safe circle. API 26+ uses separate foreground/background layers; API 33+ also
+provides a monochrome mark for launchers with themed icons enabled. Older
+devices use the density-specific square/round PNGs. The web links use Vite's
+base URL so favicons also work under the GitHub Pages project path.
