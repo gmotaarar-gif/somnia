@@ -47,9 +47,11 @@ class SectionHead extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
                       hint!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 13, color: c.ink3),
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.3,
+                        color: c.ink3,
+                      ),
                     ),
                   ),
               ],
