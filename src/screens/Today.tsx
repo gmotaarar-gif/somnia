@@ -11,7 +11,8 @@ import { useStore } from "@/store/store"
 import { AwardsStrip, DayPlan } from "@/screens/TodayExtras"
 import { TopBar } from "@/shell/TopBar"
 import { Card } from "@/ui/Card"
-import { Bars, Orbits, Wave } from "@/ui/charts"
+import { Bars, Wave } from "@/ui/charts"
+import { Hypnogram } from "@/ui/SleepStages"
 import { Chip, IconButton, SectionHead } from "@/ui/controls"
 import { Dots, DotsCount } from "@/ui/Dots"
 import { WidgetGrid } from "@/widgets/WidgetGrid"
@@ -45,7 +46,7 @@ function HeroShell({
           onClick()
         }
       }}
-      className="h-[348px] w-full cursor-pointer"
+      className={cn("h-[348px] w-full cursor-pointer", tone === "violet" && "sleep-hero")}
     >
       <div className="flex h-full flex-col p-6">
         <div className="flex items-center justify-between">
@@ -86,13 +87,13 @@ export function TodayScreen() {
       caption: "Прошлая ночь",
       node: (
         <HeroShell tone="violet" title="Прошлая ночь" icon={<Info />} label="Прошлая ночь. Открыть сон" onClick={() => setTab("sleep")}>
-          <div className="mt-7 flex flex-col items-center">
-            <DotsCount value={last?.durationMin ?? 0} format={(v) => hm(Math.round(v))} className="text-[58px]" />
-            <span className="mt-3 text-[13px] text-ink-2">
+          <div className="mt-6">
+            <span className="text-[52px] font-medium leading-none tracking-[-0.06em] tabular-nums">{last ? hm(last.durationMin) : "0:00"}<span className="ml-2 text-[18px] tracking-normal text-white/65">ч</span></span>
+            <span className="mt-3 block text-[12px] text-white/70">
               {last ? `часов сна · ${last.bedtime} → ${last.wakeTime}` : "добавьте первую запись"}
             </span>
           </div>
-          <Orbits className="-mx-6 mt-auto w-[calc(100%+48px)]" points={[0.2, (last?.quality ?? 60) / 100, 0.78]} />
+          {last && <div className="mt-auto pt-5"><Hypnogram night={last} compact /><span className="mt-2 block text-[10px] text-white/55">Оценка фаз · {qualityLabel(last.quality)} · {last.quality}</span></div>}
         </HeroShell>
       ),
     },
@@ -150,7 +151,7 @@ export function TodayScreen() {
         <div
           ref={track}
           onScroll={onScroll}
-          className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-[11%]"
+          className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-6"
         >
           {slides.map((s, i) => (
             <div key={i} className="w-full shrink-0 snap-center">
