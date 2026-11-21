@@ -9,7 +9,7 @@ import { useSummary } from "@/store/derived"
 import { useStore } from "@/store/store"
 import { RITUAL } from "@/screens/Practices"
 import { Card, type CardTone } from "@/ui/Card"
-import { Bars, Wave } from "@/ui/charts"
+import { Bars } from "@/ui/charts"
 import { Button, IconButton } from "@/ui/controls"
 import { Dots } from "@/ui/Dots"
 import { Sheet } from "@/ui/Sheet"
@@ -26,7 +26,7 @@ function RecapStories({ onClose }: { onClose: () => void }) {
     (b, n) => (!b || nightScore(n, bedGoal, wakeGoal) > nightScore(b, bedGoal, wakeGoal) ? n : b),
     undefined
   )
-  const emotions = emotionCounts(weekMoods).slice(0, 4)
+  const emotions = emotionCounts(weekMoods).slice(0, 5)
   const link = sleepMoodLink(nights, moods)
   const goals = weeklyGoalOptions(sum, weekMoods.length)
   const [goal, setGoal] = React.useState(weeklyGoal?.id ?? goals[0]?.id)
@@ -75,25 +75,34 @@ function RecapStories({ onClose }: { onClose: () => void }) {
         <Fact label="Долг сна" value={durationRu(sum.debt)} />
       </div>
     </Slide>,
-    <Slide key="mood" kicker="Состояние" title={sum.moodAvg != null ? "Баланс настроения" : "Пока без чек-инов"}>
-      <div className="mt-8 flex items-end gap-2">
-        <Dots value={sum.moodAvg != null ? `${sum.moodAvg}%` : "--"} className="text-[64px]" />
-        <span className="pb-1 text-[13px] text-ink-2">в среднем</span>
+    <React.Fragment key="mood">
+      <div className="text-[12px] text-white/75">{range} · Состояние</div>
+      <div className="flex flex-1 flex-col justify-center py-8">
+        <div className="mb-6 text-[11px] font-semibold uppercase tracking-[0.1em] text-white/75">
+          {emotions.length ? "Чаще всего вы чувствовали" : "Неделя в ощущениях"}
+        </div>
+        {emotions.length ? (
+          <div className="space-y-2">
+            {emotions.map((e, n) => (
+              <div key={e.name} className="flex items-baseline gap-2" style={{ opacity: 1 - n * 0.14 }}>
+                <span className="min-w-0 break-words font-semibold leading-[1.08] tracking-[-0.055em]" style={{ fontSize: `${Math.min(42 - n * 5, 520 / (e.name.length + 1))}px` }}>{e.name}</span>
+                <span className="shrink-0 text-[13px]">×{e.count}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <h2 className="text-[36px] font-semibold leading-[1.08] tracking-[-0.045em]">Каждое чувство<br />имеет значение</h2>
+        )}
+        <div className="mt-8 text-[13px] text-white/80">
+          {sum.moodAvg != null ? `${sum.moodAvg}% — настроение в среднем` : "Добавьте первый чек-ин, чтобы увидеть свой ритм"}
+        </div>
       </div>
-      <Wave values={weekMoods.map((m) => m.valence)} color="#f4ffb0" height={84} fill className="mt-8" />
-      <div className="mt-6 flex flex-wrap gap-2">
-        {emotions.map((e) => (
-          <span key={e.name} className="glass-inset rounded-full px-3.5 py-2 text-[13px]">
-            {e.name} <span className="text-ink-3">{e.count}</span>
-          </span>
-        ))}
-      </div>
-      <p className="mt-auto pt-6 text-[15px] leading-relaxed text-ink-2">
+      <p className="mt-auto text-[13px] leading-relaxed text-white/80">
         {link > 3
           ? `После ночей от 7 часов настроение выше на ${link} ${pluralRu(link, ["пункт", "пункта", "пунктов"])} из 100. Сон остаётся вашим главным рычагом.`
           : `${weekMoods.length} ${pluralRu(weekMoods.length, ["чек-ин", "чек-ина", "чек-инов"])} за неделю. Чем их больше, тем точнее связи со сном.`}
       </p>
-    </Slide>,
+    </React.Fragment>,
     <Slide key="habits" kicker="Привычки" title="Что вы делали для себя">
       <div className="mt-auto grid grid-cols-2 gap-3">
         <Big label={`${pluralRu(sum.streak, ["день", "дня", "дней"])} подряд`} value={sum.streak} />
@@ -129,14 +138,16 @@ function RecapStories({ onClose }: { onClose: () => void }) {
           )
         })}
       </div>
-      <Button className="mt-auto w-full" onClick={accept}>
-        Принять цель
-      </Button>
+      <div className="mt-auto shrink-0 pt-6">
+        <Button className="w-full" onClick={accept}>
+          Принять цель
+        </Button>
+      </div>
     </Slide>,
   ]
 
   return (
-    <Card tone={TONES[i]} r="lg" className="flex h-full flex-col rounded-b-none">
+    <Card tone={TONES[i]} r="lg" className={cn("flex h-full flex-col rounded-b-none", i === 2 && "recap-emotions")}>
       <div className="relative z-10 flex items-center gap-3 px-5 pt-8">
         <div className="flex flex-1 gap-1.5">
           {TONES.map((_, n) => (
@@ -157,7 +168,7 @@ function RecapStories({ onClose }: { onClose: () => void }) {
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={i}
-            className="absolute inset-0 flex flex-col px-6 pb-6 pt-6"
+            className="no-scrollbar absolute inset-0 flex flex-col overflow-y-auto px-6 pb-6 pt-6"
             initial={{ opacity: 0, x: 24 }}
             animate={{ opacity: 1, x: 0, transition: { duration: DUR.medium, ease: EASE_OUT } }}
             exit={{ opacity: 0, x: -16, transition: { duration: DUR.quick } }}

@@ -43,10 +43,10 @@ export interface StageSegment {
 }
 
 export const STAGE_META: Record<Stage, { label: string; color: string; level: number }> = {
-  awake: { label: "Бодрствование", color: "#ffb86b", level: 0 },
-  rem: { label: "Быстрый сон", color: "#c4a3ff", level: 1 },
-  light: { label: "Лёгкий сон", color: "#7c8cff", level: 2 },
-  deep: { label: "Глубокий сон", color: "#3b4bd8", level: 3 },
+  awake: { label: "Бодрствование", color: "#ffd17a", level: 0 },
+  rem: { label: "Быстрый сон", color: "#6ce3e6", level: 1 },
+  light: { label: "Лёгкий сон", color: "#84a3ff", level: 2 },
+  deep: { label: "Глубокий сон", color: "#b5a0ff", level: 3 },
 }
 
 /**
