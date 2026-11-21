@@ -37,7 +37,7 @@ function SleepForm({ onDone }: { onDone: () => void }) {
   const [tags, setTags] = React.useState<string[]>([])
   const [note, setNote] = React.useState("")
 
-  const inBed = spanMinutes(bedtime, wakeTime)
+  const inBed = bedtime === wakeTime ? 0 : spanMinutes(bedtime, wakeTime)
   const duration = Math.max(0, inBed - awakenings * 8)
   const target = spanMinutes(bedGoal, wakeGoal)
   const exists = nights.some((n) => n.dateKey === day)
@@ -125,7 +125,7 @@ function SleepForm({ onDone }: { onDone: () => void }) {
         </Field>
       </div>
       <footer className="border-t border-hair px-6 pb-[max(var(--safe-bottom),20px)] pt-4">
-        <Button className="w-full" onClick={save}>
+        <Button className="w-full" onClick={save} disabled={duration === 0}>
           Сохранить ночь
         </Button>
       </footer>

@@ -4,7 +4,7 @@ import { Check, X } from "lucide-react"
 import { cn } from "@/lib/cn"
 import { emotionCounts, indexLabel, nightScore, sleepMoodLink, weeklyGoalOptions } from "@/lib/metrics"
 import { DUR, EASE_OUT } from "@/lib/motion"
-import { dayMonthShort, daysAgo, durationRu, hm, parseKey, pluralRu, relativeDay, weekdayShort } from "@/lib/time"
+import { dayMonthShort, dateKey, daysAgo, durationRu, hm, parseKey, pluralRu, relativeDay, weekdayShort } from "@/lib/time"
 import { useSummary } from "@/store/derived"
 import { useStore } from "@/store/store"
 import { RITUAL } from "@/screens/Practices"
@@ -21,7 +21,7 @@ function RecapStories({ onClose }: { onClose: () => void }) {
   const sum = useSummary()
   const [i, setI] = React.useState(0)
   const week = sum.week
-  const weekMoods = moods.filter((m) => new Date(m.at) >= daysAgo(6))
+  const weekMoods = moods.filter((m) => dateKey(new Date(m.at)) >= dateKey(daysAgo(6)))
   const best = week.reduce<(typeof week)[number] | undefined>(
     (b, n) => (!b || nightScore(n, bedGoal, wakeGoal) > nightScore(b, bedGoal, wakeGoal) ? n : b),
     undefined

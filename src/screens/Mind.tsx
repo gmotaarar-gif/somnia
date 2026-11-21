@@ -59,7 +59,7 @@ export function MindScreen() {
   const link = React.useMemo(() => sleepMoodLink(nights, moods), [nights, moods])
   const maxDelta = Math.max(1, ...factors.map((f) => Math.abs(f.delta)))
   const topCount = emotions[0]?.count ?? 1
-  const weekCheckins = moods.filter((m) => new Date(m.at) >= daysAgo(6)).length
+  const weekCheckins = moods.filter((m) => dateKey(new Date(m.at)) >= dateKey(daysAgo(6))).length
 
   return (
     <>
