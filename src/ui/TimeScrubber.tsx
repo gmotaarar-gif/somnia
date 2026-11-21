@@ -129,16 +129,12 @@ export function TimeScrubber({
   knobs.current = { step, momentum, onChange, value };
   const ruler = useRef<HTMLDivElement>(null);
   const reported = useRef(value);
-  const lastStep = useRef(Math.round(start / step));
 
   /* report every step crossed, so whatever reads the time moves
      with the ruler rather than after it */
   const hear = (x: number) => {
     const s = knobs.current.step;
-    const k = Math.round(x / s);
-    if (k === lastStep.current) return;
-    lastStep.current = k;
-    const next = toStr(k * s);
+    const next = toStr(Math.round(x / s) * s);
     if (next === reported.current) return;
     reported.current = next;
     knobs.current.onChange(next);
