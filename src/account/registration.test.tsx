@@ -6,7 +6,10 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { StoreProvider, useStore } from "@/store/store"
 import { LocalAccountProvider, useLocalAccount } from "./LocalAccountProvider"
 import { RegistrationForm } from "./RegistrationSheet"
-import { ACCOUNT_STORAGE_KEY, loadLocalAccount } from "./registration"
+import { normalizeLocalAccount } from "./registration"
+
+const STORAGE_KEY = "somna-state-v6"
+const savedAccount = () => JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}").localAccount ?? null
 
 function Providers({ children }: { children: React.ReactNode }) {
   return <StoreProvider><LocalAccountProvider>{children}</LocalAccountProvider></StoreProvider>
@@ -39,9 +42,8 @@ describe("local registration", () => {
     expect(restored.result.current.account.account).toEqual({ email: "new@example.com", createdAt })
   })
 
-  it.each(["{bad json", "null", '[]', '{"email":"not-an-email","createdAt":"2026-01-01"}', '{"email":"mira@example.com","createdAt":"invalid"}'])("ignores invalid saved registration: %s", (raw) => {
-    localStorage.setItem(ACCOUNT_STORAGE_KEY, raw)
-    expect(loadLocalAccount()).toBeNull()
+  it.each([null, [], {}, { email: "not-an-email", createdAt: "2026-01-01" }, { email: "mira@example.com", createdAt: "invalid" }])("ignores invalid saved registration: %j", (saved) => {
+    expect(normalizeLocalAccount(saved)).toBeNull()
   })
 
   it("shows field errors, then creates the local profile after correction", () => {
@@ -55,11 +57,11 @@ describe("local registration", () => {
     fireEvent.change(screen.getByLabelText("Почта"), { target: { value: "wrong@" } })
     fireEvent.click(submit)
     expect(screen.getByText("Проверьте адрес, например name@example.com")).toBeTruthy()
-    expect(loadLocalAccount()).toBeNull()
+    expect(savedAccount()).toBeNull()
     fireEvent.change(screen.getByLabelText("Почта"), { target: { value: "mira@example.com" } })
     fireEvent.click(submit)
     expect(screen.getByRole("status").textContent).toContain("Профиль готов, Мира")
-    expect(loadLocalAccount()?.email).toBe("mira@example.com")
+    expect(savedAccount()?.email).toBe("mira@example.com")
   })
 
   it("does not create an identity when registration is skipped", () => {
@@ -71,21 +73,36 @@ describe("local registration", () => {
     fireEvent.click(screen.getByRole("button", { name: "Открыть" }))
     fireEvent.click(screen.getByRole("button", { name: "Пока без регистрации" }))
     expect(screen.queryByLabelText("Почта")).toBeNull()
-    expect(localStorage.getItem(ACCOUNT_STORAGE_KEY)).toBeNull()
+    expect(savedAccount()).toBeNull()
   })
 
   it("keeps the form and existing identity intact when browser storage rejects a save", () => {
-    localStorage.setItem(ACCOUNT_STORAGE_KEY, JSON.stringify({ email: "old@example.com", createdAt: "2026-01-01T00:00:00.000Z" }))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ userName: "Old name", localAccount: { email: "old@example.com", createdAt: "2026-01-01T00:00:00.000Z" } }))
     render(<RegistrationForm />, { wrapper: Providers })
     fireEvent.change(screen.getByLabelText("Как к вам обращаться"), { target: { value: "Мира" } })
     fireEvent.change(screen.getByLabelText("Почта"), { target: { value: "new@example.com" } })
-    const write = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("Quota exceeded", "QuotaExceededError") })
+    const before = localStorage.getItem(STORAGE_KEY)
+    const originalWrite = Storage.prototype.setItem
+    // Reproduce storage that accepts small metadata but rejects the full journal.
+    const write = vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {
+      if (value.length > 200) throw new DOMException("Quota exceeded", "QuotaExceededError")
+      originalWrite.call(this, key, value)
+    })
     fireEvent.click(screen.getByRole("button", { name: "Сохранить изменения" }))
     expect(screen.getByRole("alert").textContent).toContain("Не удалось сохранить профиль")
     expect(screen.queryByRole("status")).toBeNull()
     write.mockRestore()
-    expect(loadLocalAccount()?.email).toBe("old@example.com")
+    expect(localStorage.getItem(STORAGE_KEY)).toBe(before)
     fireEvent.click(screen.getByRole("button", { name: "Сохранить изменения" }))
     expect(screen.getByRole("status").textContent).toContain("Профиль готов, Мира")
+  })
+
+  it("retains registration when resetting only the journal to demo data", () => {
+    const { result } = renderHook(() => ({ account: useLocalAccount(), store: useStore() }), { wrapper: Providers })
+    act(() => result.current.account.register({ name: "Мира", email: "mira@example.com" }))
+    const identity = result.current.account.account
+    act(() => result.current.store.resetAll())
+    expect(result.current.account.account).toEqual(identity)
+    expect(result.current.store.userName).toBe("Мира")
   })
 })

@@ -1,6 +1,6 @@
 import * as React from "react"
 import { useStore } from "@/store/store"
-import { loadLocalAccount, saveLocalAccount, type LocalAccount, type RegistrationInput } from "./registration"
+import { type LocalAccount, type RegistrationInput } from "./registration"
 
 interface LocalAccountState {
   account: LocalAccount | null
@@ -13,8 +13,7 @@ interface LocalAccountState {
 const LocalAccountContext = React.createContext<LocalAccountState | null>(null)
 
 export function LocalAccountProvider({ children }: { children: React.ReactNode }) {
-  const { patch, openSheet } = useStore()
-  const [account, setAccount] = React.useState(loadLocalAccount)
+  const { localAccount: account, registerLocalProfile, openSheet } = useStore()
   const [registrationOpen, setRegistrationOpen] = React.useState(false)
 
   const value: LocalAccountState = {
@@ -25,11 +24,7 @@ export function LocalAccountProvider({ children }: { children: React.ReactNode }
       setRegistrationOpen(true)
     },
     closeRegistration: () => setRegistrationOpen(false),
-    register: (input) => {
-      const saved = saveLocalAccount(input, account)
-      patch({ userName: input.name.trim() })
-      setAccount(saved)
-    },
+    register: registerLocalProfile,
   }
 
   return <LocalAccountContext.Provider value={value}>{children}</LocalAccountContext.Provider>
