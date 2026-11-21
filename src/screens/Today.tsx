@@ -16,6 +16,7 @@ import { Dots } from "@/ui/Dots"
 import { WidgetGrid } from "@/widgets/WidgetGrid"
 
 const onKey = (run: () => void) => (e: React.KeyboardEvent) => {
+  if (e.target !== e.currentTarget) return
   if (e.key !== "Enter" && e.key !== " ") return
   e.preventDefault()
   run()
