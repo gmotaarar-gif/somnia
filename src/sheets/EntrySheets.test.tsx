@@ -18,7 +18,7 @@ function Probe({ open }: { open: "mood" | "sleep" }) {
     <>
       <button onClick={() => openSheet(open)}>open</button>
       <span data-testid="sheet">{sheet ?? "none"}</span>
-      <output>{toast?.text}</output>
+      <output data-variant={toast?.variant}>{toast?.text}</output>
       <span data-testid="mood">{moods[0] ? `${moods[0].valence}|${moods[0].emotions.join(",")}|${moods[0].factors.join(",")}` : ""}</span>
       <span data-testid="night">{night ? `${night.bedtime}-${night.wakeTime}|${night.durationMin}|${night.awakenings}|${night.tags.join(",")}` : ""}</span>
     </>
@@ -59,7 +59,7 @@ it.each([
 
   fireEvent.click(screen.getByRole("button", { name: save }))
 
-  expect(screen.getByText("Не удалось сохранить данные. Проверьте свободное место и разрешения браузера.")).toBeTruthy()
+  expect(screen.getByText("Не удалось сохранить данные. Проверьте свободное место и разрешения браузера.").getAttribute("data-variant")).toBe("error")
   expect(screen.queryByText(success)).toBeNull()
   expect(localStorage.getItem("somna-state-v6")).toBe(before)
 })
