@@ -100,8 +100,8 @@ export function ProfileSheet() {
           <Button
             variant="glass"
             onClick={() => {
-              const { nights, moods, sessions, worries, wellbeing, bedGoal, wakeGoal } = s
-              const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), bedGoal, wakeGoal, nights, moods, sessions, worries, wellbeing }, null, 2)], { type: "application/json" })
+              const { nights, moods, signals, sessions, worries, wellbeing, bedGoal, wakeGoal } = s
+              const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), bedGoal, wakeGoal, nights, moods, signals, sessions, worries, wellbeing }, null, 2)], { type: "application/json" })
               const a = document.createElement("a")
               a.href = URL.createObjectURL(blob)
               a.download = "somna-export.json"

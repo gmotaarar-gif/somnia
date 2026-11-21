@@ -100,6 +100,13 @@ export interface MoodEntry {
   note?: string
 }
 
+/** One self-reported energy/stress pair per local calendar day, both 0..10. */
+export interface DailySignal {
+  dateKey: string
+  energy: number
+  stress: number
+}
+
 export interface Widget {
   id: string
   kind: WidgetKind
@@ -232,6 +239,7 @@ interface Persisted {
   volume: number
   nights: SleepNight[]
   moods: MoodEntry[]
+  signals: DailySignal[]
   spectrum: SpectrumAxis[]
   widgets: Widget[]
   weeklyGoal: { id: string; text: string } | null
@@ -261,6 +269,7 @@ function defaults(): Persisted {
     volume: 60,
     nights: demoNights(),
     moods: demoMoods(),
+    signals: [],
     spectrum: DEFAULT_SPECTRUM,
     widgets: DEFAULT_WIDGETS,
     weeklyGoal: null,

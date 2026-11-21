@@ -23,6 +23,18 @@ const night = {
 }
 
 describe("StoreProvider", () => {
+  it("restores daily energy/stress alongside existing data and initializes older saves", () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ userName: "Mira", moods: [] }))
+    const first = renderHook(useStore, { wrapper: StoreProvider })
+    expect(first.result.current.signals).toEqual([])
+    act(() => first.result.current.patch({ signals: [{ dateKey: "2030-01-02", energy: 0, stress: 10 }] }))
+    first.unmount()
+    const second = renderHook(useStore, { wrapper: StoreProvider })
+    expect(second.result.current.userName).toBe("Mira")
+    expect(second.result.current.moods).toEqual([])
+    expect(second.result.current.signals).toEqual([{ dateKey: "2030-01-02", energy: 0, stress: 10 }])
+  })
+
   it("restores profile and schedule changes on remount but closes transient sheets", () => {
     const first = renderHook(useStore, { wrapper: StoreProvider })
 

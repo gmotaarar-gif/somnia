@@ -13,6 +13,7 @@ import { Card, CardTitle, type CardTone } from "@/ui/Card"
 import { DotTrack } from "@/ui/charts"
 import { Chip, IconButton, SectionHead, Segmented, Slider } from "@/ui/controls"
 import { Dots } from "@/ui/Dots"
+import { KnowledgeLibrary } from "@/features/KnowledgeLibrary"
 
 interface Phase {
   label: string
@@ -87,6 +88,8 @@ export function PracticesScreen() {
   return (
     <>
       <TopBar title="Практики" sub={`Сегодня ${today.min.toFixed(1)} мин дыхания`} />
+
+      <KnowledgeLibrary />
 
       <div className="grid gap-3">
         <motion.div {...riseIn(0)} className="">

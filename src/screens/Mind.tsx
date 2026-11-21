@@ -15,6 +15,7 @@ import { Card, CardTitle, type CardTone } from "@/ui/Card"
 import { Ring, Wave } from "@/ui/charts"
 import { Button, IconButton, SectionHead, Slider } from "@/ui/controls"
 import { Dots } from "@/ui/Dots"
+import { MoodInsights } from "@/features/MoodInsights"
 
 const rgb = (c: number[]) => `rgb(${c.join(" ")})`
 
@@ -72,6 +73,8 @@ export function MindScreen() {
           </IconButton>
         }
       />
+
+      <MoodInsights />
 
       <div className="grid gap-3">
         <motion.div {...riseIn(0)} className="">

@@ -15,6 +15,7 @@ import { Card, CardTitle } from "@/ui/Card"
 import { Bars } from "@/ui/charts"
 import { Button, Chip, IconButton, SectionHead, Segmented } from "@/ui/controls"
 import { Dots } from "@/ui/Dots"
+import { KnowledgeLibrary } from "@/features/KnowledgeLibrary"
 
 export const SOUNDS: { id: SoundMode; label: string }[] = [
   { id: "off", label: "Тишина" },
@@ -320,6 +321,8 @@ export function SleepScreen() {
           </div>
         </Card>
       </motion.div>
+
+      <KnowledgeLibrary topic="sleep" />
 
       <motion.section {...riseIn(4)} className="mt-8">
         <SectionHead title="Месяц" hint="Цвет показывает оценку ночи" />
