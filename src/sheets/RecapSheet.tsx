@@ -138,9 +138,11 @@ function RecapStories({ onClose }: { onClose: () => void }) {
           )
         })}
       </div>
-      <Button className="mt-auto w-full" onClick={accept}>
-        Принять цель
-      </Button>
+      <div className="mt-auto shrink-0 pt-6">
+        <Button className="w-full" onClick={accept}>
+          Принять цель
+        </Button>
+      </div>
     </Slide>,
   ]
 
