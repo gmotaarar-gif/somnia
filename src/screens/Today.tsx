@@ -8,6 +8,7 @@ import { dayMonth, dayMonthShort, greeting, hm, parseKey, weekdayShort } from "@
 import { getValenceLabel } from "@/lib/valence"
 import { useNow, useSummary } from "@/store/derived"
 import { useStore } from "@/store/store"
+import { AwardsStrip, DayPlan } from "@/screens/TodayExtras"
 import { TopBar } from "@/shell/TopBar"
 import { Card } from "@/ui/Card"
 import { Bars, Orbits, Wave } from "@/ui/charts"
@@ -189,6 +190,10 @@ export function TodayScreen() {
         <ChevronRight className="size-5 shrink-0 text-ink-3" />
       </motion.button>
 
+      <motion.div {...riseIn(2)} className="mt-8">
+        <DayPlan />
+      </motion.div>
+
       <motion.section {...riseIn(2)} className="mt-8" aria-label="Виджеты">
         <SectionHead
           title="Виджеты"
@@ -205,6 +210,10 @@ export function TodayScreen() {
           <WidgetGrid />
         </div>
       </motion.section>
+
+      <motion.div {...riseIn(3)} className="mt-8">
+        <AwardsStrip />
+      </motion.div>
 
       <motion.button
         {...riseIn(3)}
