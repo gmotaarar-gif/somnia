@@ -32,8 +32,10 @@ const TIME_SCALE = 0.73
 const toRgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
 const flat = (p: Palette) => p.flatMap(toRgb)
 
-function createMesh(canvas: HTMLCanvasElement) {
-  const gl = canvas.getContext("webgl", { antialias: false, alpha: false, powerPreference: "low-power" })
+function createMesh(canvas: HTMLCanvasElement, snapshot: boolean) {
+  const gl = canvas.getContext("webgl", {
+    antialias: false, alpha: false, powerPreference: "low-power", preserveDrawingBuffer: snapshot,
+  })
   if (!gl) return null
   const compile = (type: number, src: string) => {
     const s = gl.createShader(type)
@@ -89,7 +91,7 @@ function createMesh(canvas: HTMLCanvasElement) {
  * a perpetual drift would force the glass chrome above to re-blur on every frame.
  * Without WebGL the CSS blobs below carry the same job.
  */
-export function Aurora({ tab, theme = "dark" }: { tab: string; theme?: Theme }) {
+export function Aurora({ tab, theme = "dark", snapshot = false }: { tab: string; theme?: Theme; snapshot?: boolean }) {
   const canvasRef = React.useRef<HTMLCanvasElement>(null)
   const mesh = React.useRef<ReturnType<typeof createMesh>>(null)
   const shown = React.useRef<number[] | null>(null)
@@ -102,7 +104,7 @@ export function Aurora({ tab, theme = "dark" }: { tab: string; theme?: Theme }) 
     if (!canvas) return
     let created: ReturnType<typeof createMesh> = null
     try {
-      created = createMesh(canvas)
+      created = createMesh(canvas, snapshot)
     } catch {
       created = null
     }
@@ -120,17 +122,21 @@ export function Aurora({ tab, theme = "dark" }: { tab: string; theme?: Theme }) 
       mesh.current = null
       setWebgl(false)
     }
-  }, [])
+  }, [snapshot])
 
   React.useEffect(() => {
     const m = mesh.current
     if (!webgl || !m) return
     const target = flat((PALETTES[theme][tab] ?? PALETTES[theme].today) as Palette)
     const from = shown.current ?? target
-    if (reduce) {
+    // Inside a wave the backdrop travels with the rest of the view. Keep its
+    // frame readable for DOM capture instead of queueing a second GPU effect.
+    if (reduce || snapshot) {
       shown.current = target
       m.draw(target, clock.current)
-      return
+      const resize = () => m.draw(target, clock.current)
+      window.addEventListener("resize", resize)
+      return () => window.removeEventListener("resize", resize)
     }
     const drift = tab === "onboarding"
     const start = performance.now()
@@ -154,7 +160,7 @@ export function Aurora({ tab, theme = "dark" }: { tab: string; theme?: Theme }) 
       cancelAnimationFrame(raf)
       window.removeEventListener("resize", resize)
     }
-  }, [webgl, tab, theme, reduce])
+  }, [webgl, tab, theme, reduce, snapshot])
 
   return (
     <div className="aurora" data-tab={tab} data-webgl={webgl ? "" : undefined} aria-hidden>

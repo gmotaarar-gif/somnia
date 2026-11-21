@@ -15,6 +15,7 @@ vi.mock("@/screens/Today", () => ({ TodayScreen: () => <div>Today content</div> 
 vi.mock("@/screens/Sleep", async () => { loading.requested(); return loading.sleep })
 vi.mock("@/screens/Mind", () => { throw new Error("Chunk unavailable") })
 vi.mock("@/shell/SheetHost", () => ({ SheetHost: () => null }))
+vi.mock("@/shell/Aurora", () => ({ Aurora: () => null }))
 vi.mock("@/shell/Dock", async () => {
   const { useStore } = await import("@/store/store")
   return {

@@ -35,7 +35,7 @@ export default function Workspace() {
   return (
     <>
       <ScreenTransition screenKey={visible.tab} direction={visible.tabDir} overlay={<Dock />}>
-        <Aurora tab={visible.tab} />
+        <Aurora tab={visible.tab} snapshot />
         <div className="app-scroll">
           <div className="px-5 pb-[var(--dock-space)] pt-[max(var(--safe-top),14px)]">
             <Screen />
