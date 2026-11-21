@@ -132,7 +132,7 @@ describe("local registration", () => {
     expect(screen.getByRole("status").textContent).toContain("Профиль готов, Мира")
   })
 
-  it("retains registration when resetting only the journal to demo data", () => {
+  it("retains registration when resetting only the journal to empty data", () => {
     const { result } = renderHook(() => ({ account: useLocalAccount(), store: useStore() }), { wrapper: Providers })
     act(() => result.current.account.register({ name: "Мира", email: "mira@example.com" }))
     const identity = result.current.account.account

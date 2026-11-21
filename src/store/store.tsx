@@ -2,7 +2,7 @@ import * as React from "react"
 import { normalizeEmail, normalizeLocalAccount, validateRegistration, type LocalAccount, type RegistrationInput } from "@/account/registration"
 import { setSoundVolume, startSound, stopSound, type SoundMode } from "@/lib/audio"
 import { isThemeMode, type ThemeMode } from "@/lib/theme"
-import { dateKey, daysAgo, spanMinutes } from "@/lib/time"
+import { dateKey } from "@/lib/time"
 
 export type TabId = "today" | "sleep" | "mind" | "practices"
 export type Tone =
@@ -126,74 +126,6 @@ export interface SpectrumAxis {
 
 const uid = () => Math.random().toString(36).slice(2, 10)
 
-const DEMO_NIGHTS: [string, string, number, number, string[], string?][] = [
-  ["00:25", "07:15", 66, 2, ["Поздний экран"], "Поздний рабочий созвон"],
-  ["23:55", "07:20", 76, 1, []],
-  ["00:40", "07:10", 62, 2, ["Кофеин", "Стресс"]],
-  ["23:40", "07:25", 81, 0, ["Быстро уснул"]],
-  ["23:20", "07:35", 87, 0, ["Глубокий сон"], "Вечерняя прогулка перед сном"],
-  ["00:10", "08:30", 88, 1, ["Проснулся сам"]],
-  ["23:45", "07:40", 83, 0, []],
-  ["00:05", "07:20", 74, 1, ["Поздний экран"]],
-  ["23:45", "07:25", 82, 0, ["Прохладно"]],
-  ["00:50", "07:05", 58, 2, ["Стресс", "Кофеин"]],
-  ["23:35", "07:30", 84, 0, ["Быстро уснул"]],
-  ["23:25", "07:30", 89, 0, ["Глубокий сон"]],
-  ["23:50", "08:10", 86, 1, ["Яркие сны"]],
-  ["23:38", "07:20", 85, 0, ["Проснулся сам"], "Лёгкое засыпание после вечернего ритуала"],
-]
-
-function demoNights(): SleepNight[] {
-  return DEMO_NIGHTS.map(([bedtime, wakeTime, quality, awakenings, tags, note], i) => ({
-    id: `demo-n-${i}`,
-    dateKey: dateKey(daysAgo(DEMO_NIGHTS.length - 1 - i)),
-    bedtime,
-    wakeTime,
-    durationMin: spanMinutes(bedtime, wakeTime) - awakenings * 8,
-    quality,
-    awakenings,
-    tags,
-    note,
-  }))
-}
-
-const DEMO_MOODS: [number, string, number, string[], string[]][] = [
-  [11, "22:30", -0.22, ["Усталость", "Напряжение"], ["Работа", "Кофеин"]],
-  [9, "20:15", 0.44, ["Спокойствие", "Лёгкость"], ["Прогулка", "Отдых"]],
-  [7, "18:40", 0.52, ["Умиротворение"], ["Отдых", "Семья"]],
-  [6, "21:20", 0.08, ["Рассеянность", "Спокойствие"], ["Работа"]],
-  [5, "21:50", 0.36, ["Спокойствие"], ["Сон", "Отдых"]],
-  [4, "22:10", -0.34, ["Усталость", "Тревога"], ["Работа", "Кофеин"]],
-  [3, "09:30", 0.56, ["Ясность", "Уверенность"], ["Сон", "Прогулка"]],
-  [2, "21:40", 0.64, ["Умиротворение", "Лёгкость", "Благодарность"], ["Отдых", "Спорт"]],
-  [1, "10:15", 0.72, ["Ясность", "Вдохновение"], ["Сон", "Прогулка"]],
-  [0, "08:40", 0.42, ["Спокойствие", "Лёгкость"], ["Сон", "Отдых"]],
-]
-
-function demoMoods(): MoodEntry[] {
-  return DEMO_MOODS.map(([ago, time, valence, emotions, factors], i) => {
-    const d = daysAgo(ago)
-    const [h, m] = time.split(":").map(Number)
-    d.setHours(h, m, 0, 0)
-    return { id: `demo-m-${i}`, at: d.toISOString(), valence, emotions, factors }
-  })
-}
-
-function demoSessions(): PracticeSession[] {
-  return [9, 6, 5, 3, 2, 1, 0].map((ago, i) => {
-    const d = daysAgo(ago)
-    d.setHours(22, 5, 0, 0)
-    return { id: `demo-s-${i}`, at: d.toISOString(), kind: i % 3 === 2 ? "bodyscan" : "grounding", min: i % 3 === 2 ? 5 : 3 + (i % 2) * 2 }
-  })
-}
-
-const DEFAULT_SPECTRUM: SpectrumAxis[] = [
-  { id: "calm", left: "Тревога", right: "Спокойствие", value: 0.74 },
-  { id: "energy", left: "Усталость", right: "Бодрость", value: 0.82 },
-  { id: "focus", left: "Рассеянность", right: "Ясность", value: 0.65 },
-  { id: "balance", left: "Перегруз", right: "Баланс", value: 0.78 },
-]
-
 export const DEFAULT_WIDGETS: Widget[] = [
   { id: "w-streak", kind: "streak", size: "1x1", tone: "ink", visible: true },
   { id: "w-sleep", kind: "sleep", size: "1x1", tone: "plum", visible: false },
@@ -259,19 +191,19 @@ function defaults(): Persisted {
     reminder: true,
     reminderTime: "22:30",
     focus: ["Стабильный подъём", "Снять вечерний стресс"],
-    ritual: { day: today(), done: ["dim"] },
-    water: { day: today(), ml: 1250 },
+    ritual: { day: today(), done: [] },
+    water: { day: today(), ml: 0 },
     eveningMode: true,
     volume: 60,
-    nights: demoNights(),
-    moods: demoMoods(),
-    spectrum: DEFAULT_SPECTRUM,
+    nights: [],
+    moods: [],
+    spectrum: [],
     widgets: DEFAULT_WIDGETS,
     weeklyGoal: null,
-    sessions: demoSessions(),
+    sessions: [],
     worries: [],
     readArticles: [],
-    wellbeing: [{ at: daysAgo(6).toISOString(), score: 64 }],
+    wellbeing: [],
     soundTimer: 30,
     layout: HOME_LAYOUT,
   }
@@ -309,7 +241,9 @@ function load(): Persisted {
     const parsed = JSON.parse(raw) as Partial<Persisted>
     const saved = rollDay({ ...base, ...parsed }, today())
     saved.localAccount = normalizeLocalAccount(saved.localAccount)
-    saved.nights = normalizeNights(saved.nights)
+    saved.nights = normalizeNights(saved.nights.filter((n) => !/^demo-n-\d+$/.test(n.id)))
+    saved.moods = saved.moods.filter((m) => !/^demo-m-\d+$/.test(m.id))
+    saved.sessions = saved.sessions.filter((s) => !/^demo-s-\d+$/.test(s.id))
     if (!isThemeMode(saved.theme)) saved.theme = base.theme
     // Breathing practices were removed: drop their counter, widget and ritual step.
     // Finished sessions stay, so earned practice minutes and awards are not lost.

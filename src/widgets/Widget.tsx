@@ -113,6 +113,9 @@ function Body({ widget, wide }: BodyProps) {
   const store = useStore()
   const sum = useSummary()
   const { nights, bedGoal } = store
+  if (widget.kind !== "custom" && ["sleep", "week", "energy", "rhythm", "debt"].includes(widget.kind) && !sum.week.length) {
+    return <><Head title={WIDGET_META[widget.kind].title} /><div className="mt-auto text-[14px] text-ink-2">Пока нет данных. Запишите сон.</div></>
+  }
 
   switch (widget.kind) {
     case "streak": {

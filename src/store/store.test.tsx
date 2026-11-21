@@ -23,6 +23,56 @@ const night = {
 }
 
 describe("StoreProvider", () => {
+  it("starts and resets with an empty journal and no completed activity", () => {
+    const { result } = renderHook(useStore, { wrapper: StoreProvider })
+    const expectEmpty = () => {
+      for (const records of [result.current.nights, result.current.moods, result.current.sessions, result.current.wellbeing, result.current.spectrum]) {
+        expect(records).toEqual([])
+      }
+      expect(result.current.water.ml).toBe(0)
+      expect(result.current.ritual.done).toEqual([])
+    }
+    expectEmpty()
+    act(() => {
+      result.current.addNight(night)
+      result.current.addMood({ valence: 0.5, emotions: [], factors: [] })
+      result.current.addSession("grounding", 3)
+      result.current.addWellbeing(64)
+      result.current.addWater(250)
+      result.current.toggleRitual("dim")
+    })
+    expect(result.current.nights).toHaveLength(1)
+    expect(result.current.moods).toHaveLength(1)
+    expect(result.current.sessions).toHaveLength(1)
+    expect(result.current.wellbeing).toHaveLength(1)
+    act(() => result.current.resetAll())
+    expectEmpty()
+  })
+
+  it("removes identified persisted demo entries without deleting user data", () => {
+    const at = new Date().toISOString()
+    const realNight = { ...night, id: "real-night" }
+    const realMood = { id: "real-mood", at, valence: 0.4, emotions: [], factors: [] }
+    const realSession = { id: "real-session", at, kind: "grounding", min: 3 }
+    const wellbeing = [{ at, score: 64 }]
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      nights: [{ ...realNight, id: "demo-n-0" }, realNight],
+      moods: [{ ...realMood, id: "demo-m-0" }, realMood],
+      sessions: [{ ...realSession, id: "demo-s-0" }, realSession],
+      wellbeing,
+    }))
+    const first = renderHook(useStore, { wrapper: StoreProvider })
+    expect(first.result.current.nights).toEqual([realNight])
+    expect(first.result.current.moods).toEqual([realMood])
+    expect(first.result.current.sessions).toEqual([realSession])
+    expect(first.result.current.wellbeing).toEqual(wellbeing)
+    first.unmount()
+    const { result } = renderHook(useStore, { wrapper: StoreProvider })
+    expect(result.current.nights).toEqual([realNight])
+    expect(result.current.moods).toEqual([realMood])
+    expect(result.current.sessions).toEqual([realSession])
+  })
+
   it("restores profile and schedule changes on remount but closes transient sheets", () => {
     const first = renderHook(useStore, { wrapper: StoreProvider })
 

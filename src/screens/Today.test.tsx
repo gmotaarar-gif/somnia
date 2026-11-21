@@ -60,3 +60,10 @@ it("keeps the Done button after the last widget is removed in edit mode", () => 
   fireEvent.click(screen.getByRole("button", { name: "Готово" }))
   expect(screen.queryByRole("button", { name: "Готово" })).toBeNull()
 })
+
+it("does not label an empty journal as a disrupted sleep rhythm", () => {
+  renderToday()
+  expect(screen.getByText("Пока нет данных")).toBeTruthy()
+  expect(screen.queryByText("Режим сбит")).toBeNull()
+  expect(screen.queryByText("0:00")).toBeNull()
+})

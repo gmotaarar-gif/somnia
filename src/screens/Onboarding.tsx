@@ -11,7 +11,7 @@ import { durationRu, hm, shiftTime, spanMinutes, timeToMinutes } from "@/lib/tim
 import { getValenceLabel, sampleValencePalette } from "@/lib/valence"
 import { DEFAULT_WIDGETS, useStore, type Chronotype, type Widget } from "@/store/store"
 import { Card, type CardTone } from "@/ui/Card"
-import { Bars, Orbits, Ring, Wave } from "@/ui/charts"
+import { Orbits, Ring } from "@/ui/charts"
 import { Button, IconButton, Segmented, Slider, TimeField, Toggle } from "@/ui/controls"
 import { Dots, DotsCount } from "@/ui/Dots"
 import { usePrefersReducedMotion } from "@/ui/MotionProvider"
@@ -45,7 +45,7 @@ const INTRO: { tone: CardTone; title: string; body: React.ReactNode }[] = [
     title: "Сон",
     body: (
       <>
-        <Dots value="7:42" className="mt-5 text-[52px]" />
+        <Dots value="--" className="mt-5 text-[52px]" />
         <Orbits className="-mx-5 mt-auto w-[calc(100%+40px)]" />
       </>
     ),
@@ -55,8 +55,8 @@ const INTRO: { tone: CardTone; title: string; body: React.ReactNode }[] = [
     title: "Состояние",
     body: (
       <>
-        <Dots value="71%" className="mt-5 text-[52px]" />
-        <Wave values={[0.1, 0.5, 0.2, 0.6, 0.4, 0.8, 0.7]} color="#f4ffb0" height={70} className="mt-auto" />
+        <Dots value="--" className="mt-5 text-[52px]" />
+        <p className="mt-auto text-[13px] text-white/70">После первого чек-ина</p>
       </>
     ),
   },
@@ -65,9 +65,9 @@ const INTRO: { tone: CardTone; title: string; body: React.ReactNode }[] = [
     title: "Неделя",
     body: (
       <>
-        <Dots value="85" shape="square" className="mt-5 text-[52px]" />
+        <Dots value="--" shape="square" className="mt-5 text-[52px]" />
         <div className="mt-auto h-[84px]">
-          <Bars values={[6.4, 7.1, 5.9, 7.6, 7.9, 8.2, 7.7]} />
+          <p className="text-[13px] text-white/70">Пока нет данных</p>
         </div>
       </>
     ),

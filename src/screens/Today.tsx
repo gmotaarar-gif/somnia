@@ -84,7 +84,7 @@ export function TodayScreen() {
               {last && <span className="rounded-full bg-white/16 px-3 py-1.5 text-[12px] font-medium">{qualityLabel(last.quality)}</span>}
             </div>
             <div className="mt-8 flex items-end gap-3">
-              <Dots value={last ? hm(last.durationMin) : "0:00"} shape="square" className="text-[64px]" />
+              <Dots value={last ? hm(last.durationMin) : "--"} shape="square" className="text-[64px]" />
               <span className="pb-0.5 text-[17px] text-white/65">ч</span>
             </div>
             {last ? (
@@ -130,11 +130,11 @@ export function TodayScreen() {
           title="Неделя"
           label="Индекс недели. Открыть итоги"
           icon={<ArrowUpRight />}
-          note={`${indexLabel(sum.index)}${sum.indexDelta ? ` · ${sum.indexDelta > 0 ? "+" : ""}${sum.indexDelta}` : ""}`}
+          note={sum.week.length ? `${indexLabel(sum.index)}${sum.indexDelta ? ` · ${sum.indexDelta > 0 ? "+" : ""}${sum.indexDelta}` : ""}` : "Пока нет данных"}
           tone="ember"
           onClick={() => openSheet("recap")}
         >
-          <Dots value={sum.index} shape="square" className="text-[34px]" />
+          <Dots value={sum.week.length ? sum.index : "--"} shape="square" className="text-[34px]" />
         </Tile>
       </motion.div>
 

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { Profiler } from "react"
-import { act, cleanup, render } from "@testing-library/react"
+import { act, cleanup, render, screen } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import { StoreProvider, type WidgetKind } from "@/store/store"
 import { WidgetTile } from "./Widget"
@@ -11,6 +11,11 @@ afterEach(() => {
   localStorage.clear()
   vi.useRealTimers()
   vi.unstubAllGlobals()
+})
+
+it.each(["sleep", "week", "energy", "rhythm", "debt"] as WidgetKind[])("shows an empty state for the %s widget", (kind) => {
+  render(<StoreProvider><WidgetTile widget={{ id: kind, kind, size: "1x1", tone: "plum", visible: true }} /></StoreProvider>)
+  expect(screen.getByText("Пока нет данных. Запишите сон.")).toBeTruthy()
 })
 
 it("only updates the time-dependent widget on a wall-clock tick", () => {
