@@ -140,7 +140,7 @@ function BodyScan({ onDone }: { onDone: () => void }) {
       <div className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-3">Шаг {step + 1} из {BODY.length}</div>
       <div className="relative mt-5 h-[300px] w-[150px]">
         <svg viewBox="0 0 100 200" className="size-full" aria-hidden>
-          <g fill="rgb(255 255 255 / 0.1)" stroke="rgb(255 255 255 / 0.22)" strokeWidth="0.8">
+          <g fill="currentColor" fillOpacity="0.1" stroke="currentColor" strokeOpacity="0.22" strokeWidth="0.8">
             <circle cx="50" cy="20" r="13" />
             <rect x="30" y="38" width="40" height="62" rx="14" />
             <rect x="14" y="42" width="12" height="62" rx="6" />

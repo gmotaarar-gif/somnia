@@ -47,13 +47,13 @@ export function Hypnogram({ night, className, compact = false }: { night: SleepN
       </defs>
       {!compact && (["awake", "rem", "light", "deep"] as Stage[]).map((st) => (
         <g key={st}>
-          <text x="0" y={15 + STAGE_META[st].level * 27} fontSize="9" fill="rgb(255 255 255 / 0.58)">{LABELS[st]}</text>
-          <line x1={left} x2={right} y1={12 + STAGE_META[st].level * 27} y2={12 + STAGE_META[st].level * 27} stroke="rgb(255 255 255 / 0.07)" strokeDasharray="2 5" />
+          <text x="0" y={15 + STAGE_META[st].level * 27} fontSize="9" fill="currentColor" fillOpacity="0.58">{LABELS[st]}</text>
+          <line x1={left} x2={right} y1={12 + STAGE_META[st].level * 27} y2={12 + STAGE_META[st].level * 27} stroke="currentColor" strokeOpacity="0.07" strokeDasharray="2 5" />
         </g>
       ))}
       <path d={path} fill="none" stroke={`url(#${id})`} strokeWidth={compact ? 3 : 3.5} strokeLinecap="round" strokeLinejoin="round" />
       {!compact && (
-        <g fill="rgb(255 255 255 / 0.65)" fontSize="10">
+        <g fill="currentColor" fillOpacity="0.65" fontSize="10">
           <text x={left} y="119">{night.bedtime}</text>
           <text x={right} y="119" textAnchor="end">{night.wakeTime}</text>
         </g>

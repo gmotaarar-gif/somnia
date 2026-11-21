@@ -292,7 +292,7 @@ export function AwardsSheet() {
           >
             <Card tone={(a.done ? a.tone : "ink") as CardTone} className={cn("h-[168px]", !a.done && "opacity-70")}>
               <div className="flex h-full flex-col p-4">
-                <Ring value={a.progress} size={46} stroke={6} color={a.done ? "#fff" : "#d9f24a"}>
+                <Ring value={a.progress} size={46} stroke={6} color={a.done ? "currentColor" : "#d9f24a"}>
                   {a.done ? <Check className="size-4" strokeWidth={3} /> : <AwardIcon className="size-4 text-ink-3" />}
                 </Ring>
                 <div className="mt-auto text-[15px] font-semibold leading-tight tracking-[-0.01em]">{a.title}</div>

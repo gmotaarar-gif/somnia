@@ -83,7 +83,7 @@ function MonthHeat({ moods }: { moods: MoodEntry[] }) {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: DUR.medium, ease: EASE_OUT, delay: i * 0.012 }}
             className="aspect-square rounded-[10px]"
-            style={{ background: d.value != null ? rgb(sampleValencePalette(d.value).mid) : "rgb(255 255 255 / 0.06)" }}
+            style={{ background: d.value != null ? rgb(sampleValencePalette(d.value).mid) : "var(--glass-inset)" }}
           />
         ))}
       </div>
