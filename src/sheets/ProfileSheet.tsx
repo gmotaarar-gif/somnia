@@ -1,6 +1,5 @@
 import * as React from "react"
 import { Award as AwardIcon, Download } from "lucide-react"
-import { DotsCount } from "@/ui/Dots"
 import { durationRu, spanMinutes } from "@/lib/time"
 import { useStore, type Chronotype } from "@/store/store"
 import { Button, Segmented, Slider, TimeField, Toggle } from "@/ui/controls"
@@ -17,6 +16,14 @@ export function ProfileSheet() {
 
   return (
     <Sheet open={s.sheet === "profile"} onClose={close} title="Профиль" description="Данные хранятся только в этом браузере">
+      <div className="profile-hero mb-3 flex items-center gap-4 rounded-[28px] p-5">
+        <span className="grid size-14 shrink-0 place-items-center rounded-full bg-[#c9b9ef]/15 text-[24px] font-medium text-[#ded1fa]" aria-hidden>{(s.userName.trim()[0] ?? "S").toUpperCase()}</span>
+        <div className="min-w-0">
+          <div className="text-[11px] uppercase tracking-[0.1em] text-[#d1c3ee]/70">Ваш ритм</div>
+          <div className="mt-1 break-words text-[23px] font-semibold leading-tight tracking-[-0.035em]">{s.userName || "Место для себя"}</div>
+          <div className="mt-1.5 text-[12px] text-ink-2">Маленькие шаги к спокойным ночам</div>
+        </div>
+      </div>
       <SubscriptionCard className="mb-4" />
       <div className="grid grid-cols-3 gap-2.5">
         {[
@@ -24,8 +31,8 @@ export function ProfileSheet() {
           [s.moods.length, "чек-инов"],
           [Math.round(s.sessions.reduce((a, x) => a + x.min, 0)), "мин практик"],
         ].map(([v, k]) => (
-          <div key={k} className="glass-inset rounded-[22px] px-3 py-3.5">
-            <DotsCount value={Number(v)} shape="square" className="text-[22px]" />
+          <div key={k} className="glass rounded-[22px] px-3 py-3.5">
+            <div className="text-[26px] font-medium leading-none tracking-[-0.04em] tabular-nums">{v}</div>
             <div className="mt-2 text-[11px] text-ink-2">{k}</div>
           </div>
         ))}

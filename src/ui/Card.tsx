@@ -40,8 +40,8 @@ export function CardTitle({
 }) {
   return (
     <div className={cn("min-w-0", className)}>
-      <div className="truncate text-[15px] font-medium leading-tight tracking-[-0.01em]">{children}</div>
-      {sub != null && <div className="mt-1 truncate text-[11px] leading-none text-ink-2">{sub}</div>}
+      <div className="text-[17px] font-semibold leading-tight tracking-[-0.025em]">{children}</div>
+      {sub != null && <div className="mt-1.5 text-[12px] leading-snug text-ink-2">{sub}</div>}
     </div>
   )
 }
