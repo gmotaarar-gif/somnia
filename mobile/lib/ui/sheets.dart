@@ -31,6 +31,7 @@ class SheetRegistry extends ChangeNotifier {
             Text(switch (id) {
               'sleep' => 'Записать сон',
               'mood' => 'Чек-ин состояния',
+              'bodyscan' => 'Сканирование тела',
               _ => 'Скоро здесь',
             }, style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 16),
@@ -57,7 +58,7 @@ ModalBottomSheetRoute<T> _sheetRoute<T>(
     borderRadius: const BorderRadius.vertical(
       top: Radius.circular(SomnaRadii.sheet),
     ),
-    child: ColoredBox(
+    child: Material(
       color: SomnaColors.of(context).sheet,
       child: SafeArea(
         top: false,

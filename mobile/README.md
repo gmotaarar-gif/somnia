@@ -37,8 +37,9 @@ and `deactivate` return `Future<bool>` and expose failures via
 `subscriptionError`. These are local demo identity/entitlement only, **not
 authentication or payment authorization**. Journal reset preserves both.
 
-Platform notification scheduling/permission requests and sound playback are
-not implemented here. Inject `requestReminderPermission` into store creation
+Platform notification scheduling/permission requests are implemented for
+Android by `lib/native/`; sound playback remains deferred.
+Inject `requestReminderPermission` into store creation
 when wiring notifications (the default permits the plain-Dart flow), and
 dispatch reminder taps with `handleReminder`. Night sound selection/timer and
 navigation are transient store state; screens and playback adapters come later.
@@ -80,6 +81,34 @@ Aurora uses native soft radial blobs, **not a FragmentProgram or WebView**.
 It interpolates all web palettes on tab/theme changes, with idle drift only
 during onboarding (like the web). Reduced-motion settings stop the drift and
 tab transitions. DistortionWave and real tab/sheet content remain deferred.
+
+## Android tester builds
+
+`flutter build apk --release` produces
+`build/app/outputs/flutter-apk/app-release.apk`. Without `android/key.properties`
+it uses the **debug signing key**, suitable only for testers, not store release.
+To override signing, create the gitignored `mobile/android/key.properties` with
+`storeFile` (relative to `mobile/android` or absolute), `storePassword`,
+`keyAlias`, and `keyPassword`. Do not commit keys or signing properties.
+Different signing keys require uninstalling the previous build.
+
+Android reminders use ids 1001/1002, local IANA time zones and daily inexact
+allow-while-idle alarms; no exact-alarm permission is declared. Android can
+delay inexact delivery beyond the selected minute, especially during Doze.
+The plugin restores alarms after reboot/package updates; app resume resyncs
+settings and timezone. A force-stop suppresses alarms until the app is opened.
+Tap handling covers running/background and cold launch; night-session state
+is intentionally transient, as on web. Android 13+ permission is requested
+when enabling a reminder, not automatically on app launch.
+The notification plugin is constrained to 22.x for the scaffold's SDK 36;
+23.x requires Android compile SDK 37.
+
+Profile export shares `somna-export.json` from cache with exactly the web's
+export subset; it is not a full settings/account backup. Share cancellation
+and share/storage errors use the web's failure toast.
+
+CI `.github/workflows/flutter-android.yml` pins Flutter 3.50.1 and publishes
+the tester-signed release APK as artifact `somna-apk` for mobile changes.
 
 ## Checks
 

@@ -4,9 +4,13 @@ import '../data/store.dart';
 import '../theme/tokens.dart';
 import '../ui/press_scale.dart';
 import '../ui/surfaces.dart';
+import '../native/reminders.dart';
+import '../native/export.dart';
 
 class ProfileSheet extends StatelessWidget {
-  const ProfileSheet({super.key});
+  final ReminderService? reminders;
+  final DataExporter? exporter;
+  const ProfileSheet({super.key, this.reminders, this.exporter});
   @override
   Widget build(BuildContext context) {
     final store = SomnaScope.of(context), c = SomnaColors.of(context);
@@ -135,12 +139,109 @@ class ProfileSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
+          ReminderControls(reminders: reminders),
+          const SizedBox(height: 24),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.ios_share),
+            title: const Text('Экспорт данных'),
+            subtitle: const Text('Файл JSON со всеми записями'),
+            onTap: () =>
+                (exporter ?? DataExporter(CacheShareTarget())).export(store),
+          ),
+          const SizedBox(height: 16),
           Text(
             'Настройки профиля скоро появятся здесь.\nВсё важное остаётся с вами.',
             style: TextStyle(fontSize: 13, height: 1.6, color: c.ink3),
           ),
         ],
       ),
+    );
+  }
+}
+
+class ReminderControls extends StatefulWidget {
+  final ReminderService? reminders;
+  const ReminderControls({super.key, this.reminders});
+  @override
+  State<ReminderControls> createState() => _ReminderControlsState();
+}
+
+class _ReminderControlsState extends State<ReminderControls> {
+  bool _busy = false;
+  Future<void> _toggle(bool morning, bool enabled) async {
+    final store = SomnaScope.of(context);
+    setState(() => _busy = true);
+    try {
+      if (widget.reminders != null) {
+        await widget.reminders!.setEnabled(morning, enabled);
+      } else {
+        store.patch({morning ? 'morningReminder' : 'reminder': enabled});
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _time(bool morning) async {
+    final store = SomnaScope.of(context),
+        value = morning
+            ? SomnaScope.of(context).morningReminderTime
+            : SomnaScope.of(context).reminderTime;
+    final valid = validReminderTime(value);
+    final time = await showTimePicker(
+      context: context,
+      initialTime: valid
+          ? TimeOfDay(
+              hour: int.parse(value.substring(0, 2)),
+              minute: int.parse(value.substring(3)),
+            )
+          : const TimeOfDay(hour: 22, minute: 30),
+      helpText: morning ? 'Утреннее напоминание' : 'Вечернее напоминание',
+      cancelText: 'Отмена',
+      confirmText: 'Сохранить',
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child!,
+      ),
+    );
+    if (!mounted || time == null) return;
+    store.patch({
+      morning ? 'morningReminderTime' : 'reminderTime':
+          '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = SomnaScope.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Напоминания',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+        ),
+        for (final morning in [false, true]) ...[
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+              morning ? 'Утреннее напоминание' : 'Вечернее напоминание',
+            ),
+            value: morning ? s.morningReminder : s.reminder,
+            onChanged: _busy ? null : (v) => _toggle(morning, v),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              morning ? Icons.wb_sunny_outlined : Icons.bedtime_outlined,
+            ),
+            title: Text(morning ? 'Время утром' : 'Время вечером'),
+            trailing: Text(morning ? s.morningReminderTime : s.reminderTime),
+            onTap: () => _time(morning),
+          ),
+        ],
+      ],
     );
   }
 }
