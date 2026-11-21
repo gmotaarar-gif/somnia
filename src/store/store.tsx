@@ -273,21 +273,40 @@ function defaults(): Persisted {
 
 const STORAGE_KEY = "somna-state-v6"
 
+/** One night per morning (the latest save wins), in calendar order, capped at 90. */
+function normalizeNights(nights: SleepNight[]): SleepNight[] {
+  const byKey = new Map<string, SleepNight>()
+  for (const n of nights) if (n?.dateKey) byKey.set(n.dateKey, n)
+  return [...byKey.values()].sort((a, b) => a.dateKey.localeCompare(b.dateKey)).slice(-90)
+}
+
+/** Day-scoped counters start from zero on a new calendar day. */
+function rollDay(d: Persisted, day: string): Persisted {
+  const stale =
+    d.water.day !== day ||
+    d.breath.day !== day ||
+    d.ritual.day !== day ||
+    d.widgets.some((w) => w.kind === "custom" && w.day !== day)
+  if (!stale) return d
+  return {
+    ...d,
+    water: d.water.day === day ? d.water : { day, ml: 0 },
+    breath: d.breath.day === day ? d.breath : { day, min: 0 },
+    ritual: d.ritual.day === day ? d.ritual : { day, done: [] },
+    widgets: d.widgets.map((w) => (w.kind === "custom" && w.day !== day ? { ...w, value: 0, day } : w)),
+  }
+}
+
 function load(): Persisted {
   const base = defaults()
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return base
-    const saved = { ...base, ...(JSON.parse(raw) as Partial<Persisted>) }
-    const day = today()
-    if (saved.water.day !== day) saved.water = { day, ml: 0 }
-    if (saved.breath.day !== day) saved.breath = { day, min: 0 }
-    if (saved.ritual.day !== day) saved.ritual = { day, done: [] }
-    saved.widgets = saved.widgets.map((w) =>
-      w.kind === "custom" && w.day !== day ? { ...w, value: 0, day } : w
-    )
+    const saved = rollDay({ ...base, ...(JSON.parse(raw) as Partial<Persisted>) }, today())
+    saved.nights = normalizeNights(saved.nights)
     // widgets added in later versions appear in the gallery of existing installs
-    for (const w of DEFAULT_WIDGETS) if (!saved.widgets.some((x) => x.id === w.id)) saved.widgets.push({ ...w, visible: false })
+    const missing = DEFAULT_WIDGETS.filter((w) => !saved.widgets.some((x) => x.id === w.id))
+    if (missing.length) saved.widgets = [...saved.widgets, ...missing.map((w) => ({ ...w, visible: false }))]
     return saved
   } catch {
     return base
@@ -390,6 +409,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   }, [data])
 
+  // A tab left open past midnight moves to the new day: counters reset, "Сегодня" labels re-derive.
+  React.useEffect(() => {
+    const refresh = () => setData((d) => rollDay(d, today()))
+    const id = window.setInterval(refresh, 60_000)
+    document.addEventListener("visibilitychange", refresh)
+    window.addEventListener("focus", refresh)
+    return () => {
+      window.clearInterval(id)
+      document.removeEventListener("visibilitychange", refresh)
+      window.removeEventListener("focus", refresh)
+    }
+  }, [])
+
   React.useEffect(() => {
     if (!breathState.running) return
     const id = window.setInterval(() => {
@@ -442,9 +474,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       addNight: (n: Omit<SleepNight, "id">) =>
         setData((d) => ({
           ...d,
-          nights: [...d.nights.filter((x) => x.dateKey !== n.dateKey), { ...n, id: uid() }]
-            .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
-            .slice(-90),
+          nights: normalizeNights([...d.nights, { ...n, id: uid() }]),
         })),
       addSession: (kind: PracticeKind, min: number) =>
         setData((d) => ({
