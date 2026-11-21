@@ -62,10 +62,10 @@ def write(relative, contents):
 
 
 # Adaptive foreground is genuinely transparent; no dark cutout or baked-in tile.
-write("drawable/somna_moon.xml", vector(MARK))
+write("drawable-v24/somna_moon.xml", vector(MARK))
 write("drawable/somna_monochrome.xml", vector(MARK, monochrome=True))
 background = ET.Element(f"{SVG}path", {"fill": "url(#night)", "d": "M0 0H108V108H0Z"})
-write("drawable/ic_launcher_background.xml", vector([background]))
+write("drawable-v24/ic_launcher_background.xml", vector([background]))
 
 for qualifier, size, foreground_size in [("mdpi", 48, 108), ("hdpi", 72, 162),
                                          ("xhdpi", 96, 216), ("xxhdpi", 144, 324),
