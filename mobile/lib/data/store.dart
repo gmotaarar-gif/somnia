@@ -276,8 +276,9 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
     _saveTimer = Timer(saveDebounce, () => unawaited(flush()));
   }
 
-  Future<void> _write(String raw) {
+  Future<void> _write(String raw, {bool skipUnchanged = false}) {
     final write = _writes.then((_) async {
+      if (skipUnchanged && raw == _lastSaved) return;
       await _persistence?.write(raw);
       _lastSaved = raw;
     });
@@ -289,9 +290,9 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> flush() async {
     _saveTimer?.cancel();
     final raw = jsonEncode(_state.toJson());
-    if (_persistence == null || raw == _lastSaved) return;
+    if (_persistence == null) return;
     try {
-      await _write(raw);
+      await _write(raw, skipUnchanged: true);
     } catch (_) {
       /* Keep the live journal usable. */
     }

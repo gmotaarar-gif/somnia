@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/widgets.dart';
@@ -8,6 +9,15 @@ import 'package:somna/data/models.dart';
 import 'package:somna/data/store.dart';
 
 import 'helpers.dart';
+
+class DelayedPersistence extends MemoryPersistence {
+  Completer<void>? gate;
+  @override
+  Future<void> write(String serialized) async {
+    await gate?.future;
+    await super.write(serialized);
+  }
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -340,6 +350,22 @@ void main() {
       expect(s.onboarded, false);
     },
   );
+  test('reverting to saved state during an in-flight save persists the latest state', () async {
+    final p = DelayedPersistence();
+    final s = create(p);
+    await s.flush();
+    final original = s.userName;
+    final gate = Completer<void>();
+    p.gate = gate;
+    s.patch({'userName': 'Intermediate edit'});
+    final intermediate = s.flush();
+    await Future<void>.delayed(Duration.zero);
+    s.patch({'userName': original});
+    final reverted = s.flush();
+    gate.complete();
+    await Future.wait([intermediate, reverted]);
+    expect(create(p).userName, original);
+  });
   test('failed autosave keeps in-memory journal', () async {
     final p = MemoryPersistence()..fail = true;
     final s = create(p);
