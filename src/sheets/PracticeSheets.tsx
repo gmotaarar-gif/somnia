@@ -1,4 +1,5 @@
 import * as React from "react"
+import { Mascot } from "@/ui/Mascot"
 import { useSubscription } from "@/store/subscription"
 import { AnimatePresence, motion } from "framer-motion"
 import { Check, Ear, Eye, Hand, Leaf, Pause, Play, Soup, Trash2, X } from "lucide-react"
@@ -87,6 +88,7 @@ function Grounding({ onDone }: { onDone: () => void }) {
           <p className="mt-2 max-w-[280px] text-[14px] leading-relaxed text-ink-2">{s.hint}</p>
         </motion.div>
       </AnimatePresence>
+      <Mascot active />
       <p className="text-[13px] text-ink-3">Нажимайте на шар каждый раз, когда нашли ещё одно</p>
     </div>
   )
@@ -137,7 +139,7 @@ function BodyScan({ onDone }: { onDone: () => void }) {
   const left = total - sec
   return (
     <div className="flex h-full flex-col items-center px-6 pb-[max(var(--safe-bottom),24px)] pt-12 text-center">
-      <div className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-3">Шаг {step + 1} из {BODY.length}</div>
+      <div className="flex items-center gap-3 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-3"><Mascot size={40} active={running} />Шаг {step + 1} из {BODY.length}</div>
       <div className="relative mt-5 h-[300px] w-[150px]">
         <svg viewBox="0 0 100 200" className="size-full" aria-hidden>
           <g fill="currentColor" fillOpacity="0.1" stroke="currentColor" strokeOpacity="0.22" strokeWidth="0.8">

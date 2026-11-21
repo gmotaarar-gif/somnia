@@ -16,6 +16,7 @@ import { Card } from "@/ui/Card"
 import { Bars } from "@/ui/charts"
 import { Button, Chip, SectionHead, Segmented } from "@/ui/controls"
 import { Dots } from "@/ui/Dots"
+import { Mascot } from "@/ui/Mascot"
 
 export const SOUNDS: { id: SoundMode; label: string }[] = [
   { id: "off", label: "Тишина" },
@@ -148,7 +149,7 @@ export function SleepScreen() {
               {last && <span className="rounded-full bg-white/16 px-3 py-1.5 text-[12px] font-medium">{qualityLabel(last.quality)}</span>}
             </div>
             <div className="mt-8 flex items-end gap-3">
-              {last ? <Dots value={hm(last.durationMin)} shape="square" className="text-[64px]" /> : <span className="text-[64px] leading-none">—</span>}
+              {last ? <Dots value={hm(last.durationMin)} shape="square" className="text-[64px]" /> : <Mascot size={80} />}
               {last && <span className="pb-0.5 text-[17px] text-white/65">ч</span>}
             </div>
             {last ? (
