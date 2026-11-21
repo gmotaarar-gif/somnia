@@ -7,7 +7,6 @@ import {
   WHO5,
   WHO5_SCALE,
   bedOptions,
-  buildAwards,
   wakeOptions,
   who5Label,
   type Stage,
@@ -16,6 +15,7 @@ import { nightScore, qualityLabel } from "@/lib/metrics"
 import { EASE_OUT } from "@/lib/motion"
 import { durationRu, hm, relativeDay } from "@/lib/time"
 import { useNow } from "@/store/derived"
+import { useAwards } from "@/store/awards"
 import { useStore } from "@/store/store"
 import { Card, type CardTone } from "@/ui/Card"
 import { Ring } from "@/ui/charts"
@@ -275,15 +275,6 @@ export function NightSheet() {
 }
 
 /* ── Achievements ───────────────────────────────────────────────── */
-
-export function useAwards() {
-  const { nights, moods, sessions, wellbeing, bedGoal, wakeGoal, widgets } = useStore()
-  return React.useMemo(
-    () =>
-      buildAwards({ nights, moods, sessions, wellbeing, bedGoal, wakeGoal, customWidgets: widgets.filter((w) => w.kind === "custom").length }),
-    [nights, moods, sessions, wellbeing, bedGoal, wakeGoal, widgets]
-  )
-}
 
 export function AwardsSheet() {
   const { sheet, openSheet } = useStore()
