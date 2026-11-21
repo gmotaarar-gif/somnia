@@ -1,9 +1,17 @@
 // @vitest-environment jsdom
 
 import type { ReactNode } from "react"
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import App from "./App"
+// Keep the registration chunk cached so a pending workspace is the only load gate.
+import "@/account/RegistrationSheet"
+
+const { workspaceLoaded, releaseWorkspace } = vi.hoisted(() => {
+  let releaseWorkspace!: () => void
+  const workspaceLoaded = new Promise<void>((resolve) => { releaseWorkspace = resolve })
+  return { workspaceLoaded, releaseWorkspace }
+})
 
 vi.mock("@/shell/PhoneFrame", () => ({
   PhoneFrame: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -21,16 +29,45 @@ vi.mock("@/screens/Onboarding", async () => {
       const { openRegistration } = useLocalAccount()
       return <>
         <button onClick={() => finishOnboarding({})}>Finish onboarding</button>
-        <button onClick={() => { finishOnboarding({}); openRegistration() }}>Register after onboarding</button>
+        <button onClick={() => { finishOnboarding({ bedGoal: "22:45", wakeGoal: "07:30" }); openRegistration() }}>Register after onboarding</button>
       </>
     },
   }
 })
-vi.mock("@/shell/Workspace", () => ({ default: () => <div>Workspace</div> }))
+vi.mock("@/shell/Workspace", async () => {
+  await workspaceLoaded
+  return { default: () => <div>Workspace</div> }
+})
 
 afterEach(() => {
+  releaseWorkspace()
   cleanup()
   localStorage.clear()
+})
+
+it("waits for onboarding to commit before allowing registration", async () => {
+  render(<App />)
+
+  const register = await screen.findByText("Register after onboarding")
+  await act(async () => { fireEvent.click(register) })
+  expect(screen.queryByRole("dialog", { name: "Регистрация" })).toBeNull()
+  expect(screen.queryByText("Workspace")).toBeNull()
+
+  releaseWorkspace()
+  expect(await screen.findByText("Workspace")).toBeTruthy()
+  expect(await screen.findByRole("dialog", { name: "Регистрация" })).toBeTruthy()
+
+  fireEvent.change(screen.getByLabelText("Как к вам обращаться"), { target: { value: "Мира" } })
+  fireEvent.change(screen.getByLabelText("Почта"), { target: { value: "мира@почта.рф" } })
+  fireEvent.click(screen.getByRole("button", { name: "Создать локальный профиль" }))
+
+  expect(screen.getByRole("status").textContent).toContain("Профиль готов, Мира")
+  const saved = JSON.parse(localStorage.getItem("somna-state-v6")!)
+  expect(saved.onboarded).toBe(true)
+  expect(saved.bedGoal).toBe("22:45")
+  expect(saved.wakeGoal).toBe("07:30")
+  expect(saved.userName).toBe("Мира")
+  expect(saved.localAccount.email).toBe("мира@почта.рф")
 })
 
 it("keeps the shell visible while loading onboarding for empty storage", async () => {
@@ -53,24 +90,6 @@ it("loads the workspace directly for returning users", async () => {
 
   expect(await screen.findByText("Workspace")).toBeTruthy()
   expect(screen.queryByText("Finish onboarding")).toBeNull()
-})
-
-it("keeps registration available across the lazy onboarding-to-workspace transition", async () => {
-  render(<App />)
-
-  fireEvent.click(await screen.findByText("Register after onboarding"))
-  expect(await screen.findByText("Workspace")).toBeTruthy()
-  expect(await screen.findByRole("dialog", { name: "Регистрация" })).toBeTruthy()
-
-  fireEvent.change(screen.getByLabelText("Как к вам обращаться"), { target: { value: "Мира" } })
-  fireEvent.change(screen.getByLabelText("Почта"), { target: { value: "мира@почта.рф" } })
-  fireEvent.click(screen.getByRole("button", { name: "Создать локальный профиль" }))
-
-  expect(screen.getByRole("status").textContent).toContain("Профиль готов, Мира")
-  const saved = JSON.parse(localStorage.getItem("somna-state-v6")!)
-  expect(saved.onboarded).toBe(true)
-  expect(saved.userName).toBe("Мира")
-  expect(saved.localAccount.email).toBe("мира@почта.рф")
 })
 
 it("loads onboarding when stored data is corrupt", async () => {

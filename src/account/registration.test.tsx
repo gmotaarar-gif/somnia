@@ -5,7 +5,7 @@ import { act, cleanup, fireEvent, render, renderHook, screen } from "@testing-li
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { StoreProvider, useStore } from "@/store/store"
 import { LocalAccountProvider, useLocalAccount } from "./LocalAccountProvider"
-import { RegistrationForm } from "./RegistrationSheet"
+import { RegistrationForm, RegistrationSheet } from "./RegistrationSheet"
 import { normalizeLocalAccount, validateRegistration } from "./registration"
 
 const STORAGE_KEY = "somna-state-v6"
@@ -22,6 +22,23 @@ afterEach(() => {
 })
 
 describe("local registration", () => {
+  it("keeps a mounted registration sheet closed until onboarding commits", async () => {
+    function Flow() {
+      const { openRegistration } = useLocalAccount()
+      const { finishOnboarding } = useStore()
+      return <>
+        <button onClick={openRegistration}>Открыть регистрацию</button>
+        <button onClick={() => finishOnboarding({})}>Завершить настройку</button>
+        <RegistrationSheet />
+      </>
+    }
+    render(<Flow />, { wrapper: Providers })
+    fireEvent.click(screen.getByRole("button", { name: "Открыть регистрацию" }))
+    expect(screen.queryByRole("dialog")).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: "Завершить настройку" }))
+    expect(await screen.findByRole("dialog", { name: "Регистрация" })).toBeTruthy()
+  })
+
   it.each(["mira@example.com,", "mira@example..com", "mira@-example.com", "mira@example-.com", ".mira@example.com", "mi..ra@example.com"])("rejects malformed email %s", (email) => {
     expect(validateRegistration({ name: "Мира", email }).email).toBeTruthy()
   })

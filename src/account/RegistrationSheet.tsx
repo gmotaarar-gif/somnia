@@ -8,10 +8,11 @@ import { useLocalAccount } from "./LocalAccountProvider"
 import { validateRegistration, type RegistrationInput } from "./registration"
 
 export function RegistrationSheet() {
+  const { onboarded } = useStore()
   const { account, registrationOpen, closeRegistration } = useLocalAccount()
   return (
     <Sheet
-      open={registrationOpen}
+      open={onboarded && registrationOpen}
       onClose={closeRegistration}
       title={account ? "Ваш профиль" : "Регистрация"}
       description="Небольшой шаг к вашему ритму"

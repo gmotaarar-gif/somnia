@@ -40,7 +40,8 @@ function Shell() {
       </Suspense>
       <Island />
       <Splash ready={ready} />
-      <Deferred active={registrationOpen}><RegistrationSheet /></Deferred>
+      {/* A pending onboarding transition still exposes the old store snapshot. */}
+      <Deferred active={onboarded && registrationOpen}><RegistrationSheet /></Deferred>
     </PhoneFrame>
   )
 }
