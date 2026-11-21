@@ -366,6 +366,45 @@ void main() {
     await Future.wait([intermediate, reverted]);
     expect(create(p).userName, original);
   });
+  for (final accountWrite in ['registration', 'membership']) {
+    for (final saved in [true, false]) {
+      test(
+        'disposing during pending $accountWrite preserves the account write (saved=$saved)',
+        () async {
+          final p = DelayedPersistence();
+          final s = SomnaStore(
+            persistence: p,
+            now: () => now,
+            autoRefresh: false,
+          );
+          if (saved) await s.flush();
+          final gate = Completer<void>();
+          p.gate = gate;
+          final pending = accountWrite == 'registration'
+              ? s.registerLocalProfile(
+                  const RegistrationInput(
+                    name: 'Мира',
+                    email: 'mira@example.com',
+                  ),
+                )
+              : s.activate('monthly');
+          await Future<void>.delayed(Duration.zero);
+          s.dispose();
+          gate.complete();
+          await pending;
+          await Future<void>.delayed(Duration.zero);
+          final restored = create(p);
+          if (accountWrite == 'registration') {
+            expect(restored.localAccount?.email, 'mira@example.com');
+            expect(restored.userName, 'Мира');
+          } else {
+            expect(restored.membership?.plan, 'monthly');
+            expect(restored.isPlus, true);
+          }
+        },
+      );
+    }
+  }
   test('failed autosave keeps in-memory journal', () async {
     final p = MemoryPersistence()..fail = true;
     final s = create(p);

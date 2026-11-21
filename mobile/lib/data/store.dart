@@ -132,7 +132,8 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
   final Future<bool> Function() _requestReminderPermission;
   Timer? _saveTimer, _dayTimer, _toastTimer, _soundTimer, _membershipTimer;
   Future<void> _writes = Future.value();
-  String? _lastSaved;
+  String? _lastSaved, _lastQueuedState;
+  int _writeVersion = 0;
   bool _disposed = false;
   final bool _autoRefresh;
 
@@ -277,12 +278,16 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _write(String raw, {bool skipUnchanged = false}) {
+    final version = ++_writeVersion;
+    _lastQueuedState = jsonEncode(_state.toJson());
     final write = _writes.then((_) async {
       if (skipUnchanged && raw == _lastSaved) return;
       await _persistence?.write(raw);
       _lastSaved = raw;
     });
-    _writes = write.catchError((Object _) {});
+    _writes = write.catchError((Object _) {
+      if (version == _writeVersion) _lastQueuedState = null;
+    });
     return write;
   }
 
@@ -290,7 +295,7 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> flush() async {
     _saveTimer?.cancel();
     final raw = jsonEncode(_state.toJson());
-    if (_persistence == null) return;
+    if (_persistence == null || raw == _lastQueuedState) return _writes;
     try {
       await _write(raw, skipUnchanged: true);
     } catch (_) {
@@ -306,6 +311,7 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
     final next = _read(_persistence, _now);
     _saveTimer?.cancel();
     _lastSaved = jsonEncode(next.toJson());
+    _lastQueuedState = _lastSaved;
     _state = next;
     _scheduleMembershipExpiry();
     notifyListeners();
