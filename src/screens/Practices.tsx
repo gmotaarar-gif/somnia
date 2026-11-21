@@ -198,8 +198,10 @@ export function PracticesScreen() {
                     >
                       <Check className="size-3.5" strokeWidth={3.5} />
                     </span>
-                    <span className={cn("min-w-0 flex-1 truncate text-[15px] transition-opacity duration-250", done && "text-ink-3 line-through decoration-white/25")}>{r.label}</span>
-                    <span className="shrink-0 text-[12px] text-ink-3">{r.hint}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className={cn("block text-[15px] leading-snug transition-colors duration-250", done && "text-ink-3 line-through decoration-white/25")}>{r.label}</span>
+                      <span className="mt-0.5 block text-[12px] text-ink-3">{r.hint}</span>
+                    </span>
                   </button>
                 </li>
               )
