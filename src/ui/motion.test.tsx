@@ -5,6 +5,7 @@ import { MotionConfig, MotionGlobalConfig, motion } from "framer-motion"
 import { useState } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { Island } from "@/shell/Island"
+import { Bars, Ring, Wave } from "./charts"
 import { MotionProvider, usePrefersReducedMotion } from "./MotionProvider"
 import { ScreenTransition } from "./ScreenTransition"
 
@@ -163,4 +164,23 @@ it("synchronizes global motion before an individual preference consumer updates"
   })
   expect(screen.getByText("normal")).toBeTruthy()
   expect(MotionGlobalConfig.skipAnimations).toBe(false)
+})
+
+it("renders complete chart data synchronously after a live switch to reduced motion", () => {
+  const { container } = render(<MotionProvider>
+    <Wave values={[20, 60, 40]} fill />
+    <Bars values={[20, 80]} max={100} format={(value) => `bar-${value}`} />
+    <Ring value={0.5} />
+  </MotionProvider>)
+  act(() => {
+    reduced = true
+    listeners.forEach((notify) => notify())
+  })
+  // Data must be visible on this commit, not after Motion's frame scheduler.
+  expect(container.querySelector('path[stroke-width="4.5"]')?.getAttribute("stroke-dasharray")).toBe("1 1")
+  expect(container.querySelector('path[fill^="url"]')?.getAttribute("opacity")).toBe("1")
+  expect(container.querySelector("g")?.getAttribute("opacity")).toBe("1")
+  expect(screen.getByTitle("bar-20").style.height).toBe("20%")
+  expect(screen.getByTitle("bar-80").style.height).toBe("80%")
+  expect(Number(container.querySelector('circle[stroke="#d9f24a"]')?.getAttribute("stroke-dashoffset"))).toBeCloseTo(Math.PI * 47)
 })

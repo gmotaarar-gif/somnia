@@ -2,6 +2,7 @@ import * as React from "react"
 import { motion } from "framer-motion"
 import { EASE_OUT } from "@/lib/motion"
 import { cn } from "@/lib/cn"
+import { usePrefersReducedMotion } from "./MotionProvider"
 
 const clamp = (v: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v))
 
@@ -146,6 +147,7 @@ export function Wave({
   height?: number
 }) {
   const id = React.useId()
+  const reduce = usePrefersReducedMotion()
   if (values.length < 2) return <div className={className} style={{ aspectRatio: `200/${height}` }} />
   const lo = Math.min(...values)
   const hi = Math.max(...values)
@@ -174,26 +176,29 @@ export function Wave({
       </defs>
       {fill && (
         <motion.path
+          key={`fill-${reduce}`}
           d={`${d} L${lx},${height} L${pts[0][0]},${height} Z`}
           fill={`url(#${id}f)`}
-          initial={{ opacity: 0 }}
+          initial={reduce ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.7 }}
         />
       )}
       <motion.path
+        key={`line-${reduce}`}
         d={d}
         fill="none"
         stroke={`url(#${id})`}
         strokeWidth="4.5"
         strokeLinecap="round"
-        initial={{ pathLength: 0 }}
+        initial={reduce ? false : { pathLength: 0 }}
         animate={{ pathLength: 1 }}
         transition={{ duration: 1.1, ease: EASE_OUT, delay: 0.15 }}
       />
       {knob && (
         <motion.g
-          initial={{ opacity: 0, scale: 0.4 }}
+          key={`knob-${reduce}`}
+          initial={reduce ? false : { opacity: 0, scale: 0.4 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: "spring", stiffness: 380, damping: 20, delay: 0.95 }}
           style={{ transformOrigin: `${lx}px ${ly}px` }}
@@ -221,6 +226,7 @@ export function Ring({
   children?: React.ReactNode
   className?: string
 }) {
+  const reduce = usePrefersReducedMotion()
   const r = 50 - stroke
   const c = 2 * Math.PI * r
   return (
@@ -228,6 +234,7 @@ export function Ring({
       <svg viewBox="0 0 100 100" className="absolute inset-0 -rotate-90" aria-hidden>
         <circle cx="50" cy="50" r={r} fill="none" stroke="rgb(255 255 255 / 0.16)" strokeWidth={stroke * 0.5} />
         <motion.circle
+          key={String(reduce)}
           cx="50"
           cy="50"
           r={r}
@@ -236,7 +243,7 @@ export function Ring({
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={c}
-          initial={{ strokeDashoffset: c }}
+          initial={reduce ? false : { strokeDashoffset: c }}
           animate={{ strokeDashoffset: c * (1 - clamp(value)) }}
           transition={{ duration: 1, ease: EASE_OUT, delay: 0.15 }}
         />
@@ -264,6 +271,7 @@ export function Bars({
   className?: string
   format?: (v: number) => string
 }) {
+  const reduce = usePrefersReducedMotion()
   const top = max ?? Math.max(...values, goal ?? 0, 1)
   const hot = highlight ?? values.length - 1
   return (
@@ -278,12 +286,13 @@ export function Bars({
         <div key={i} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
           <div className="relative flex w-full flex-1 items-end justify-center">
             <motion.div
+              key={String(reduce)}
               title={format ? format(v) : undefined}
               className={cn(
                 "w-full max-w-[26px] rounded-full",
                 i === hot ? "bg-lime shadow-[0_0_22px_-4px_rgb(217_242_74/0.8)]" : "bg-white/22"
               )}
-              initial={{ height: "4%" }}
+              initial={reduce ? false : { height: "4%" }}
               animate={{ height: `${Math.max(6, (v / top) * 100)}%` }}
               transition={{ duration: 0.7, ease: EASE_OUT, delay: 0.12 + i * 0.045 }}
             />
