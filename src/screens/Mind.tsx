@@ -183,7 +183,7 @@ export function MindScreen() {
   const link = React.useMemo(() => sleepMoodLink(nights, moods), [nights, moods])
   const weekCheckins = moods.filter((m) => dateKey(new Date(m.at)) >= dateKey(daysAgo(6))).length
   const insight = insights.length ? insights[insightAt % insights.length] : null
-  const diary = [...moods].reverse().slice(0, allEntries ? 12 : 3)
+  const diary = [...moods].reverse().slice(0, allEntries ? undefined : 3)
 
   return (
     <>

@@ -41,3 +41,19 @@ it("shows a check-in's note next to its tags in the diary", () => {
 
   expect(entry.getAttribute("aria-expanded")).toBe("true")
 })
+
+it("shows every retained mood when the diary is expanded", () => {
+  localStorage.setItem("somna-state-v6", JSON.stringify({
+    moods: Array.from({ length: 16 }, (_, i) => ({
+      id: `m${i}`, at: new Date().toISOString(), valence: 0.4, emotions: [], factors: [], note: `Entry ${i}`,
+    })),
+  }))
+  render(<StoreProvider><SubscriptionProvider><MindScreen /></SubscriptionProvider></StoreProvider>)
+
+  expect(screen.queryByText("«Entry 0»")).toBeNull()
+  fireEvent.click(screen.getByRole("button", { name: "Показать все записи" }))
+  expect(screen.getByText("«Entry 0»")).toBeTruthy()
+  expect(screen.getAllByText(/^«Entry \d+»$/)).toHaveLength(16)
+  fireEvent.click(screen.getByRole("button", { name: "Свернуть" }))
+  expect(screen.getAllByText(/^«Entry \d+»$/)).toHaveLength(3)
+})
