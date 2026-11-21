@@ -45,6 +45,7 @@ export function ProfileSheet() {
 
       <Field label="Хронотип">
         <Segmented<Chronotype>
+          label="Хронотип"
           id="profile-chrono"
           className="flex w-full"
           value={s.chronotype}

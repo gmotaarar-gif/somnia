@@ -45,6 +45,7 @@ export function CyclesSheet() {
     >
       <Segmented
         id="cycles-mode"
+        label="Режим расчёта сна"
         className="flex w-full"
         value={mode}
         onChange={setMode}

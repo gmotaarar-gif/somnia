@@ -149,6 +149,7 @@ export function PracticesScreen() {
               <div className={cn("mt-7 w-full space-y-3 transition-opacity duration-250", started && "pointer-events-none opacity-40")}>
                 <Segmented
                   id="technique"
+                  label="Техника дыхания"
                   className="flex w-full"
                   value={breath.technique}
                   onChange={(technique) => setBreath((b) => ({ ...b, technique }))}
