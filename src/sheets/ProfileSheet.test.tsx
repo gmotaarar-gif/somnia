@@ -2,13 +2,20 @@
 
 import type { ReactNode } from "react"
 import { Blob as NodeBlob } from "node:buffer"
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { StoreProvider, useStore } from "@/store/store"
 import { SubscriptionProvider } from "@/store/subscription"
 import { LocalAccountProvider, useLocalAccount } from "@/account/LocalAccountProvider"
 import { dateKey } from "@/lib/time"
 import { ProfileSheet } from "./ProfileSheet"
+import { requestReminderPermission } from "@/lib/notifications"
+
+vi.mock("@/lib/notifications", () => ({
+  requestReminderPermission: vi.fn().mockResolvedValue(true),
+  syncReminders: vi.fn().mockResolvedValue(undefined),
+  listenForReminders: vi.fn(() => () => {}),
+}))
 
 // Exercise profile/store behavior without the shared sheet's animation/portal lifecycle.
 vi.mock("@/ui/Sheet", async (importOriginal) => ({
@@ -22,9 +29,9 @@ const STORAGE_KEY = "somna-state-v6"
 const savedNight = { id: "own-night", dateKey: "2030-01-02", bedtime: "00:00", wakeTime: "08:00", durationMin: 480, quality: 80, awakenings: 0, tags: [] }
 
 function Harness() {
-  const { openSheet, sheet } = useStore()
+  const { openSheet, sheet, toast } = useStore()
   const { registrationOpen } = useLocalAccount()
-  return <><button onClick={() => openSheet("profile")}>Открыть профиль</button><output data-testid="active-sheet">{sheet}</output><output data-testid="registration-open">{String(registrationOpen)}</output><ProfileSheet /></>
+  return <><button onClick={() => openSheet("profile")}>Открыть профиль</button><output data-testid="active-sheet">{sheet}</output><output data-testid="registration-open">{String(registrationOpen)}</output><output>{toast?.text}</output><ProfileSheet /></>
 }
 
 function openProfile() {
@@ -41,6 +48,26 @@ afterEach(() => {
 })
 
 describe("ProfileSheet", () => {
+  it("requests permission and persists the morning reminder", async () => {
+    openProfile()
+    fireEvent.click(screen.getByRole("switch", { name: "Утренний чек-ин" }))
+    await waitFor(() => expect(screen.getByLabelText("Время чек-ина")).toBeTruthy())
+    expect(requestReminderPermission).toHaveBeenCalled()
+    fireEvent.change(screen.getByLabelText("Время чек-ина"), { target: { value: "09:10" } })
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).toMatchObject({ morningReminder: true, morningReminderTime: "09:10" })
+    fireEvent.click(screen.getByRole("switch", { name: "Утренний чек-ин" }))
+    expect(screen.queryByLabelText("Время чек-ина")).toBeNull()
+  })
+
+  it.each(["Напоминать об отбое", "Утренний чек-ин"])("keeps %s off when permission is denied", async (name) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ reminder: false }))
+    vi.mocked(requestReminderPermission).mockResolvedValueOnce(false)
+    openProfile()
+    fireEvent.click(screen.getByRole("switch", { name }))
+    await waitFor(() => expect(screen.getByText("Разрешите уведомления для Somna в настройках телефона")).toBeTruthy())
+    expect(screen.getByRole("switch", { name }).getAttribute("aria-checked")).toBe("false")
+    await waitFor(() => expect(requestReminderPermission).toHaveBeenCalled())
+  })
   it("opens local registration from the profile without discarding personal settings", () => {
     openProfile()
     fireEvent.change(screen.getByLabelText("Имя"), { target: { value: "Мира" } })
@@ -75,7 +102,7 @@ describe("ProfileSheet", () => {
     expect((screen.getByLabelText("Имя") as HTMLInputElement).value).toBe("Мира")
     expect(screen.getByRole("radio", { name: /Сова/ }).getAttribute("aria-checked")).toBe("true")
     expect(screen.getByText("8 ч 30 мин")).toBeTruthy()
-    expect(screen.getByRole("switch").getAttribute("aria-checked")).toBe("false")
+    expect(screen.getByRole("switch", { name: "Напоминать об отбое" }).getAttribute("aria-checked")).toBe("false")
   })
 
   it("never resets records on cancel or close, and requires fresh confirmation after reopening", () => {

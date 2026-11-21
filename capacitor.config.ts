@@ -5,6 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Somna',
   webDir: 'dist',
   android: { backgroundColor: '#07070c' },
+  plugins: { LocalNotifications: { smallIcon: 'ic_notification', iconColor: '#C9B9EF' } },
 }
 
 export default config

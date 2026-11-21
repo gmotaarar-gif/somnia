@@ -2,6 +2,7 @@ import * as React from "react"
 import { normalizeEmail, normalizeLocalAccount, validateRegistration, type LocalAccount, type RegistrationInput } from "@/account/registration"
 import { setSoundVolume, startSound, stopSound, type SoundMode } from "@/lib/audio"
 import { isThemeMode, type ThemeMode } from "@/lib/theme"
+import { listenForReminders, requestReminderPermission, syncReminders } from "@/lib/notifications"
 import { dateKey, daysAgo, spanMinutes } from "@/lib/time"
 
 export type TabId = "today" | "sleep" | "mind" | "practices"
@@ -224,6 +225,8 @@ interface Persisted {
   wakeGoal: string
   reminder: boolean
   reminderTime: string
+  morningReminder: boolean
+  morningReminderTime: string
   focus: string[]
   ritual: { day: string; done: string[] }
   water: { day: string; ml: number }
@@ -258,6 +261,8 @@ function defaults(): Persisted {
     wakeGoal: "07:30",
     reminder: true,
     reminderTime: "22:30",
+    morningReminder: false,
+    morningReminderTime: "07:30",
     focus: ["Стабильный подъём", "Снять вечерний стресс"],
     ritual: { day: today(), done: ["dim"] },
     water: { day: today(), ml: 1250 },
@@ -308,6 +313,7 @@ function load(): Persisted {
     if (!raw) return base
     const parsed = JSON.parse(raw) as Partial<Persisted>
     const saved = rollDay({ ...base, ...parsed }, today())
+    saved.morningReminderTime = parsed.morningReminderTime ?? saved.wakeGoal ?? "08:00"
     saved.localAccount = normalizeLocalAccount(saved.localAccount)
     saved.nights = normalizeNights(saved.nights)
     if (!isThemeMode(saved.theme)) saved.theme = base.theme
@@ -357,7 +363,7 @@ export interface Store extends Persisted {
   nightSound: SoundMode
   setNightSound: (s: SoundMode) => void
   patch: (p: Partial<Persisted>) => void
-  finishOnboarding: (p: Partial<Persisted>) => void
+  finishOnboarding: (p: Partial<Persisted>) => Promise<boolean>
   addNight: (n: Omit<SleepNight, "id">) => void
   removeNight: (id: string) => void
   addMood: (m: Omit<MoodEntry, "id" | "at">) => void
@@ -402,6 +408,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const notify = React.useCallback((text: string) => setToast({ id: Date.now(), text }), [])
 
   React.useEffect(() => {
+    void syncReminders(data).catch(() => notify("Не удалось обновить напоминания. Попробуйте ещё раз."))
+  }, [data.reminder, data.reminderTime, data.morningReminder, data.morningReminderTime, notify])
+
+  React.useEffect(() => {
     if (!toast) return
     const id = window.setTimeout(() => setToast(null), 2600)
     return () => window.clearTimeout(id)
@@ -410,6 +420,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [nightMode, setNightMode] = React.useState(false)
   const [nightStart, setNightStart] = React.useState<string | null>(null)
   const [nightSound, setNightSound] = React.useState<SoundMode>("pink")
+  const endNight = React.useCallback((log: boolean) => {
+    setNightMode(false)
+    if (log) openSheet("sleep")
+    else setNightStart(null)
+  }, [openSheet])
+  React.useEffect(() => listenForReminders((target) => {
+    if (target === "mood" && (nightMode || nightStart)) endNight(true)
+    else openSheet(target)
+  }), [openSheet, endNight, nightMode, nightStart])
 
   React.useEffect(() => {
     const serialized = JSON.stringify(data)
@@ -476,7 +495,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return {
       patch,
       setWidgets,
-      finishOnboarding: (p: Partial<Persisted>) => React.startTransition(() => setData((d) => ({ ...d, ...p, onboarded: true }))),
+      finishOnboarding: async (p: Partial<Persisted>) => {
+        const granted = !p.reminder || await requestReminderPermission()
+        const next = { ...latestData.current, ...p, ...(p.reminder && { reminder: granted }), onboarded: true }
+        React.startTransition(() => setData(next))
+        void syncReminders(next).catch(() => notify("Не удалось обновить напоминания. Попробуйте ещё раз."))
+        if (!granted) notify("Разрешите уведомления для Somna в настройках телефона")
+        return granted
+      },
       addNight: (n: Omit<SleepNight, "id">) =>
         setData((d) => ({
           ...d,
@@ -578,16 +604,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         setNightStart(`${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`)
         setNightMode(true)
       },
-      endNight: (log: boolean) => {
-        setNightMode(false)
-        if (log) openSheet("sleep")
-        else setNightStart(null)
-      },
+      endNight,
       clearNightStart: () => setNightStart(null),
       nightSound,
       setNightSound,
     }),
-    [data, actions, tab, tabDir, setTab, sheet, sheetArg, openSheet, toast, notify, editing, nightMode, nightStart, nightSound]
+    [data, actions, tab, tabDir, setTab, sheet, sheetArg, openSheet, toast, notify, editing, nightMode, nightStart, nightSound, endNight]
   )
 
   return (
