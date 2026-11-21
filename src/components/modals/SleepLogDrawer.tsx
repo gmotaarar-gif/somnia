@@ -99,6 +99,16 @@ function formatDurationShort(mins: number) {
   return `${Math.floor(mins / 60)}ч ${String(mins % 60).padStart(2, "0")}м`
 }
 
+function splitStoredNote(stored: string | undefined) {
+  if (!stored) return { tags: [] as string[], note: "" }
+  const [head = "", ...rest] = stored.split(" — ")
+  const tags = head.split(" · ")
+  if (tags.every((t) => SLEEP_TAGS.includes(t))) {
+    return { tags, note: rest.join(" — ") }
+  }
+  return { tags: [] as string[], note: stored }
+}
+
 function buildNightDateInfo(offsetDays: number) {
   const d = new Date()
   d.setDate(d.getDate() - offsetDays)
@@ -440,8 +450,14 @@ function SleepNightDetailsStep({
 }
 
 export function SleepLogDrawer() {
-  const { sleepLogOpen, setSleepLogOpen, bedtimeGoal, wakeGoal, addSleepNight } =
-    useSomna()
+  const {
+    sleepLogOpen,
+    setSleepLogOpen,
+    bedtimeGoal,
+    wakeGoal,
+    sleepHistory,
+    addSleepNight,
+  } = useSomna()
   const reduceMotion = useReducedMotion()
 
   const [step, setStep] = React.useState(0) // 0: quality orb, 1: time wheels, 2: awakenings/tags/note, 3: Записано
@@ -467,22 +483,41 @@ export function SleepLogDrawer() {
     }
   }, [])
 
+  const sleepHistoryRef = React.useRef(sleepHistory)
+  sleepHistoryRef.current = sleepHistory
+
+  // Prefill the form from the saved night for the selected date, so re-saving edits it.
+  const loadFormForDay = React.useCallback(
+    (offset: DayOffsetId) => {
+      const { dateKey } = buildNightDateInfo(Number(offset))
+      const existing = sleepHistoryRef.current.find((n) => n.dateKey === dateKey)
+      const { tags, note: savedNote } = splitStoredNote(existing?.note)
+      setBedWheel(splitTime(existing?.bedtime ?? bedtimeGoal))
+      setWakeWheel(splitTime(existing?.wakeTime ?? wakeGoal))
+      setQuality(existing?.quality ?? 84)
+      setAwakenings(existing?.awakenings ?? 0)
+      setSelectedTags(tags)
+      setNote(savedNote)
+    },
+    [bedtimeGoal, wakeGoal]
+  )
+
+  const handleDayOffsetChange = (offset: DayOffsetId) => {
+    setDayOffset(offset)
+    loadFormForDay(offset)
+  }
+
   React.useEffect(() => {
     if (sleepLogOpen) {
       clearCloseTimer()
       setStep(0)
       setDir(1)
       setDayOffset("0")
-      setBedWheel(splitTime(bedtimeGoal))
-      setWakeWheel(splitTime(wakeGoal))
-      setQuality(84)
-      setAwakenings(0)
-      setSelectedTags([])
-      setNote("")
+      loadFormForDay("0")
     } else {
       clearCloseTimer()
     }
-  }, [sleepLogOpen, bedtimeGoal, wakeGoal, clearCloseTimer])
+  }, [sleepLogOpen, loadFormForDay, clearCloseTimer])
 
   React.useEffect(() => {
     return () => clearCloseTimer()
@@ -601,7 +636,7 @@ export function SleepLogDrawer() {
           {step === 1 && (
             <SleepScheduleStep
               dayOffset={dayOffset}
-              onDayOffsetChange={setDayOffset}
+              onDayOffsetChange={handleDayOffsetChange}
               bedWheel={bedWheel}
               wakeWheel={wakeWheel}
               onBedChange={setBedWheel}

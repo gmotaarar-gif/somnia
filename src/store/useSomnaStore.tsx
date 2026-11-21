@@ -768,10 +768,11 @@ export function SomnaProvider({ children }: { children: React.ReactNode }) {
       const replacesExisting = storedSleepHistory.some(
         (n) => n.dateKey === newNight.dateKey
       )
-      setSleepHistory((prev) => [
-        ...prev.filter((n) => n.dateKey !== newNight.dateKey).slice(-89),
-        newNight,
-      ])
+      setSleepHistory((prev) =>
+        [...prev.filter((n) => n.dateKey !== newNight.dateKey), newNight]
+          .sort((a, b) => (a.dateKey ?? "").localeCompare(b.dateKey ?? ""))
+          .slice(-90)
+      )
       if (!replacesExisting) setStreakDays((d) => d + 1)
     },
     [storedSleepHistory]
