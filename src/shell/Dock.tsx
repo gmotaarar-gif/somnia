@@ -1,6 +1,6 @@
 import * as React from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { BedDouble, Brain, LayoutGrid, MoonStar, Plus, Smile, Wind } from "lucide-react"
+import { BedDouble, Brain, LayoutGrid, MoonStar, Plus, Leaf, Smile } from "lucide-react"
 import { cn } from "@/lib/cn"
 import { DUR, EASE_OUT, SPRING } from "@/lib/motion"
 import { useStore, type TabId } from "@/store/store"
@@ -9,7 +9,7 @@ const TABS: { id: TabId; label: string; icon: React.ComponentType<{ className?: 
   { id: "today", label: "Сегодня", icon: LayoutGrid },
   { id: "sleep", label: "Сон", icon: MoonStar },
   { id: "mind", label: "Состояние", icon: Brain },
-  { id: "practices", label: "Практики", icon: Wind },
+  { id: "practices", label: "Практики", icon: Leaf },
 ]
 
 export function Dock() {
@@ -62,7 +62,7 @@ export function Dock() {
                     document.getElementById("app-scroll")?.scrollTo({ top: 0 })
                   }}
                   className={cn(
-                    "relative flex h-[52px] items-center justify-center gap-2 rounded-full px-3 transition-colors duration-250",
+                    "relative flex h-12 min-w-12 items-center justify-center gap-2 rounded-full px-3.5 transition-colors duration-250",
                     active ? "text-lime-ink" : "text-ink-2 hover:text-ink"
                   )}
                 >
@@ -73,7 +73,7 @@ export function Dock() {
                       className="absolute inset-0 rounded-full bg-lime shadow-[0_8px_28px_-8px_rgb(217_242_74/0.75)]"
                     />
                   )}
-                  <Icon className="relative size-[21px] shrink-0" />
+                  <Icon className="relative size-5 shrink-0" />
                   <AnimatePresence initial={false}>
                     {active && (
                       <motion.span
@@ -114,7 +114,7 @@ export function Dock() {
               aria-label="Добавить запись"
               aria-expanded={menu}
               onClick={() => setMenu((v) => !v)}
-              className="press glass-dark grid size-16 place-items-center rounded-full text-ink"
+              className="press glass-dark grid size-[60px] place-items-center rounded-full text-ink"
             >
               <motion.span animate={{ rotate: menu ? 45 : 0 }} transition={SPRING}>
                 <Plus className="size-6" />

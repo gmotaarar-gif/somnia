@@ -16,6 +16,7 @@ const AwardsSheet = lazy(() => import("@/sheets/Extras").then((m) => ({ default:
 const GroundingSheet = lazy(() => import("@/sheets/PracticeSheets").then((m) => ({ default: m.GroundingSheet })))
 const BodyScanSheet = lazy(() => import("@/sheets/PracticeSheets").then((m) => ({ default: m.BodyScanSheet })))
 const WorrySheet = lazy(() => import("@/sheets/PracticeSheets").then((m) => ({ default: m.WorrySheet })))
+const ArticleSheet = lazy(() => import("@/sheets/ArticleSheet").then((m) => ({ default: m.ArticleSheet })))
 const NightMode = lazy(() => import("@/shell/NightMode").then((m) => ({ default: m.NightMode })))
 
 export function SheetHost() {
@@ -36,6 +37,7 @@ export function SheetHost() {
       <Deferred active={sheet === "grounding"}><GroundingSheet /></Deferred>
       <Deferred active={sheet === "bodyscan" && isPlus}><BodyScanSheet /></Deferred>
       <Deferred active={sheet === "worry"}><WorrySheet /></Deferred>
+      <Deferred active={sheet === "article"}><ArticleSheet /></Deferred>
       <Deferred active={nightMode}><NightMode onLoadError={() => endNight(false)} /></Deferred>
     </>
   )

@@ -355,11 +355,6 @@ button:disabled {
     radial-gradient(ellipse at 108% 100%, #ff4db8 0%, transparent 60%),
     linear-gradient(145deg, #35208a, #17112d 65%, #753b86);
 }
-.card.practice-hero {
-  background:
-    radial-gradient(ellipse at 50% 26%, rgb(92 162 137 / 0.22), transparent 65%),
-    #151d1b;
-}
 .card.recap-emotions {
   background:
     radial-gradient(ellipse at 12% 48%, #ffb47e, transparent 68%),
@@ -369,12 +364,6 @@ button:disabled {
   background:
     radial-gradient(ellipse at 100% 0%, rgb(174 159 240 / 0.18), transparent 70%),
     #1a1921;
-}
-.card.reading-card {
-  color: #102a23;
-  background:
-    radial-gradient(ellipse at 0% 0%, #e6fff6, transparent 80%),
-    linear-gradient(140deg, #b8f7e4, #62cbb0);
 }
 
 @media (max-width: 359px) {

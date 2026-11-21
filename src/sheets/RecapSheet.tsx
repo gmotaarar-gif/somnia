@@ -1,6 +1,6 @@
 import * as React from "react"
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
-import { ArrowDownRight, ArrowLeft, ArrowRight, ArrowUpRight, Check, Heart, Moon, Sparkles, Target, Wind, X } from "lucide-react"
+import { ArrowDownRight, ArrowLeft, ArrowRight, ArrowUpRight, Check, Heart, Leaf, Moon, Sparkles, Target, X } from "lucide-react"
 import { cn } from "@/lib/cn"
 import { indexLabel, nightScore } from "@/lib/metrics"
 import { DUR, EASE_OUT } from "@/lib/motion"
@@ -16,7 +16,7 @@ const STORIES: { title: string; tone: CardTone; icon: typeof Moon }[] = [
   { title: "Ваша неделя", tone: "night", icon: Sparkles },
   { title: "Сон", tone: "violet", icon: Moon },
   { title: "Состояние", tone: "mint", icon: Heart },
-  { title: "Забота о себе", tone: "sunset", icon: Wind },
+  { title: "Забота о себе", tone: "sunset", icon: Leaf },
   { title: "Следующая неделя", tone: "forest", icon: Target },
 ]
 
@@ -132,7 +132,7 @@ function RecapStories({ onClose }: { onClose: () => void }) {
       <div className="my-6 grid grid-cols-2 gap-3">
         <Activity icon={<Sparkles />} label="дней с записями" value={`${recap.activeDays}/7`} />
         <Activity icon={<Heart />} label="чек-инов состояния" value={recap.moods.length} />
-        <Activity icon={<Wind />} label="минут практик" value={recap.practiceMinutes} />
+        <Activity icon={<Leaf />} label="минут практик" value={recap.practiceMinutes} />
         <Activity icon={<Check />} label="практик завершено" value={recap.practiceCount} />
       </div>
       <p className="glass-inset mt-auto rounded-[24px] p-4 text-[14px] leading-relaxed text-ink-2">{recap.practiceCount ? "Вы находили время для паузы. На следующей неделе не нужно делать больше — попробуйте сохранить то, что подходит вам" : "Не нужно менять всё сразу. Начните с одной короткой практики, когда захотите сделать паузу"}</p>

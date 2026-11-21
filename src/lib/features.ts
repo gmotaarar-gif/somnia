@@ -122,15 +122,15 @@ export function buildAwards(a: {
     make("calm5", "Тихие ночи", "5 ночей без пробуждений", calm, 5, "cobalt"),
     make("mood10", "Наблюдатель", "10 чек-инов состояния", a.moods.length, 10, "ember"),
     make("mood30", "Знаю себя", "30 чек-инов состояния", a.moods.length, 30, "rose"),
-    make("breath30", "Ровное дыхание", "30 минут практик", minutes, 30, "lime"),
-    make("breath120", "Мастер паузы", "2 часа практик", minutes, 120, "plum"),
+    make("practice30", "Тихая пауза", "30 минут практик", minutes, 30, "lime"),
+    make("practice120", "Мастер паузы", "2 часа практик", minutes, 120, "plum"),
     make("who5", "Честный взгляд", "Пройден тест благополучия", a.wellbeing.length, 1, "moss"),
     make("custom", "Свой экран", "Создан собственный виджет", a.customWidgets, 1, "ember"),
   ]
 }
 
 export interface PlanItem {
-  id: "sleep" | "mood" | "breath" | "water" | "ritual"
+  id: "sleep" | "mood" | "water" | "ritual"
   label: string
   hint: string
   done: boolean
@@ -139,7 +139,6 @@ export interface PlanItem {
 export function dayPlan(a: {
   nights: SleepNight[]
   moods: MoodEntry[]
-  breathMin: number
   waterMl: number
   waterGoal: number
   ritualDone: number
@@ -148,7 +147,6 @@ export function dayPlan(a: {
   return [
     { id: "sleep", label: "Записать сон", hint: "минута утром", done: a.nights.some((n) => n.dateKey === today) },
     { id: "mood", label: "Чек-ин состояния", hint: "20 секунд", done: a.moods.some((m) => dateKey(new Date(m.at)) === today) },
-    { id: "breath", label: "3 минуты дыхания", hint: `${a.breathMin.toFixed(1)} из 3 мин`, done: a.breathMin >= 3 },
     { id: "water", label: "Норма воды", hint: `${a.waterMl} из ${a.waterGoal} мл`, done: a.waterMl >= a.waterGoal },
     { id: "ritual", label: "Вечерний ритуал", hint: `${a.ritualDone} из 3 шагов`, done: a.ritualDone >= 3 },
   ]

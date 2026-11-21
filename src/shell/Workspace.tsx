@@ -35,7 +35,7 @@ export default function Workspace() {
   return (
     <>
       <div id="app-scroll" className="app-scroll">
-        <div className="px-4 pb-[var(--dock-space)] pt-[max(var(--safe-top),14px)]">
+        <div className="px-5 pb-[var(--dock-space)] pt-[max(var(--safe-top),14px)]">
           <AnimatePresence mode="wait" initial={false} custom={visible.tabDir}>
             <motion.main key={visible.tab} custom={visible.tabDir} variants={screenVariants} initial="enter" animate="center" exit="exit">
               <Screen />
