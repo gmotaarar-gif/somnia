@@ -389,7 +389,7 @@ export function Onboarding() {
               <div className="mt-5">
                 <SleepDial bed={bedGoal} wake={wakeGoal} />
               </div>
-              <Segmented id="chrono" className="mt-5 flex w-full" value={chronotype} onChange={pickChrono} options={CHRONO.map(({ value, label }) => ({ value, label }))} />
+              <Segmented id="chrono" label="Хронотип" className="mt-5 flex w-full" value={chronotype} onChange={pickChrono} options={CHRONO.map(({ value, label }) => ({ value, label }))} />
               <div className="mt-3 flex gap-3">
                 <TimeField label="Отбой" value={bedGoal} onChange={setBedGoal} />
                 <TimeField label="Подъём" value={wakeGoal} onChange={setWakeGoal} />

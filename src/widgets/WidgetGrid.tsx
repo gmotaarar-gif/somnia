@@ -55,7 +55,7 @@ function EditButton({
 }
 
 function SortableWidget({ widget, editing }: { widget: Widget; editing: boolean }) {
-  const { updateWidget, deleteWidget, setEditing } = useStore()
+  const { updateWidget, setEditing } = useStore()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: widget.id,
     disabled: !editing,
@@ -67,8 +67,7 @@ function SortableWidget({ widget, editing }: { widget: Widget; editing: boolean 
   }
   const wide = widget.size === "2x1"
 
-  const remove = () =>
-    widget.kind === "custom" ? deleteWidget(widget.id) : updateWidget(widget.id, { visible: false })
+  const remove = () => updateWidget(widget.id, { visible: false })
   const nextTone = () =>
     updateWidget(widget.id, { tone: TONES[(TONES.indexOf(widget.tone) + 1) % TONES.length] })
 

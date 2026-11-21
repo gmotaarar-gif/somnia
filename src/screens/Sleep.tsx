@@ -197,6 +197,7 @@ export function SleepScreen() {
                 <span className="text-[13px] text-ink-2">Таймер звука</span>
                 <Segmented
                   id="sound-timer"
+                  label="Таймер звука"
                   value={String(soundTimer)}
                   onChange={(v) => patch({ soundTimer: Number(v) })}
                   options={[
@@ -245,6 +246,7 @@ export function SleepScreen() {
         <SectionHead title="Динамика" hint={`${shown.length} ${pluralRu(shown.length, ["ночь", "ночи", "ночей"])}`}>
           <Segmented
             id="sleep-period"
+            label="Период динамики сна"
             value={period}
             onChange={setPeriod}
             options={[

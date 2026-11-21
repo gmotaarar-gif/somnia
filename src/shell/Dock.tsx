@@ -78,7 +78,7 @@ export function Dock() {
                     {active && (
                       <motion.span
                         key="label"
-                        className="dock-label relative overflow-hidden whitespace-nowrap text-[14px] font-semibold tracking-[-0.01em]"
+                        className="dock-label relative overflow-hidden whitespace-nowrap text-[14px] font-semibold tracking-[-0.01em] max-[380px]:hidden"
                         initial={{ width: 0, opacity: 0 }}
                         animate={{ width: "auto", opacity: 1 }}
                         exit={{ width: 0, opacity: 0 }}
