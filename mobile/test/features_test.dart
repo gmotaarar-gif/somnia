@@ -23,25 +23,17 @@ void main() {
       expect(bedOptions('07:30').map((o) => o.best), [false, true, false]);
     },
   );
-  test(
-    'hypnogram conserves time in bed and stage totals include all stages',
-    () {
-      final stages = hypnogram(night('2030-01-02').copyWith(awakenings: 2));
-      final totals = stageTotals(stages);
-      expect(totals.values.reduce((a, b) => a + b), closeTo(480, 0.0000001));
-      expect(stages.first.stage, 'awake');
-      expect(totals['deep'], greaterThan(0));
-      expect(totals['rem'], greaterThan(0));
-      expect(stageTotals([]), {'awake': 0, 'rem': 0, 'light': 0, 'deep': 0});
-      final short = hypnogram(
-        night('x').copyWith(bedtime: '07:00', wakeTime: '07:01'),
-      );
-      expect(
-        short.fold<double>(0, (a, b) => a + b.min),
-        closeTo(60, 0.0000001),
-      );
-    },
-  );
+  test('journal entries do not invent measured sleep stages', () {
+    final stages = hypnogram(night('2030-01-02').copyWith(awakenings: 2));
+    final totals = stageTotals(stages);
+    expect(stages, isEmpty);
+    expect(totals.values.every((value) => value == 0), true);
+    expect(stageTotals([]), {'awake': 0, 'rem': 0, 'light': 0, 'deep': 0});
+    final short = hypnogram(
+      night('x').copyWith(bedtime: '07:00', wakeTime: '07:01'),
+    );
+    expect(short.fold<double>(0, (a, b) => a + b.min), 0);
+  });
   test(
     'awards preserve legacy practice minutes and have honest empty progress',
     () {

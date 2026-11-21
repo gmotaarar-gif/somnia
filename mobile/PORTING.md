@@ -25,7 +25,7 @@ Order: piece 1 first (shared charts), then 2-8 in parallel.
 
 | # | Piece | Web sources | Flutter files | Needs |
 |---|---|---|---|---|
-| 1 | Charts kit | `ui/SleepStages.tsx`, `ui/MoodTrend.tsx`, `ui/charts.tsx`, calendars in Sleep/Mind | `lib/ui/charts/` | CustomPainter hypnogram (estimated stages from `logic/features`), trend line, bars, rings, month/5-week calendar; port `SleepStages.test.ts` geometry |
+| 1 | Charts kit — done | `ui/SleepStages.tsx`, `ui/MoodTrend.tsx`, `ui/charts.tsx`, calendars in Sleep/Mind | `lib/ui/charts/` | Native CustomPainter charts, stage geometry, current-web empty states, dark/light, reduced-motion reveals and tests |
 | 2 | Today + widgets | `screens/Today.tsx`, `TodayExtras.tsx`, `widgets/*`, `sheets/GallerySheet.tsx`, `sheets/RecapSheet.tsx` | `lib/screens/today.dart`, `lib/widgets/`, gallery + recap sheets | 13 widget kinds, 1x1/2x1 grid, long-press edit with drag reorder and jiggle, water/counter taps, custom counter creator, 5-page weekly recap stories |
 | 3 | Sleep | `screens/Sleep.tsx`, `sheets/SleepSheet.tsx`, `Extras.tsx` (Cycles, Night detail), `shell/NightMode.tsx`, `lib/audio.ts` | `lib/screens/sleep.dart`, sleep/cycles/night sheets, `lib/native/audio.dart` | Sleep entry form (duration rule −8 min per awakening), cycle calculator, night detail + delete, full-screen night mode; procedural pink/rain/drone sound (generate PCM in Dart, play with a native audio package) with sleep timer |
 | 4 | Mind | `screens/Mind.tsx`, mood sheet in `sheets/`, `Extras.tsx` (WellbeingSheet) | `lib/screens/mind.dart`, mood + WHO-5 sheets | Mood entry (valence slider + MoodOrb, max 3 emotions, 5 factors), 14-day trend/calendar, insights carousel, factors vs emotions, WHO-5 (sum×4, advice below 52) |
@@ -34,7 +34,31 @@ Order: piece 1 first (shared charts), then 2-8 in parallel.
 | 7 | Profile, account, Plus | `sheets/ProfileSheet.tsx`, `account/*`, `sheets/SubscriptionSheet.tsx`, `Extras.tsx` (AwardsSheet) | `lib/shell/profile_sheet.dart`, account/subscription/awards sheets | Stats, achievements (11), sleep target, chronotype, volume, restore widgets, restart onboarding, reset with confirm; local registration; demo Plus monthly 299 / yearly 1990 (not Play Billing) |
 | 8 | Motion polish | `ui/ScreenTransition.tsx` (DistortionWave), `shell/Aurora.tsx` + `meshDrift.glsl.ts`, `shell/Island.tsx` | `shaders/`, `lib/shell/aurora.dart`, transitions | FragmentProgram ports of the mesh-drift aura and the wave tab transition (crossfade fallback, reduced motion), island toast; check on a real phone (Impeller) |
 
-## Open decisions
+## Charts kit API (piece 1)
+
+Pieces **2–8** branch from **`main` after the charts kit merges**. All use `import 'package:somna/ui/charts/charts.dart';`. Charts take plain inputs and never access a store; screen owners own data selection and navigation callbacks.
+
+Current web was rechecked with `git diff 2f6ef46 origin/main -- src/` (base `d8834c6`), including empty states, theme redesign, ink-relative chart contrast and semantic accent colors. Journal entries **do not infer sleep phases**: `logic/features.dart` now matches web and returns `[]`. Feed that list to `Hypnogram`/`StageLegend`; the empty hypnogram shows the web disclaimer and the empty legend is hidden. The stage-list API remains ready for real measurements. Gallery stage segments are explicitly synthetic test fixtures, not diary-derived estimates.
+
+- `Hypnogram({required List<StageSegment> stages, String? bedtime, String? wakeTime, bool compact = false})`.
+- `StageLegend({required List<StageSegment> stages})`.
+- `MoodTrend({required List<MoodDay> days})`; `MoodDay({required String key, required String label, double? value})` uses null for a gap, zero for a neutral check-in; scale fixed at −1…1.
+- `DotTrack({required double value, int count = 28, bool marker = true})`, value 0…1.
+- `DotRow({required List<double> values, double size = 6})`, values 0…1 (booleans map to 0/1).
+- `Arc({required double value, Color color = Color(0xffb6f27a)})`, value 0…1.
+- `Wave({required List<double> values, Color? color, bool fill = false, bool knob = true, double height = 60})`, sparkline with optional area fill.
+- `Ring({required double value, double size = 120, double stroke = 3, Color? color, Widget? child})`, value 0…1; stroke in the web's 100-unit coordinate system (WHO-5/night detail).
+- `ScoreRing({required double? score, double size = 212, Widget? child, Color? color})`, score 0…100, null means no score (Recap).
+- `Bars({required List<double> values, List<String>? labels, double? max, double? goal, int? highlight, double height = 160, String Function(double)? format})`.
+- `Orbits({List<double> points = const [.18, .52, .8]})`, dotted orbit motif.
+- `SleepCalendar({required List<SleepNight> nights, required DateTime today, required String bedGoal, required String wakeGoal, ValueChanged<SleepNight>? onNightTap})`, 35 cells Monday–Sunday; callback only for recorded nights.
+- `MoodCalendar({required List<MoodEntry> moods, required DateTime today})`, web's rolling 28 days, daily mean valence; absent days stay untinted.
+
+All widgets also accept `key`. `StageSegment`, `stageMinutes`, `stageDisplayMinutes`, `hypnogramPoints`, `smoothPath`, `sleepCalendarDays` and `moodCalendarDays` are exported by the barrel. Reveal animations honor `MediaQuery.disableAnimations`; chart colors derive from the current Somna theme. Place charts in a finite-width parent; `Wave.height` is its SVG/view-box height, while `Bars.height` is a logical layout height.
+
+Debug-only gallery: `flutter run -t lib/dev/charts_gallery.dart`. Four tabs cover every chart; app-bar controls switch dark/light and populated/empty inputs. No production navigation changes are needed.
+
+## Remaining platform decisions
 
 - Data from the old WebView app is not migrated (it is in WebView localStorage). Installing this APK over the old one keeps the package name but starts with empty data; uninstall first if Android refuses the update because of a different signature.
 - Plus stays a local demo entitlement until Play Billing is decided.
