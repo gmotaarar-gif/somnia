@@ -132,8 +132,7 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
   final Future<bool> Function() _requestReminderPermission;
   Timer? _saveTimer, _dayTimer, _toastTimer, _soundTimer, _membershipTimer;
   Future<void> _writes = Future.value();
-  String? _lastSaved, _lastQueuedState;
-  int _writeVersion = 0;
+  String? _lastSaved;
   bool _disposed = false;
   final bool _autoRefresh;
 
@@ -277,27 +276,24 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
     _saveTimer = Timer(saveDebounce, () => unawaited(flush()));
   }
 
-  Future<void> _write(String raw, {bool skipUnchanged = false}) {
-    final version = ++_writeVersion;
-    _lastQueuedState = jsonEncode(_state.toJson());
+  Future<void> _write([JsonMap? changes]) {
     final write = _writes.then((_) async {
-      if (skipUnchanged && raw == _lastSaved) return;
+      final next = changes == null ? _state : _state.patch(changes);
+      final raw = jsonEncode(next.toJson());
       await _persistence?.write(raw);
       _lastSaved = raw;
+      if (changes != null) _state = _state.patch(changes);
     });
-    _writes = write.catchError((Object _) {
-      if (version == _writeVersion) _lastQueuedState = null;
-    });
+    _writes = write.catchError((Object _) {});
     return write;
   }
 
   /// Autosaves tolerate full/disabled storage; explicit account/payment writes do not.
   Future<void> flush() async {
     _saveTimer?.cancel();
-    final raw = jsonEncode(_state.toJson());
-    if (_persistence == null || raw == _lastQueuedState) return _writes;
+    if (_persistence == null) return;
     try {
-      await _write(raw, skipUnchanged: true);
+      await _write();
     } catch (_) {
       /* Keep the live journal usable. */
     }
@@ -311,7 +307,6 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
     final next = _read(_persistence, _now);
     _saveTimer?.cancel();
     _lastSaved = jsonEncode(next.toJson());
-    _lastQueuedState = _lastSaved;
     _state = next;
     _scheduleMembershipExpiry();
     notifyListeners();
@@ -573,12 +568,10 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
       'userName': input.name.trim(),
       'localAccount': account.toJson(),
     };
-    final next = _state.patch(identity);
     _saveTimer?.cancel();
-    await _write(jsonEncode(next.toJson()));
+    await _write(identity);
     if (_disposed) return;
-    // Edits made while the atomic write was pending must not be discarded.
-    _setState(_state.patch(identity));
+    _setState(_state);
   }
 
   Future<bool> activate(SubscriptionPlan plan) async =>
@@ -589,7 +582,7 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
     final change = {'membership': value?.toJson()};
     _saveTimer?.cancel();
     try {
-      await _write(jsonEncode(_state.patch(change).toJson()));
+      await _write(change);
     } catch (_) {
       _subscriptionError = 'Не удалось сохранить подписку. Разрешите хранение данных в браузере и попробуйте ещё раз.';
       if (!_disposed) notifyListeners();
@@ -597,7 +590,8 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
     }
     if (_disposed) return true;
     _subscriptionError = null;
-    patch(change);
+    _setState(_state);
+    _scheduleMembershipExpiry();
     return true;
   }
 

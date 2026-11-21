@@ -366,6 +366,43 @@ void main() {
     await Future.wait([intermediate, reverted]);
     expect(create(p).userName, original);
   });
+  test(
+    'registration rename reverted before autosave stays reverted after restart',
+    () async {
+      final p = MemoryPersistence();
+      final s = create(p);
+      s.patch({'userName': 'Original'});
+      await s.flush();
+      await s.registerLocalProfile(
+        const RegistrationInput(name: 'Мира', email: 'mira@example.com'),
+      );
+      s.patch({'userName': 'Original'});
+      await s.flush();
+      final restored = create(p);
+      expect(restored.userName, 'Original');
+      expect(restored.localAccount?.email, 'mira@example.com');
+    },
+  );
+  test(
+    'reload during an in-flight save cannot suppress the final reverted write',
+    () async {
+      final p = DelayedPersistence();
+      final s = create(p);
+      await s.flush();
+      final original = s.userName;
+      final gate = Completer<void>();
+      p.gate = gate;
+      s.patch({'userName': 'Intermediate edit'});
+      final intermediate = s.flush();
+      await Future<void>.delayed(Duration.zero);
+      s.patch({'userName': original});
+      s.reloadFromStorage();
+      gate.complete();
+      await intermediate;
+      await s.flush();
+      expect(create(p).userName, original);
+    },
+  );
   for (final accountWrite in ['registration', 'membership']) {
     for (final saved in [true, false]) {
       test(
