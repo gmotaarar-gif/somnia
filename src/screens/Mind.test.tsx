@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
+import type { ReactNode } from "react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { StoreProvider } from "@/store/store"
 import { SubscriptionProvider } from "@/store/subscription"
@@ -8,6 +9,7 @@ import { MindScreen } from "./Mind"
 
 vi.mock("framer-motion", async (importOriginal) => ({
   ...await importOriginal<typeof import("framer-motion")>(),
+  AnimatePresence: ({ children }: { children: ReactNode }) => children,
   useReducedMotion: () => true,
 }))
 
@@ -23,7 +25,33 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   localStorage.clear()
+  vi.useRealTimers()
   vi.unstubAllGlobals()
+})
+
+it.each(["trend", "month"])("advances the %s calendar window at midnight without new moods", (view) => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date(2027, 0, 20, 23, 59, 30))
+  const age = view === "trend" ? 13 : 27
+  localStorage.setItem("somna-state-v6", JSON.stringify({
+    moods: [{ id: "oldest", at: new Date(2027, 0, 20 - age, 12).toISOString(), valence: 1, emotions: [], factors: [] }],
+  }))
+  render(<StoreProvider><SubscriptionProvider><MindScreen /></SubscriptionProvider></StoreProvider>)
+  if (view === "month") {
+    fireEvent.click(screen.getByRole("radio", { name: "Месяц" }))
+    act(() => { vi.advanceTimersByTime(1000) })
+  }
+
+  if (view === "trend") expect(screen.getByRole("img", { name: /Настроение по дням: 1 из 14/ })).toBeTruthy()
+  else expect(document.querySelectorAll('[title$=": 100%"]')).toHaveLength(1)
+
+  act(() => { vi.advanceTimersByTime(60_000) })
+
+  if (view === "trend") expect(screen.getByRole("img", { name: /Настроение по дням: 0 из 14/ })).toBeTruthy()
+  else {
+    expect(document.querySelectorAll('[title$=": 100%"]')).toHaveLength(0)
+    expect(screen.getByTitle("Сегодня")).toBeTruthy()
+  }
 })
 
 it("shows a check-in's note next to its tags in the diary", () => {
