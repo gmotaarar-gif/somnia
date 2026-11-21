@@ -6,6 +6,7 @@ import { useStore, type Chronotype } from "@/store/store"
 import { Button, Segmented, Slider, TimeField, Toggle } from "@/ui/controls"
 import { Field, Sheet } from "@/ui/Sheet"
 import { SubscriptionCard } from "@/ui/SubscriptionCard"
+import { LocalAccountCard } from "@/account/LocalAccountCard"
 
 function Row({
   icon,
@@ -13,15 +14,17 @@ function Row({
   sub,
   danger,
   onClick,
+  buttonRef,
 }: {
   icon: React.ReactNode
   title: string
   sub?: string
   danger?: boolean
   onClick: () => void
+  buttonRef?: React.Ref<HTMLButtonElement>
 }) {
   return (
-    <button type="button" onClick={onClick} className={cn("press flex w-full items-center gap-3.5 px-4 py-3.5 text-left hover:bg-white/5", danger && "text-[#ff8f8f]")}>
+    <button ref={buttonRef} type="button" onClick={onClick} className={cn("press flex w-full items-center gap-3.5 px-4 py-3.5 text-left hover:bg-white/5", danger && "text-[#ff8f8f]")}>
       <span className="shrink-0 opacity-70 [&_svg]:size-[18px]">{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-[15px]">{title}</span>
@@ -36,9 +39,23 @@ const group = "glass divide-y divide-white/6 overflow-hidden rounded-[24px]"
 
 export function ProfileSheet() {
   const s = useStore()
-  const [confirm, setConfirm] = React.useState(false)
+  const [confirm, setConfirm] = React.useState<"widgets" | "journal" | null>(null)
+  const widgetActionRef = React.useRef<HTMLButtonElement>(null)
+  const journalActionRef = React.useRef<HTMLButtonElement>(null)
+  const open = s.sheet === "profile"
+
+  React.useEffect(() => {
+    if (!open) setConfirm(null)
+  }, [open])
+
+  const cancelConfirmation = () => {
+    const trigger = confirm === "widgets" ? widgetActionRef : journalActionRef
+    setConfirm(null)
+    trigger.current?.focus({ preventScroll: true })
+  }
+
   const close = () => {
-    setConfirm(false)
+    setConfirm(null)
     s.openSheet(null)
   }
 
@@ -46,26 +63,28 @@ export function ProfileSheet() {
   const exportData = () => {
     const { nights, moods, sessions, worries, wellbeing, bedGoal, wakeGoal } = s
     const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), bedGoal, wakeGoal, nights, moods, sessions, worries, wellbeing }, null, 2)], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
-    a.href = URL.createObjectURL(blob)
+    a.href = url
     a.download = "somna-export.json"
     a.click()
-    URL.revokeObjectURL(a.href)
+    URL.revokeObjectURL(url)
     s.notify("Данные выгружены")
   }
 
   return (
-    <Sheet open={s.sheet === "profile"} onClose={close} title="Профиль" description="Данные хранятся только в этом браузере">
+    <Sheet open={open} onClose={close} title="Профиль" description="Данные хранятся только в этом браузере">
       <div className="profile-hero rounded-[28px] p-5">
         <div className="flex items-center gap-4">
           <span className="grid size-14 shrink-0 place-items-center rounded-full bg-[#c9b9ef]/15 text-[24px] font-medium text-[#ded1fa]" aria-hidden>{(s.userName.trim()[0] ?? "S").toUpperCase()}</span>
           <input
             value={s.userName}
             maxLength={20}
+            autoComplete="given-name"
             onChange={(e) => s.patch({ userName: e.target.value })}
             placeholder="Ваше имя"
             aria-label="Имя"
-            className="min-w-0 flex-1 bg-transparent text-[24px] font-semibold tracking-[-0.035em] outline-none placeholder:text-ink-3"
+            className="min-w-0 flex-1 rounded-md bg-transparent text-[24px] font-semibold tracking-[-0.035em] outline-none placeholder:text-ink-3 focus-visible:ring-2 focus-visible:ring-lime"
           />
         </div>
         <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-white/8 pt-4">
@@ -88,7 +107,10 @@ export function ProfileSheet() {
         <Row icon={<AwardIcon />} title="Достижения" sub="Серии, рекорды и первые шаги" onClick={() => s.openSheet("awards")} />
         {s.weeklyGoal && <Row icon={<Sparkles />} title="Цель недели" sub={s.weeklyGoal.text} onClick={() => s.openSheet("recap")} />}
       </div>
-      <SubscriptionCard className="mt-3" />
+      <div className="mt-3 space-y-3">
+        <LocalAccountCard />
+        <SubscriptionCard />
+      </div>
 
       <Field label="Цель сна" hint={durationRu(spanMinutes(s.bedGoal, s.wakeGoal))}>
         <div className="flex gap-3">
@@ -128,7 +150,7 @@ export function ProfileSheet() {
       <Field label="Данные">
         <div className={group}>
           <Row icon={<Download />} title="Экспорт данных" sub="Файл JSON со всеми записями" onClick={exportData} />
-          <Row icon={<LayoutGrid />} title="Виджеты по умолчанию" onClick={s.resetWidgets} />
+          <Row buttonRef={widgetActionRef} icon={<LayoutGrid />} title="Виджеты по умолчанию" onClick={() => setConfirm("widgets")} />
           <Row
             icon={<RotateCcw />}
             title="Пройти знакомство заново"
@@ -137,24 +159,25 @@ export function ProfileSheet() {
               close()
             }}
           />
-          {!confirm && <Row danger icon={<Trash2 />} title="Сбросить журнал" sub="Вернёт демо-данные" onClick={() => setConfirm(true)} />}
+          <Row buttonRef={journalActionRef} danger icon={<Trash2 />} title="Сбросить журнал" sub="Вернёт демо-данные" onClick={() => setConfirm("journal")} />
         </div>
         {confirm && (
-          <div className="mt-3">
-            <p className="px-1 text-[13px] leading-relaxed text-ink-2">Все ваши записи будут заменены демо-данными. Это нельзя отменить.</p>
+          <div key={confirm} role="group" aria-label={confirm === "widgets" ? "Восстановить виджеты?" : "Сбросить журнал?"} className="mt-3">
+            <p className="px-1 text-[13px] leading-relaxed text-ink-2">{confirm === "widgets" ? "Порядок, размеры и оформление стандартных виджетов вернутся к начальным настройкам. Ваши привычки сохранятся." : "Все ваши записи и настройки будут заменены демо-данными. Имя сохранится. Это нельзя отменить — сначала экспортируйте журнал."}</p>
             <div className="mt-3 flex gap-2.5">
-              <Button variant="glass" className="flex-1" onClick={() => setConfirm(false)}>
+              <Button autoFocus variant="glass" className="flex-1" onClick={cancelConfirmation}>
                 Отмена
               </Button>
               <Button
-                variant="danger"
+                variant={confirm === "journal" ? "danger" : "primary"}
                 className="flex-1"
                 onClick={() => {
-                  s.resetAll()
-                  setConfirm(false)
+                  if (confirm === "widgets") s.resetWidgets()
+                  else s.resetAll()
+                  cancelConfirmation()
                 }}
               >
-                Да, сбросить
+                {confirm === "widgets" ? "Да, восстановить" : "Да, сбросить"}
               </Button>
             </div>
           </div>
