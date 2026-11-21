@@ -92,7 +92,7 @@ function RecapStories({ onClose }: { onClose: () => void }) {
       <WeekChart days={recap.days} kind="sleep" target={sum.target} bestKey={best?.dateKey} />
       <p className="mt-3 text-[12px] leading-relaxed text-ink-2">Пунктир — цель {durationRu(sum.target)}. Пропуски не считаем нулевым сном</p>
       <div className="mt-auto grid grid-cols-2 gap-3 pt-6">
-        <Fact label="Ночи по цели" value={hasSleep ? `${sum.goalNights} из ${sum.week.length}` : "—"} />
+        <Fact label={`Сон не меньше ${durationRu(sum.target)}`} value={hasSleep ? `${sum.goalNights} из ${sum.week.length}` : "—"} />
         <Fact label="Отбой ±30 мин" value={hasSleep ? `${sum.accuracy}%` : "—"} />
         <Fact label="Лучшая ночь" value={best ? dayMonthShort(parseKey(best.dateKey)) : "—"} />
         <Fact label="Недосып по записям" value={hasSleep ? durationRu(sum.debt) : "—"} />
