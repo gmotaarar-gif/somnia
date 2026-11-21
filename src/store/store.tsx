@@ -482,16 +482,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   }, [activeNight])
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     const serialized = JSON.stringify(data)
     if (serialized === lastSaved.current) return
     try {
       window.localStorage.setItem(STORAGE_KEY, serialized)
       lastSaved.current = serialized
     } catch {
-      // storage can be full or disabled; the session keeps working in memory
+      notify("Не удалось сохранить данные. Проверьте свободное место и разрешения браузера.")
     }
-  }, [data])
+  }, [data, notify])
 
   // Keep an already-open tab from autosaving its pre-registration profile later.
   React.useEffect(() => {
