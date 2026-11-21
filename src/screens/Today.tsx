@@ -77,7 +77,7 @@ export function TodayScreen() {
           aria-label="Прошлая ночь. Открыть сон"
           onClick={() => setTab("sleep")}
           onKeyDown={onKey(() => setTab("sleep"))}
-          className="sleep-hero cursor-pointer"
+          className="sleep-hero on-dark cursor-pointer"
         >
           <div className="flex min-h-[316px] flex-col p-6">
             <div className="flex items-center justify-between gap-3">

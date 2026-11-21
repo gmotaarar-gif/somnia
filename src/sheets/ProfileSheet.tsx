@@ -4,13 +4,13 @@ import { Capacitor } from "@capacitor/core"
 import { cn } from "@/lib/cn"
 import { requestReminderPermission } from "@/lib/notifications"
 import { saveJsonFile } from "@/lib/saveFile"
-import type { ThemeMode } from "@/lib/theme"
 import { durationRu, pluralRu, spanMinutes } from "@/lib/time"
 import { useStore, type Chronotype } from "@/store/store"
 import { Button, Segmented, Slider, TimeField, Toggle } from "@/ui/controls"
 import { Field, Sheet } from "@/ui/Sheet"
 import { SubscriptionCard } from "@/ui/SubscriptionCard"
 import { LocalAccountCard } from "@/account/LocalAccountCard"
+import { AppearancePicker } from "@/ui/AppearancePicker"
 
 function Row({
   icon,
@@ -119,6 +119,10 @@ export function ProfileSheet() {
         </dl>
       </div>
 
+      <Field label="Оформление">
+        <AppearancePicker value={s.theme} onChange={(theme) => s.patch({ theme })} />
+      </Field>
+
       <div className={cn(group, "mt-3")}>
         <Row icon={<AwardIcon />} title="Достижения" sub="Серии, рекорды и первые шаги" onClick={() => s.openSheet("awards")} />
         {s.weeklyGoal && <Row icon={<Sparkles />} title="Цель недели" sub={s.weeklyGoal.text} onClick={() => s.openSheet("recap")} />}
@@ -166,21 +170,6 @@ export function ProfileSheet() {
             { value: "early", label: "Жаворонок" },
             { value: "balanced", label: "Голубь" },
             { value: "night", label: "Сова" },
-          ]}
-        />
-      </Field>
-
-      <Field label="Оформление">
-        <Segmented<ThemeMode>
-          label="Оформление"
-          id="profile-theme"
-          className="flex w-full"
-          value={s.theme}
-          onChange={(theme) => s.patch({ theme })}
-          options={[
-            { value: "system", label: "Как в системе" },
-            { value: "light", label: "Светлое" },
-            { value: "dark", label: "Тёмное" },
           ]}
         />
       </Field>

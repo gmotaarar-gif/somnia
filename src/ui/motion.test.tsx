@@ -146,7 +146,7 @@ it("renders complete chart data synchronously after a live switch to reduced mot
   expect(container.querySelector("g")?.getAttribute("opacity")).toBe("1")
   expect(screen.getByTitle("bar-20").style.height).toBe("20%")
   expect(screen.getByTitle("bar-80").style.height).toBe("80%")
-  expect(Number(container.querySelector('circle[stroke="#d9f24a"]')?.getAttribute("stroke-dashoffset"))).toBeCloseTo(Math.PI * 47)
+  expect(Number(container.querySelector('circle[stroke-dasharray]')?.getAttribute("stroke-dashoffset"))).toBeCloseTo(Math.PI * 47)
 })
 
 it("mounts chart sections fully visible after a live preference change", () => {
