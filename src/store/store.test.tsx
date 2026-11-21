@@ -2,7 +2,7 @@
 
 import { act, cleanup, renderHook } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { StoreProvider, useBreath, useStore } from "./store"
+import { StoreProvider, useStore } from "./store"
 
 const STORAGE_KEY = "somna-state-v6"
 
@@ -41,6 +41,24 @@ describe("StoreProvider", () => {
       reminder: false,
       sheet: null,
     })
+  })
+
+  it("hides widgets the home screen already covers once for older installs", () => {
+    const widgets = [
+      { id: "w-sleep", kind: "sleep", size: "1x1", tone: "plum", visible: true },
+      { id: "w-water", kind: "water", size: "1x1", tone: "lime", visible: true },
+    ]
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ widgets }))
+
+    const first = renderHook(useStore, { wrapper: StoreProvider })
+    const shown = () => first.result.current.widgets.filter((w) => w.visible).map((w) => w.id)
+    expect(shown()).toEqual(["w-water"])
+
+    act(() => first.result.current.updateWidget("w-sleep", { visible: true }))
+    first.unmount()
+
+    const { result } = renderHook(useStore, { wrapper: StoreProvider })
+    expect(result.current.widgets.filter((w) => w.visible).map((w) => w.id)).toEqual(["w-sleep", "w-water"])
   })
 
   it("falls back to the default schedule when saved JSON is invalid", () => {
@@ -109,36 +127,38 @@ describe("StoreProvider", () => {
       vi.advanceTimersByTime(120_000)
     })
     expect(result.current.water).toEqual({ day: "2030-01-03", ml: 0 })
-    expect(result.current.breath).toEqual({ day: "2030-01-03", min: 0 })
     expect(result.current.ritual).toEqual({ day: "2030-01-03", done: [] })
   })
 
-  it("credits a finished breathing session once and resets the timer", () => {
+  it("drops the removed breathing counter and widget but keeps earned practice minutes", () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      layout: 2,
+      breath: { day: "2030-01-02", min: 6 },
+      widgets: [
+        { id: "w-breath", kind: "breath", size: "1x1", tone: "coral", visible: true },
+        { id: "w-water", kind: "water", size: "1x1", tone: "lime", visible: true },
+      ],
+      sessions: [
+        { id: "a", at: "2030-01-01T10:00:00.000Z", kind: "breath", min: 4 },
+        { id: "b", at: "2030-01-01T11:00:00.000Z", kind: "grounding", min: 3 },
+      ],
+    }))
+
+    const { result } = renderHook(useStore, { wrapper: StoreProvider })
+
+    expect(result.current).not.toHaveProperty("breath")
+    expect(result.current.widgets.some((w) => w.id === "w-breath")).toBe(false)
+    expect(result.current.widgets.find((w) => w.id === "w-water")?.visible).toBe(true)
+    expect(result.current.sessions.map((x) => x.min)).toEqual([4, 3])
+  })
+
+  it("does not count the removed breathing step toward today's ritual", () => {
     vi.useFakeTimers()
-    vi.setSystemTime(new Date(2030, 0, 2, 12, 0))
-    const { result } = renderHook(() => ({ store: useStore(), timer: useBreath() }), {
-      wrapper: StoreProvider,
-      reactStrictMode: true,
-    })
-    const startingMinutes = result.current.store.breath.min
-    const startingSessions = result.current.store.sessions.length
+    vi.setSystemTime(new Date(2030, 0, 2, 21, 0))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ layout: 2, ritual: { day: "2030-01-02", done: ["dim", "breath"] } }))
 
-    act(() => {
-      result.current.timer.setBreath((b) => ({ ...b, running: true, remainingSec: 60, totalSec: 60 }))
-    })
-    act(() => {
-      vi.advanceTimersByTime(1000)
-    })
-    expect(result.current.timer.breath).toMatchObject({ running: true, remainingSec: 59 })
+    const { result } = renderHook(useStore, { wrapper: StoreProvider })
 
-    act(() => {
-      vi.advanceTimersByTime(59_000)
-    })
-    expect(result.current.timer.breath).toMatchObject({ running: false, remainingSec: 60 })
-    act(() => {
-      vi.advanceTimersByTime(60_000)
-    })
-    expect(result.current.store.breath.min).toBe(startingMinutes + 1)
-    expect(result.current.store.sessions).toHaveLength(startingSessions + 1)
+    expect(result.current.ritual).toEqual({ day: "2030-01-02", done: ["dim"] })
   })
 })

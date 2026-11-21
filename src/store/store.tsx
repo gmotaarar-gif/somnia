@@ -24,7 +24,6 @@ export type WidgetKind =
   | "water"
   | "mood"
   | "evening"
-  | "breath"
   | "week"
   | "energy"
   | "rhythm"
@@ -47,8 +46,9 @@ export type SheetId =
   | "bodyscan"
   | "worry"
   | "awards"
+  | "article"
   | null
-export type PracticeKind = "breath" | "grounding" | "bodyscan" | "worry"
+export type PracticeKind = "grounding" | "bodyscan" | "worry"
 
 export interface PracticeSession {
   id: string
@@ -76,7 +76,6 @@ export interface Toast {
   id: number
   text: string
 }
-export type Technique = "calm" | "478" | "box"
 
 export interface SleepNight {
   id: string
@@ -124,14 +123,6 @@ export interface SpectrumAxis {
   value: number
 }
 
-export interface BreathState {
-  running: boolean
-  remainingSec: number
-  totalSec: number
-  technique: Technique
-  sound: SoundMode
-}
-
 const uid = () => Math.random().toString(36).slice(2, 10)
 
 const DEMO_NIGHTS: [string, string, number, number, string[], string?][] = [
@@ -148,7 +139,7 @@ const DEMO_NIGHTS: [string, string, number, number, string[], string?][] = [
   ["23:35", "07:30", 84, 0, ["Быстро уснул"]],
   ["23:25", "07:30", 89, 0, ["Глубокий сон"]],
   ["23:50", "08:10", 86, 1, ["Яркие сны"]],
-  ["23:38", "07:20", 85, 0, ["Проснулся сам"], "Лёгкое засыпание после дыхания"],
+  ["23:38", "07:20", 85, 0, ["Проснулся сам"], "Лёгкое засыпание после вечернего ритуала"],
 ]
 
 function demoNights(): SleepNight[] {
@@ -191,7 +182,7 @@ function demoSessions(): PracticeSession[] {
   return [9, 6, 5, 3, 2, 1, 0].map((ago, i) => {
     const d = daysAgo(ago)
     d.setHours(22, 5, 0, 0)
-    return { id: `demo-s-${i}`, at: d.toISOString(), kind: i % 3 === 2 ? "grounding" : "breath", min: i % 3 === 2 ? 3 : 4 + (i % 2) * 2 }
+    return { id: `demo-s-${i}`, at: d.toISOString(), kind: i % 3 === 2 ? "bodyscan" : "grounding", min: i % 3 === 2 ? 5 : 3 + (i % 2) * 2 }
   })
 }
 
@@ -204,19 +195,22 @@ const DEFAULT_SPECTRUM: SpectrumAxis[] = [
 
 export const DEFAULT_WIDGETS: Widget[] = [
   { id: "w-streak", kind: "streak", size: "1x1", tone: "ink", visible: true },
-  { id: "w-sleep", kind: "sleep", size: "1x1", tone: "plum", visible: true },
+  { id: "w-sleep", kind: "sleep", size: "1x1", tone: "plum", visible: false },
   { id: "w-evening", kind: "evening", size: "2x1", tone: "cobalt", visible: true },
   { id: "w-water", kind: "water", size: "1x1", tone: "lime", visible: true },
-  { id: "w-breath", kind: "breath", size: "1x1", tone: "coral", visible: true },
-  { id: "w-week", kind: "week", size: "2x1", tone: "forest", visible: true },
-  { id: "w-mood", kind: "mood", size: "1x1", tone: "moss", visible: true },
-  { id: "w-energy", kind: "energy", size: "1x1", tone: "ember", visible: true },
-  { id: "w-rhythm", kind: "rhythm", size: "2x1", tone: "dusk", visible: true },
+  { id: "w-week", kind: "week", size: "2x1", tone: "forest", visible: false },
+  { id: "w-mood", kind: "mood", size: "1x1", tone: "moss", visible: false },
+  { id: "w-energy", kind: "energy", size: "1x1", tone: "ember", visible: false },
+  { id: "w-rhythm", kind: "rhythm", size: "2x1", tone: "dusk", visible: false },
   { id: "w-debt", kind: "debt", size: "1x1", tone: "rose", visible: false },
   { id: "w-plan", kind: "plan", size: "2x1", tone: "ink", visible: false },
   { id: "w-cycle", kind: "cycle", size: "1x1", tone: "cobalt", visible: false },
   { id: "w-wellbeing", kind: "wellbeing", size: "1x1", tone: "moss", visible: false },
 ]
+
+const HOME_LAYOUT = 2
+/** Built-in widgets whose numbers the home screen already shows. */
+const REDUNDANT_WIDGETS = new Set<WidgetKind>(["sleep", "mood", "week", "energy", "plan"])
 
 interface Persisted {
   onboarded: boolean
@@ -230,7 +224,6 @@ interface Persisted {
   focus: string[]
   ritual: { day: string; done: string[] }
   water: { day: string; ml: number }
-  breath: { day: string; min: number }
   eveningMode: boolean
   volume: number
   nights: SleepNight[]
@@ -240,9 +233,13 @@ interface Persisted {
   weeklyGoal: { id: string; text: string } | null
   sessions: PracticeSession[]
   worries: Worry[]
+  /** Ids of articles the reader has finished */
+  readArticles: string[]
   wellbeing: WellbeingResult[]
   /** Minutes after which night sounds fade out; 0 keeps them on */
   soundTimer: number
+  /** Home layout generation; older installs get the calmer set once */
+  layout: number
 }
 
 const today = () => dateKey(new Date())
@@ -260,7 +257,6 @@ function defaults(): Persisted {
     focus: ["Стабильный подъём", "Снять вечерний стресс"],
     ritual: { day: today(), done: ["dim"] },
     water: { day: today(), ml: 1250 },
-    breath: { day: today(), min: 6 },
     eveningMode: true,
     volume: 60,
     nights: demoNights(),
@@ -270,8 +266,10 @@ function defaults(): Persisted {
     weeklyGoal: null,
     sessions: demoSessions(),
     worries: [],
+    readArticles: [],
     wellbeing: [{ at: daysAgo(6).toISOString(), score: 64 }],
     soundTimer: 30,
+    layout: HOME_LAYOUT,
   }
 }
 
@@ -288,14 +286,12 @@ function normalizeNights(nights: SleepNight[]): SleepNight[] {
 function rollDay(d: Persisted, day: string): Persisted {
   const stale =
     d.water.day !== day ||
-    d.breath.day !== day ||
     d.ritual.day !== day ||
     d.widgets.some((w) => w.kind === "custom" && w.day !== day)
   if (!stale) return d
   return {
     ...d,
     water: d.water.day === day ? d.water : { day, ml: 0 },
-    breath: d.breath.day === day ? d.breath : { day, min: 0 },
     ritual: d.ritual.day === day ? d.ritual : { day, done: [] },
     widgets: d.widgets.map((w) => (w.kind === "custom" && w.day !== day ? { ...w, value: 0, day } : w)),
   }
@@ -306,9 +302,19 @@ function load(): Persisted {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return base
-    const saved = rollDay({ ...base, ...(JSON.parse(raw) as Partial<Persisted>) }, today())
+    const parsed = JSON.parse(raw) as Partial<Persisted>
+    const saved = rollDay({ ...base, ...parsed }, today())
     saved.localAccount = normalizeLocalAccount(saved.localAccount)
     saved.nights = normalizeNights(saved.nights)
+    // Breathing practices were removed: drop their counter, widget and ritual step.
+    // Finished sessions stay, so earned practice minutes and awards are not lost.
+    delete (saved as { breath?: unknown }).breath
+    saved.widgets = saved.widgets.filter((w) => (w.kind as string) !== "breath")
+    saved.ritual = { ...saved.ritual, done: saved.ritual.done.filter((id) => id !== "breath") }
+    if (parsed.layout !== HOME_LAYOUT) {
+      if (parsed.widgets) saved.widgets = saved.widgets.map((w) => (REDUNDANT_WIDGETS.has(w.kind) ? { ...w, visible: false } : w))
+      saved.layout = HOME_LAYOUT
+    }
     // widgets added in later versions appear in the gallery of existing installs
     const missing = DEFAULT_WIDGETS.filter((w) => !saved.widgets.some((x) => x.id === w.id))
     if (missing.length) saved.widgets = [...saved.widgets, ...missing.map((w) => ({ ...w, visible: false }))]
@@ -352,6 +358,7 @@ export interface Store extends Persisted {
   addMood: (m: Omit<MoodEntry, "id" | "at">) => void
   addWater: (ml: number) => void
   toggleRitual: (id: string) => void
+  markArticleRead: (id: string) => void
   setSpectrum: (id: string, value: number) => void
   setWidgets: React.Dispatch<React.SetStateAction<Widget[]>>
   updateWidget: (id: string, p: Partial<Widget>) => void
@@ -365,10 +372,6 @@ export interface Store extends Persisted {
 const TAB_ORDER: TabId[] = ["today", "sleep", "mind", "practices"]
 
 const StoreContext = React.createContext<Store | null>(null)
-const BreathContext = React.createContext<{
-  breath: BreathState
-  setBreath: React.Dispatch<React.SetStateAction<BreathState>>
-} | null>(null)
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = React.useState<Persisted>(load)
@@ -402,13 +405,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [nightMode, setNightMode] = React.useState(false)
   const [nightStart, setNightStart] = React.useState<string | null>(null)
   const [nightSound, setNightSound] = React.useState<SoundMode>("pink")
-  const [breathState, setBreath] = React.useState<BreathState>({
-    running: false,
-    remainingSec: 240,
-    totalSec: 240,
-    technique: "calm",
-    sound: "off",
-  })
 
   React.useEffect(() => {
     const serialized = JSON.stringify(data)
@@ -451,37 +447,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   React.useEffect(() => {
-    if (!breathState.running) return
-    const id = window.setInterval(() => {
-      setBreath((b) => (b.running ? { ...b, remainingSec: Math.max(0, b.remainingSec - 1) } : b))
-    }, 1000)
-    return () => window.clearInterval(id)
-  }, [breathState.running])
-
-  React.useEffect(() => {
-    if (!breathState.running || breathState.remainingSec > 0) return
-    const min = +(breathState.totalSec / 60).toFixed(1)
-    setData((d) => ({
-      ...d,
-      breath: { day: today(), min: +(d.breath.min + min).toFixed(1) },
-      sessions: [...d.sessions, { id: uid(), at: new Date().toISOString(), kind: "breath" as const, min }].slice(-300),
-    }))
-    notify("Дыхание завершено")
-    setBreath((b) => ({ ...b, running: false, remainingSec: b.totalSec }))
-  }, [breathState.running, breathState.remainingSec, breathState.totalSec, notify])
-
-  React.useEffect(() => {
     const vol = Math.max(0, Math.min(1, data.volume / 100))
-    if (breathState.running && breathState.sound !== "off") {
-      setSoundVolume(vol * 0.5)
-      startSound(breathState.sound)
-    } else if (nightMode && nightSound !== "off") {
+    if (nightMode && nightSound !== "off") {
       setSoundVolume(vol * 0.45)
       startSound(nightSound)
     } else {
       stopSound()
     }
-  }, [breathState.running, breathState.sound, nightMode, nightSound, data.volume])
+  }, [nightMode, nightSound, data.volume])
 
   React.useEffect(() => {
     if (!nightMode || nightSound === "off" || !data.soundTimer) return
@@ -527,6 +500,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         })),
       addWater: (ml: number) =>
         setData((d) => ({ ...d, water: { day: today(), ml: Math.max(0, Math.min(4000, d.water.ml + ml)) } })),
+      markArticleRead: (id: string) =>
+        setData((d) => (d.readArticles.includes(id) ? d : { ...d, readArticles: [...d.readArticles, id] })),
       toggleRitual: (id: string) =>
         setData((d) => ({
           ...d,
@@ -609,23 +584,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }),
     [data, actions, tab, tabDir, setTab, sheet, sheetArg, openSheet, toast, notify, editing, nightMode, nightStart, nightSound]
   )
-  const breathValue = React.useMemo(() => ({ breath: breathState, setBreath }), [breathState])
 
   return (
-    <StoreContext.Provider value={value}>
-      <BreathContext.Provider value={breathValue}>{children}</BreathContext.Provider>
-    </StoreContext.Provider>
+    <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
   )
 }
 
 export function useStore(): Store {
   const ctx = React.useContext(StoreContext)
   if (!ctx) throw new Error("useStore must be used inside StoreProvider")
-  return ctx
-}
-
-export function useBreath() {
-  const ctx = React.useContext(BreathContext)
-  if (!ctx) throw new Error("useBreath must be used inside StoreProvider")
   return ctx
 }

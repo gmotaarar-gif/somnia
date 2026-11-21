@@ -34,7 +34,7 @@ export default function Workspace() {
   return (
     <>
       <div id="app-scroll" className="app-scroll">
-        <div className="px-4 pb-[var(--dock-space)] pt-[max(var(--safe-top),14px)]">
+        <div className="px-5 pb-[var(--dock-space)] pt-[max(var(--safe-top),14px)]">
           <ScreenTransition screenKey={visible.tab} direction={visible.tabDir}>
             <Screen />
           </ScreenTransition>

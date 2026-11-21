@@ -335,32 +335,3 @@ export function Orbits({ points = [0.18, 0.52, 0.8], className }: { points?: num
     </svg>
   )
 }
-
-/** Hops along a dotted baseline (breath volume card). */
-export function Hops({ values, className }: { values: number[]; className?: string }) {
-  const n = Math.max(2, values.length)
-  const xs = Array.from({ length: n + 1 }, (_, i) => 12 + (i / n) * 176)
-  const top = Math.max(...values, 1)
-  return (
-    <svg viewBox="0 0 200 64" className={cn("w-full overflow-visible", className)} aria-hidden>
-      <line x1="0" x2="200" y1="56" y2="56" stroke="rgb(255 255 255 / 0.4)" strokeDasharray="0.1 5" strokeLinecap="round" strokeWidth="1.4" />
-      {values.map((v, i) => {
-        const x0 = xs[i]
-        const x1 = xs[i + 1]
-        const h = 8 + (v / top) * 44
-        return (
-          <path
-            key={i}
-            d={`M${x0},56 C${x0},${56 - h * 1.33} ${x1},${56 - h * 1.33} ${x1},56`}
-            fill="none"
-            stroke="rgb(255 255 255 / 0.85)"
-            strokeWidth="1.2"
-          />
-        )
-      })}
-      {xs.map((x, i) => (
-        <circle key={i} cx={x} cy="56" r="3" fill={i % 2 ? "#f0a070" : "#d9f24a"} />
-      ))}
-    </svg>
-  )
-}

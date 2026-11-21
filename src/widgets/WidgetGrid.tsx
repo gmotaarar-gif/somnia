@@ -145,17 +145,19 @@ export function WidgetGrid() {
           {visible.map((w) => (
             <SortableWidget key={w.id} widget={w} editing={editing} />
           ))}
-          <button
-            type="button"
-            onClick={() => openSheet("gallery")}
-            className="press squircle group col-span-1 flex flex-col items-center justify-center gap-3 rounded-[34px] border border-dashed border-white/22 bg-white/[0.03] text-ink-2 transition-colors duration-250 hover:border-white/40 hover:text-ink"
-            style={{ "--r": "34px" } as React.CSSProperties}
-          >
-            <span className="glass grid size-12 place-items-center rounded-full">
-              <Plus className="size-5" />
-            </span>
-            <span className="text-[13px] font-medium">Добавить виджет</span>
-          </button>
+          {(editing || visible.length === 0) && (
+            <button
+              type="button"
+              onClick={() => openSheet("gallery")}
+              className="press squircle group col-span-1 flex flex-col items-center justify-center gap-3 rounded-[34px] border border-dashed border-white/22 bg-white/[0.03] text-ink-2 transition-colors duration-250 hover:border-white/40 hover:text-ink"
+              style={{ "--r": "34px" } as React.CSSProperties}
+            >
+              <span className="glass grid size-12 place-items-center rounded-full">
+                <Plus className="size-5" />
+              </span>
+              <span className="text-[13px] font-medium">Добавить виджет</span>
+            </button>
+          )}
         </div>
       </SortableContext>
     </DndContext>

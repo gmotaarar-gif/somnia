@@ -1,7 +1,7 @@
 import * as React from "react"
 import { useLocalAccount } from "@/account/LocalAccountProvider"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowLeft, ArrowRight, BatteryCharging, Brain, Check, Moon, MoonStar, Smartphone, Sparkles, Sunrise, Wind, Zap } from "lucide-react"
+import { ArrowLeft, ArrowRight, BatteryCharging, Brain, Check, Leaf, Moon, MoonStar, Smartphone, Sparkles, Sunrise, Zap } from "lucide-react"
 import { cn } from "@/lib/cn"
 import { onboardingWidgets } from "@/lib/onboarding"
 import { wakeOptions } from "@/lib/features"
@@ -21,7 +21,7 @@ import { WidgetTile } from "@/widgets/Widget"
 const FOCUS = [
   { id: "Стабильный подъём", icon: Sunrise },
   { id: "Быстрее засыпать", icon: Moon },
-  { id: "Снять вечерний стресс", icon: Wind },
+  { id: "Снять вечерний стресс", icon: Leaf },
   { id: "Больше энергии утром", icon: Zap },
   { id: "Понять своё настроение", icon: Brain },
   { id: "Меньше экрана ночью", icon: Smartphone },
@@ -34,7 +34,7 @@ const CHRONO: { value: Chronotype; label: string; bed: string; wake: string }[] 
 ]
 
 const TIRED = ["Редко", "Иногда", "Часто", "Почти всегда"]
-const STARTER: Widget["id"][] = ["w-streak", "w-sleep", "w-evening", "w-water", "w-breath", "w-mood", "w-plan", "w-cycle"]
+const STARTER: Widget["id"][] = ["w-streak", "w-evening", "w-water", "w-cycle", "w-rhythm", "w-debt", "w-wellbeing"]
 const BUILD = ["Считаем цель сна", "Подбираем окно отбоя", "Собираем главный экран", "Настраиваем напоминание"]
 const STEPS = 9
 
