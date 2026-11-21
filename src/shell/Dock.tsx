@@ -59,7 +59,7 @@ export function Dock() {
                   onClick={() => {
                     setEditing(false)
                     setTab(id)
-                    document.getElementById("app-scroll")?.scrollTo({ top: 0 })
+                    document.querySelector<HTMLElement>('[data-active-screen="true"] .app-scroll')?.scrollTo({ top: 0 })
                   }}
                   className={cn(
                     "relative flex h-12 min-w-12 items-center justify-center gap-2 rounded-full px-3.5 transition-colors duration-250",

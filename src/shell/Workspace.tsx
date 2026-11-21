@@ -1,5 +1,6 @@
 import { useEffect, useState, type ComponentType } from "react"
 import { ScreenTransition } from "@/ui/ScreenTransition"
+import { Aurora } from "@/shell/Aurora"
 import { TodayScreen } from "@/screens/Today"
 import { Dock } from "@/shell/Dock"
 import { SheetHost } from "@/shell/SheetHost"
@@ -33,14 +34,14 @@ export default function Workspace() {
 
   return (
     <>
-      <div id="app-scroll" className="app-scroll">
-        <div className="px-5 pb-[var(--dock-space)] pt-[max(var(--safe-top),14px)]">
-          <ScreenTransition screenKey={visible.tab} direction={visible.tabDir}>
+      <ScreenTransition screenKey={visible.tab} direction={visible.tabDir} overlay={<Dock />}>
+        <Aurora tab={visible.tab} />
+        <div className="app-scroll">
+          <div className="px-5 pb-[var(--dock-space)] pt-[max(var(--safe-top),14px)]">
             <Screen />
-          </ScreenTransition>
+          </div>
         </div>
-      </div>
-      <Dock />
+      </ScreenTransition>
       <SheetHost />
     </>
   )

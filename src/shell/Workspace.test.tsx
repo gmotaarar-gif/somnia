@@ -25,7 +25,7 @@ vi.mock("@/shell/Dock", async () => {
   }
 })
 vi.mock("@/ui/ScreenTransition", () => ({
-  ScreenTransition: ({ children }: { children: ReactNode }) => <main>{children}</main>,
+  ScreenTransition: ({ children, overlay }: { children: ReactNode; overlay: ReactNode }) => <><main>{children}</main>{overlay}</>,
 }))
 
 afterEach(() => {
