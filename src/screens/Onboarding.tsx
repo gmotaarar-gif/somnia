@@ -14,6 +14,7 @@ import { DEFAULT_WIDGETS, useStore, type Chronotype, type Widget } from "@/store
 import { Card, type CardTone } from "@/ui/Card"
 import { Orbits, Ring } from "@/ui/charts"
 import { Button, IconButton, Segmented, Slider, Toggle } from "@/ui/controls"
+import { LensRuler } from "@/ui/LensRuler"
 import { TimeScrubber } from "@/ui/TimeScrubber"
 import { Dots, DotsCount } from "@/ui/Dots"
 import { usePrefersReducedMotion } from "@/ui/MotionProvider"
@@ -374,7 +375,7 @@ export function Onboarding() {
                     <Dots value={hm(hours * 60)} still shape="square" className="text-[56px]" />
                     <span className="pb-1 text-[13px] text-ink-2">ч</span>
                   </div>
-                  <Slider label="Сколько часов вы спите" className="mt-6" min={4} max={10} step={0.5} value={hours} onChange={setHours} />
+                  <LensRuler label="Сколько часов вы спите" className="mt-5" min={4} max={10} step={0.5} value={hours} onChange={setHours} format={(v) => String(v).replace(".", ",")} />
                 </div>
               </Card>
               <div className="mt-6 flex items-center gap-2 text-[13px] font-medium uppercase tracking-[0.08em] text-ink-3">
