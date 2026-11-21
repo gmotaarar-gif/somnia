@@ -4,6 +4,7 @@ import { screenVariants } from "@/lib/motion"
 import { TodayScreen } from "@/screens/Today"
 import { Dock } from "@/shell/Dock"
 import { SheetHost } from "@/shell/SheetHost"
+import { loadWithRetry } from "@/shell/LazyChunk"
 import { useStore, type TabId } from "@/store/store"
 
 const SCREENS: Record<TabId, () => Promise<ComponentType>> = {
@@ -14,19 +15,21 @@ const SCREENS: Record<TabId, () => Promise<ComponentType>> = {
 }
 
 export default function Workspace() {
-  const { tab, tabDir } = useStore()
+  const { tab, tabDir, setTab, notify } = useStore()
   const [visible, setVisible] = useState({ tab: "today" as TabId, tabDir, Screen: TodayScreen as ComponentType })
-  const [error, setError] = useState<unknown>(null)
   useEffect(() => {
     if (tab === visible.tab) return
     let current = true
-    SCREENS[tab]().then(
+    loadWithRetry(SCREENS[tab]).then(
       (Screen) => { if (current) setVisible({ tab, tabDir, Screen }) },
-      (reason) => { if (current) setError(reason) }
+      () => {
+        if (!current) return
+        setTab(visible.tab)
+        notify("Не удалось загрузить раздел. Попробуйте ещё раз.")
+      }
     )
     return () => { current = false }
-  }, [tab, tabDir, visible.tab])
-  if (error) throw error
+  }, [tab, tabDir, visible.tab, setTab, notify])
   const { Screen } = visible
 
   return (

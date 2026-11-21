@@ -1,9 +1,10 @@
-import { lazy, Suspense, useCallback, useLayoutEffect, useState, type ReactNode } from "react"
+import { Suspense, useCallback, useLayoutEffect, useState, type ReactNode } from "react"
 import { MotionConfig } from "framer-motion"
 import { Aurora } from "@/shell/Aurora"
 import { Island } from "@/shell/Island"
 import { Splash } from "@/shell/Splash"
 import { PhoneFrame } from "@/shell/PhoneFrame"
+import { lazyWithRetry as lazy } from "@/shell/LazyChunk"
 import { StoreProvider, useStore } from "@/store/store"
 
 const Workspace = lazy(() => import("@/shell/Workspace"))
@@ -26,9 +27,9 @@ function Shell() {
       <Aurora tab={where} />
       <Suspense fallback={null}>
         <InitialContent onReady={markReady}>
-          {onboarded ? <Workspace /> : (
+          {onboarded ? <Workspace onLoadError={markReady} /> : (
             <div id="app-scroll" className="app-scroll">
-              <Onboarding />
+              <Onboarding onLoadError={markReady} />
             </div>
           )}
         </InitialContent>

@@ -1,4 +1,4 @@
-import { lazy } from "react"
+import { lazyWithRetry as lazy } from "@/shell/LazyChunk"
 import { Deferred } from "@/shell/Deferred"
 import { useStore } from "@/store/store"
 

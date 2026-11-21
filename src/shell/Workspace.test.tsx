@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { Component, type ReactNode } from "react"
+import type { ReactNode } from "react"
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import { StoreProvider } from "@/store/store"
@@ -19,8 +19,8 @@ vi.mock("@/shell/Dock", async () => {
   const { useStore } = await import("@/store/store")
   return {
     Dock: () => {
-      const { setTab } = useStore()
-      return <><button onClick={() => setTab("sleep")}>Sleep</button><button onClick={() => setTab("mind")}>Mind</button></>
+      const { tab, setTab, toast } = useStore()
+      return <><span>Selected: {tab}</span><span>{toast?.text}</span><button onClick={() => setTab("sleep")}>Sleep</button><button onClick={() => setTab("mind")}>Mind</button></>
     },
   }
 })
@@ -46,14 +46,12 @@ it("keeps the current screen mounted until the requested tab finishes loading", 
   expect(screen.queryByText("Today content")).toBeNull()
 })
 
-it("surfaces a failed chunk load instead of silently leaving the wrong screen", async () => {
-  vi.spyOn(console, "error").mockImplementation(() => {})
-  class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
-    state = { failed: false }
-    static getDerivedStateFromError() { return { failed: true } }
-    render() { return this.state.failed ? <div>Load failed</div> : this.props.children }
-  }
-  render(<Boundary><StoreProvider><Workspace /></StoreProvider></Boundary>)
+it("keeps the app mounted and restores the selected tab after a chunk fails", async () => {
+  render(<StoreProvider><Workspace /></StoreProvider>)
   fireEvent.click(screen.getByText("Mind"))
-  expect(await screen.findByText("Load failed")).toBeTruthy()
+  expect(await screen.findByText("Не удалось загрузить раздел. Попробуйте ещё раз.")).toBeTruthy()
+  expect(screen.getByText("Today content")).toBeTruthy()
+  expect(screen.getByText("Selected: today")).toBeTruthy()
+  fireEvent.click(screen.getByText("Sleep"))
+  expect(await screen.findByText("Sleep content")).toBeTruthy()
 })
