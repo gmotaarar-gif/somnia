@@ -116,10 +116,12 @@ function RecapStories({ onClose }: { onClose: () => void }) {
             ))}
           </ul>
         ) : <h3 className="text-[36px] font-semibold leading-[1.08] tracking-[-0.045em]">Каждое чувство<br />имеет значение</h3>}
-        <p className="mt-6 text-[13px] text-white/85">
-          {sum.moodAvg !== null ? `${sum.moodAvg}% — настроение в среднем` : <span>ещё нет чек-инов</span>}
-        </p>
-        <p className="mt-2 text-[12px] text-white/80">{recap.moods.length} {pluralRu(recap.moods.length, ["чек-ин", "чек-ина", "чек-инов"])} · {recap.moodDays} из 7 дней</p>
+        <div className="mt-6 self-start rounded-2xl bg-black/60 px-3 py-2.5">
+          <p className="text-[13px] text-white/85">
+            {sum.moodAvg !== null ? `${sum.moodAvg}% — настроение в среднем` : <span>ещё нет чек-инов</span>}
+          </p>
+          <p className="mt-2 text-[12px] text-white/80">{recap.moods.length} {pluralRu(recap.moods.length, ["чек-ин", "чек-ина", "чек-инов"])} · {recap.moodDays} из 7 дней</p>
+        </div>
       </div>
       <details className="shrink-0 rounded-[24px] bg-black/15 p-4">
         <summary className="cursor-pointer text-[13px] font-semibold">Состояние по дням</summary>
