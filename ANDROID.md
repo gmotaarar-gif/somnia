@@ -11,6 +11,10 @@ npm run android:apk   # sync and assemble debug APK
 APK: `android/app/build/outputs/apk/debug/app-debug.apk`.
 The Android workflow also uploads this as `somna-debug-apk` on PRs and main pushes.
 Debug APKs are for testing, not Play Store release signing.
+They use the committed `android/app/somna-debug.keystore` so local and CI builds
+can update each other. This public test key uses alias `androiddebugkey` and
+passwords `android`; never use it to sign a production release. An APK installed
+with a different debug key must be uninstalled before the first update.
 
 The native window deliberately fits inside the system bars on SDK 34 rather
 than drawing underneath them. Both bars are dark with light icons; CSS safe-area
