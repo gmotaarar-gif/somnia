@@ -3,10 +3,10 @@
 @theme {
   --font-sans: "Onest Variable", ui-sans-serif, system-ui, sans-serif;
 
-  --color-bg: #07070c;
+  --color-bg: #080809;
   --color-ink: #ffffff;
   --color-ink-2: rgb(255 255 255 / 0.64);
-  --color-ink-3: rgb(255 255 255 / 0.4);
+  --color-ink-3: rgb(255 255 255 / 0.5);
   --color-hair: rgb(255 255 255 / 0.1);
   --color-lime: #d9f24a;
   --color-lime-ink: #151a02;
@@ -186,7 +186,7 @@ button:disabled {
 .aurora-dots {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(rgb(255 255 255 / 0.11) 1px, transparent 1.4px);
+  background-image: radial-gradient(rgb(255 255 255 / 0.035) 1px, transparent 1.4px);
   background-size: 22px 22px;
   mask-image: radial-gradient(90% 70% at 50% 30%, black, transparent 85%);
 }
@@ -204,20 +204,19 @@ button:disabled {
 /* ── Squircle cards ────────────────────────────────────────────── */
 
 .card {
-  --r: 34px;
+  --r: 30px;
   --core: #050506;
   position: relative;
   isolation: isolate;
   overflow: hidden;
   border-radius: var(--r);
-  background: #111116;
+  background: #171719;
   box-shadow:
-    inset 0 1px 0 0 rgb(255 255 255 / 0.17),
-    inset 0 0 0 1px rgb(255 255 255 / 0.055),
-    0 30px 60px -34px rgb(0 0 0 / 0.9);
+    inset 0 1px 0 0 rgb(255 255 255 / 0.045),
+    0 18px 40px -30px rgb(0 0 0 / 0.7);
 }
 .card[data-r="lg"] {
-  --r: 44px;
+  --r: 36px;
 }
 .card[data-r="sm"] {
   --r: 24px;
@@ -237,7 +236,7 @@ button:disabled {
   pointer-events: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   mix-blend-mode: overlay;
-  opacity: 0.38;
+  opacity: 0.08;
 }
 
 .card[data-tone] {
@@ -343,15 +342,55 @@ button:disabled {
   --core-h: 54%;
 }
 
+/* Color is reserved for the primary story; analytics sit on quiet surfaces. */
+.aurora:not([data-tab="onboarding"]) .aurora-blob {
+  opacity: 0.18;
+}
+.aurora:not([data-tab="onboarding"]) .grain {
+  opacity: 0.08;
+}
+.card.sleep-hero {
+  background:
+    radial-gradient(ellipse at 8% 40%, #7045ff 0%, transparent 58%),
+    radial-gradient(ellipse at 108% 100%, #ff4db8 0%, transparent 60%),
+    linear-gradient(145deg, #35208a, #17112d 65%, #753b86);
+}
+.card.practice-hero {
+  background:
+    radial-gradient(ellipse at 50% 26%, rgb(92 162 137 / 0.22), transparent 65%),
+    #151d1b;
+}
+.card.recap-emotions {
+  background:
+    radial-gradient(ellipse at 12% 48%, #ffb47e, transparent 68%),
+    linear-gradient(130deg, #ff9253, #ed3d1c 72%, #c52213);
+}
+.profile-hero {
+  background:
+    radial-gradient(ellipse at 100% 0%, rgb(174 159 240 / 0.18), transparent 70%),
+    #1a1921;
+}
+.card.reading-card {
+  color: #102a23;
+  background:
+    radial-gradient(ellipse at 0% 0%, #e6fff6, transparent 80%),
+    linear-gradient(140deg, #b8f7e4, #62cbb0);
+}
+
+@media (max-width: 359px) {
+  .dock-label {
+    display: none;
+  }
+}
+
 /* ── Glass ─────────────────────────────────────────────────────── */
 
 /* In-flow glass sits on the already-soft aurora, so a translucent fill reads the same as a
    backdrop blur and costs nothing while scrolling. Only floating chrome (.glass-dark) blurs. */
 .glass {
-  background: rgb(255 255 255 / 0.09);
+  background: rgb(255 255 255 / 0.055);
   box-shadow:
-    inset 0 1px 0 0 rgb(255 255 255 / 0.24),
-    inset 0 0 0 1px rgb(255 255 255 / 0.08);
+    inset 0 1px 0 0 rgb(255 255 255 / 0.055);
 }
 .glass-dark {
   background: rgb(14 14 20 / 0.62);

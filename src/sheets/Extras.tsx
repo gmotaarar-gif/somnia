@@ -18,9 +18,10 @@ import { nightScore, qualityLabel } from "@/lib/metrics"
 import { EASE_OUT } from "@/lib/motion"
 import { durationRu, hm, relativeDay } from "@/lib/time"
 import { useNow } from "@/store/derived"
-import { useStore, type SleepNight } from "@/store/store"
+import { useStore } from "@/store/store"
 import { Card, type CardTone } from "@/ui/Card"
 import { Ring } from "@/ui/charts"
+import { Hypnogram } from "@/ui/SleepStages"
 import { Button, Segmented, TimeField } from "@/ui/controls"
 import { Dots, DotsCount } from "@/ui/Dots"
 import { Field, Sheet } from "@/ui/Sheet"
@@ -200,37 +201,6 @@ export function WellbeingSheet() {
 
 /* ── Night details with estimated stages ────────────────────────── */
 
-export function Hypnogram({ night, className }: { night: SleepNight; className?: string }) {
-  const segs = React.useMemo(() => hypnogram(night), [night])
-  const total = segs.reduce((a, s) => a + s.min, 0)
-  let x = 0
-  return (
-    <svg viewBox="0 0 300 96" className={cn("w-full overflow-visible", className)} role="img" aria-label="Оценка фаз сна">
-      {[0, 1, 2, 3].map((l) => (
-        <line key={l} x1="0" x2="300" y1={12 + l * 24} y2={12 + l * 24} stroke="rgb(255 255 255 / 0.08)" strokeDasharray="2 5" />
-      ))}
-      {segs.map((s, i) => {
-        const w = (s.min / total) * 300
-        const meta = STAGE_META[s.stage]
-        const el = (
-          <motion.rect
-            key={i}
-            x={x + 0.6}
-            width={Math.max(1, w - 1.2)}
-            rx="4"
-            fill={meta.color}
-            initial={{ y: 12 + meta.level * 24, height: 0, opacity: 0 }}
-            animate={{ y: 3 + meta.level * 24, height: 18, opacity: 1 }}
-            transition={{ duration: 0.5, ease: EASE_OUT, delay: 0.1 + i * 0.025 }}
-          />
-        )
-        x += w
-        return el
-      })}
-    </svg>
-  )
-}
-
 export function NightSheet() {
   const { sheet, sheetArg, openSheet, nights, bedGoal, wakeGoal, removeNight, notify } = useStore()
   const night = nights.find((n) => n.id === sheetArg)
@@ -246,7 +216,7 @@ export function NightSheet() {
     >
       {night && totals && (
         <>
-          <Card tone="night">
+          <Card className="sleep-hero">
             <div className="flex items-end justify-between p-5">
               <div>
                 <div className="text-[12px] text-ink-2">Сон</div>
@@ -261,10 +231,6 @@ export function NightSheet() {
           <Field label="Фазы сна" hint="оценка по вашей записи">
             <div className="glass rounded-[26px] p-4">
               <Hypnogram night={night} />
-              <div className="mt-2 flex justify-between text-[11px] text-ink-3">
-                <span>{night.bedtime}</span>
-                <span>{night.wakeTime}</span>
-              </div>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2.5">
               {(Object.keys(STAGE_META) as Stage[]).map((st) => (
