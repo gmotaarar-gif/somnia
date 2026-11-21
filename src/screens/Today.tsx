@@ -3,7 +3,7 @@ import { motion } from "framer-motion"
 import { ArrowUpRight, ChevronRight, Info, Plus, Sparkles } from "lucide-react"
 import { cn } from "@/lib/cn"
 import { indexLabel, qualityLabel } from "@/lib/metrics"
-import { riseIn } from "@/lib/motion"
+import { useRiseIn } from "@/ui/MotionProvider"
 import { dayMonth, dayMonthShort, greeting, hm, parseKey, weekdayShort } from "@/lib/time"
 import { getValenceLabel } from "@/lib/valence"
 import { useNow, useSummary } from "@/store/derived"
@@ -60,6 +60,7 @@ function HeroShell({
 }
 
 export function TodayScreen() {
+  const riseIn = useRiseIn()
   const { userName, nights, moods, setTab, openSheet, editing, setEditing } = useStore()
   const sum = useSummary()
   const now = useNow(60_000)

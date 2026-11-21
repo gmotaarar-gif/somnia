@@ -1,5 +1,6 @@
 import { MotionConfig, MotionGlobalConfig } from "framer-motion"
 import { useInsertionEffect, useSyncExternalStore, type ReactNode } from "react"
+import { riseIn } from "@/lib/motion"
 
 const QUERY = "(prefers-reduced-motion: reduce)"
 const snapshot = () => window.matchMedia(QUERY).matches
@@ -21,6 +22,16 @@ export function usePrefersReducedMotion() {
   return useSyncExternalStore(subscribe, snapshot, serverSnapshot)
 }
 
+/** Mount content visibly rather than waiting for Motion's first scheduled frame. */
+export function useRiseIn() {
+  const reduce = usePrefersReducedMotion()
+  return (index = 0) => reduce ? {
+    initial: false as const,
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0, delay: 0, skipAnimations: true },
+  } : riseIn(index)
+}
+
 /** MotionConfig's reducedMotion flag alone still animates opacity, SVGs and delays. */
 export function MotionProvider({ children }: { children: ReactNode }) {
   const reduce = usePrefersReducedMotion()
@@ -33,7 +44,7 @@ export function MotionProvider({ children }: { children: ReactNode }) {
     return () => { MotionGlobalConfig.skipAnimations = previous }
   }, [reduce])
   return (
-    <MotionConfig reducedMotion="never">
+    <MotionConfig reducedMotion="never" transition={{ skipAnimations: reduce }}>
       {children}
     </MotionConfig>
   )

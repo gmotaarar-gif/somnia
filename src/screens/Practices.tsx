@@ -5,7 +5,7 @@ import { Check, Eye, NotebookPen, Pause, Play, RotateCcw, ScanLine, Volume2 } fr
 import { cn } from "@/lib/cn"
 import { pluralRu } from "@/lib/time"
 import { SLEEP_TIPS } from "@/lib/metrics"
-import { riseIn } from "@/lib/motion"
+import { useRiseIn } from "@/ui/MotionProvider"
 import { hm } from "@/lib/time"
 import { useBreath, useStore, type Technique } from "@/store/store"
 import { SOUNDS } from "@/screens/Sleep"
@@ -71,6 +71,7 @@ function phaseAt(phases: Phase[], elapsed: number) {
 }
 
 function BreathingCard() {
+  const riseIn = useRiseIn()
   const { breath, setBreath } = useBreath()
   const reduce = usePrefersReducedMotion()
   const tech = TECHNIQUES[breath.technique]
@@ -174,6 +175,7 @@ const SoundControls = React.memo(function SoundControls({ sound, setBreath }: {
   sound: ReturnType<typeof useBreath>["breath"]["sound"]
   setBreath: ReturnType<typeof useBreath>["setBreath"]
 }) {
+  const riseIn = useRiseIn()
   const { volume, patch } = useStore()
   return (
     <motion.div {...riseIn(2)}>
@@ -199,6 +201,7 @@ const SoundControls = React.memo(function SoundControls({ sound, setBreath }: {
 })
 
 export function PracticesScreen() {
+  const riseIn = useRiseIn()
   const { ritual, toggleRitual, breath: today, sessions, worries, openSheet } = useStore()
   const totalMin = Math.round(sessions.reduce((a, x) => a + x.min, 0))
   const openWorries = worries.filter((w) => !w.done).length

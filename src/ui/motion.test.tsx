@@ -6,7 +6,7 @@ import { useState } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { Island } from "@/shell/Island"
 import { Bars, Ring, Wave } from "./charts"
-import { MotionProvider, usePrefersReducedMotion } from "./MotionProvider"
+import { MotionProvider, usePrefersReducedMotion, useRiseIn } from "./MotionProvider"
 import { ScreenTransition } from "./ScreenTransition"
 
 const { store } = vi.hoisted(() => ({
@@ -183,4 +183,23 @@ it("renders complete chart data synchronously after a live switch to reduced mot
   expect(screen.getByTitle("bar-20").style.height).toBe("20%")
   expect(screen.getByTitle("bar-80").style.height).toBe("80%")
   expect(Number(container.querySelector('circle[stroke="#d9f24a"]')?.getAttribute("stroke-dashoffset"))).toBeCloseTo(Math.PI * 47)
+})
+
+it("mounts chart sections fully visible after a live preference change", () => {
+  function Section() {
+    const riseIn = useRiseIn()
+    return <motion.section {...riseIn(4)} data-testid="section"><Wave values={[20, 60, 40]} fill /></motion.section>
+  }
+  function Content() {
+    const [visible, setVisible] = useState(false)
+    return <><button onClick={() => setVisible(true)}>Today</button>{visible && <Section />}</>
+  }
+  render(<MotionProvider><Content /></MotionProvider>)
+  act(() => {
+    reduced = true
+    listeners.forEach((notify) => notify())
+  })
+  act(() => screen.getByText("Today").click())
+  expect(screen.getByTestId("section").style.opacity).toBe("1")
+  expect(screen.getByTestId("section").style.transform).toBe("none")
 })
