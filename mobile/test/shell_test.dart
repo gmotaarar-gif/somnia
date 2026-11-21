@@ -175,7 +175,7 @@ void main() {
     (tester) async {
       final s = store(onboarded: true);
       await boot(tester, s);
-      s.openSheet('gallery');
+      s.openSheet('unknown');
       await tester.pumpAndSettle();
       expect(find.text('Скоро здесь'), findsOneWidget);
       s.openSheet('profile');
