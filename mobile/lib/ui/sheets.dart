@@ -4,10 +4,16 @@ import 'package:material_ui/material_ui.dart';
 
 import '../data/store.dart';
 import '../theme/tokens.dart';
+import '../widgets/gallery_sheet.dart';
+import '../widgets/recap_sheet.dart';
 
 typedef SomnaSheetBuilder = Widget Function(BuildContext context, String? arg);
 
 class SheetRegistry extends ChangeNotifier {
+  SheetRegistry() {
+    register('gallery', (context, arg) => const GallerySheet());
+    register('recap', (context, arg) => const RecapSheet());
+  }
   final Map<String, SomnaSheetBuilder> _builders = {};
   void register(String id, SomnaSheetBuilder builder) {
     _builders[id] = builder;
