@@ -688,3 +688,8 @@ button:disabled {
 :root[data-theme="light"] .text-lime:not(:is(.card, .on-dark), :is(.card, .on-dark) *) {
   color: var(--color-accent);
 }
+
+/* Night mode is black in both themes, so the mock phone's status bar and home bar go light over it. */
+:root[data-theme="light"]:has(.night-mode) .phone-chrome {
+  --color-white: #ffffff;
+}

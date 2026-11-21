@@ -34,7 +34,7 @@ function useFramed() {
 function StatusBar() {
   const now = useNow(15_000)
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-[90] flex h-[52px] items-center justify-between px-9 pt-2 text-white" aria-hidden>
+    <div className="phone-chrome pointer-events-none absolute inset-x-0 top-0 z-[90] flex h-[52px] items-center justify-between px-9 pt-2 text-white" aria-hidden>
       <span className="w-14 text-[16px] font-semibold tracking-[-0.01em]">{clockOf(now.toISOString())}</span>
       <span className="flex w-[70px] items-center justify-end gap-[5px]">
         <Signal className="size-[16px]" strokeWidth={2.6} />
@@ -62,7 +62,7 @@ export function PhoneFrame({ tab, children }: { tab: string; children: React.Rea
       {framed && (
         <>
           <StatusBar />
-          <span className="pointer-events-none absolute bottom-2 left-1/2 z-[90] h-[5px] w-[136px] -translate-x-1/2 rounded-full bg-white/80" aria-hidden />
+          <span className="phone-chrome pointer-events-none absolute bottom-2 left-1/2 z-[90] h-[5px] w-[136px] -translate-x-1/2 rounded-full bg-white/80" aria-hidden />
         </>
       )}
     </div>

@@ -9,7 +9,7 @@ export interface ReminderSettings {
 }
 
 export async function requestReminderPermission() {
-  if (!Capacitor.isNativePlatform()) return true
+  if (!Capacitor.isNativePlatform()) return false
   try {
     return (await LocalNotifications.requestPermissions()).display === "granted"
   } catch {

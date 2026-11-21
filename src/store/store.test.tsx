@@ -16,6 +16,7 @@ const STORAGE_KEY = "somna-state-v6"
 afterEach(() => {
   cleanup()
   localStorage.clear()
+  sessionStorage.clear()
   vi.useRealTimers()
 })
 
@@ -96,6 +97,59 @@ describe("StoreProvider", () => {
     expect(result.current.nightMode).toBe(false)
     expect(result.current.sheet).toBe("sleep")
     expect(result.current.nightStart).toBe(started)
+  })
+
+  it("restores a night across midnight and prefills its original bedtime when waking", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2030, 0, 1, 23, 45))
+    const before = renderHook(useStore, { wrapper: StoreProvider })
+    act(() => before.result.current.startNight())
+    before.unmount()
+
+    vi.setSystemTime(new Date(2030, 0, 2, 7, 15))
+    const after = renderHook(useStore, { wrapper: StoreProvider })
+    expect(after.result.current).toMatchObject({ nightMode: true, nightStart: "23:45" })
+
+    act(() => after.result.current.endNight(true))
+    expect(after.result.current).toMatchObject({ nightMode: false, sheet: "sleep", nightStart: "23:45" })
+    after.unmount()
+
+    const { result } = renderHook(useStore, { wrapper: StoreProvider })
+    expect(result.current).toMatchObject({ nightMode: false, sheet: null, nightStart: null, nights: [] })
+  })
+
+  it.each(["cancelled", "reset"])("does not restore a %s night", (action) => {
+    const before = renderHook(useStore, { wrapper: StoreProvider })
+    act(() => before.result.current.startNight())
+    act(() => {
+      if (action === "reset") before.result.current.resetAll()
+      else before.result.current.endNight(false)
+    })
+    expect(before.result.current).toMatchObject({ nightMode: false, nightStart: null })
+    before.unmount()
+
+    const { result } = renderHook(useStore, { wrapper: StoreProvider })
+    expect(result.current).toMatchObject({ nightMode: false, nightStart: null })
+  })
+
+  it.each([10, 45])("keeps the original sound timer after %i minutes away", (minutes) => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2030, 0, 1, 22, 0))
+    const before = renderHook(useStore, { wrapper: StoreProvider })
+    act(() => {
+      before.result.current.patch({ soundTimer: 30 })
+      before.result.current.setNightSound("rain")
+    })
+    act(() => before.result.current.startNight())
+    before.unmount()
+
+    vi.setSystemTime(new Date(2030, 0, 1, 22, minutes))
+    const { result } = renderHook(useStore, { wrapper: StoreProvider })
+    if (minutes < 30) {
+      expect(result.current.nightSound).toBe("rain")
+      act(() => vi.advanceTimersByTime((30 - minutes) * 60_000))
+    }
+    expect(result.current).toMatchObject({ nightMode: true, nightSound: "off", nightStart: "22:00" })
   })
 
   it("keeps the wake-up path while a started night awaits logging", () => {

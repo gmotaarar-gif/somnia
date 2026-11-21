@@ -1,9 +1,10 @@
 import * as React from "react"
+import { Capacitor } from "@capacitor/core"
 import { normalizeEmail, normalizeLocalAccount, validateRegistration, type LocalAccount, type RegistrationInput } from "@/account/registration"
 import { setSoundVolume, startSound, stopSound, type SoundMode } from "@/lib/audio"
 import type { ThemeMode } from "@/lib/theme"
 import { listenForReminders, requestReminderPermission, syncReminders } from "@/lib/notifications"
-import { dateKey } from "@/lib/time"
+import { dateKey, minutesToTime } from "@/lib/time"
 import { readSaved } from "@/store/saved"
 
 export type TabId = "today" | "sleep" | "mind" | "practices"
@@ -192,7 +193,7 @@ function defaults(): Persisted {
     theme: "system",
     bedGoal: "23:30",
     wakeGoal: "07:30",
-    reminder: true,
+    reminder: Capacitor.isNativePlatform(),
     reminderTime: "22:30",
     morningReminder: false,
     morningReminderTime: "07:30",
@@ -218,6 +219,37 @@ function defaults(): Persisted {
 const STORAGE_KEY = "somna-state-v6"
 /** The original text of a save that had to be repaired, kept until the next repair. */
 export const BACKUP_KEY = "somna-state-v6-backup"
+const ACTIVE_NIGHT_KEY = "somna-active-night-v1"
+
+interface ActiveNight {
+  start: string
+  sound: SoundMode
+  soundStartedAt: number
+}
+
+function loadActiveNight(): ActiveNight | null {
+  try {
+    const raw = window.sessionStorage.getItem(ACTIVE_NIGHT_KEY)
+    if (!raw) return null
+    const night = JSON.parse(raw) as Partial<ActiveNight> | null
+    if (
+      typeof night?.start === "string" && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(night.start) &&
+      (night.sound === "off" || night.sound === "pink" || night.sound === "rain" || night.sound === "drone") &&
+      typeof night.soundStartedAt === "number" && Number.isFinite(night.soundStartedAt)
+    ) {
+      return { start: night.start, sound: night.sound, soundStartedAt: night.soundStartedAt }
+    }
+  } catch {
+    // Storage can be unavailable or contain invalid JSON.
+  }
+  return null
+}
+
+function withSupportedReminders(data: Persisted): Persisted {
+  return Capacitor.isNativePlatform() || (!data.reminder && !data.morningReminder)
+    ? data
+    : { ...data, reminder: false, morningReminder: false }
+}
 
 /** One night per morning (the latest save wins), in calendar order, capped at 90. */
 function normalizeNights(nights: SleepNight[]): SleepNight[] {
@@ -289,7 +321,7 @@ function migrate(base: Persisted, parsed: Partial<Persisted>): Persisted {
   // widgets added in later versions appear in the gallery of existing installs
   const missing = DEFAULT_WIDGETS.filter((w) => !saved.widgets.some((x) => x.id === w.id))
   if (missing.length) saved.widgets = [...saved.widgets, ...missing.map((w) => ({ ...w, visible: false }))]
-  return saved
+  return withSupportedReminders(saved)
 }
 
 // Holds the damaged original for download when storage has no room for a backup copy.
@@ -420,18 +452,35 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return () => window.clearTimeout(id)
   }, [toast])
   const [editing, setEditing] = React.useState(false)
-  const [nightMode, setNightMode] = React.useState(false)
-  const [nightStart, setNightStart] = React.useState<string | null>(null)
-  const [nightSound, setNightSound] = React.useState<SoundMode>("pink")
+  const [activeNight, setActiveNight] = React.useState(loadActiveNight)
+  const [pendingBedtime, setPendingBedtime] = React.useState<string | null>(null)
+  const [selectedSound, setSelectedSound] = React.useState<SoundMode>(() => activeNight?.sound ?? "pink")
+  const nightMode = activeNight !== null
+  const nightStart = activeNight?.start ?? pendingBedtime
+  const nightSound = activeNight?.sound ?? selectedSound
+  const setNightSound = React.useCallback((sound: SoundMode) => {
+    const soundStartedAt = Date.now()
+    setSelectedSound(sound)
+    setActiveNight((night) => night && night.sound !== sound ? { ...night, sound, soundStartedAt } : night)
+  }, [])
   const endNight = React.useCallback((log: boolean) => {
-    setNightMode(false)
+    setPendingBedtime(log ? nightStart : null)
+    setActiveNight(null)
     if (log) openSheet("sleep")
-    else setNightStart(null)
-  }, [openSheet])
+  }, [nightStart, openSheet])
   React.useEffect(() => listenForReminders((target) => {
     if (target === "mood" && (nightMode || nightStart)) endNight(true)
     else openSheet(target)
   }), [openSheet, endNight, nightMode, nightStart])
+
+  React.useEffect(() => {
+    try {
+      if (activeNight) window.sessionStorage.setItem(ACTIVE_NIGHT_KEY, JSON.stringify(activeNight))
+      else window.sessionStorage.removeItem(ACTIVE_NIGHT_KEY)
+    } catch {
+      // The night can still run in memory if storage is unavailable.
+    }
+  }, [activeNight])
 
   React.useEffect(() => {
     const serialized = JSON.stringify(data)
@@ -476,32 +525,39 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     const vol = Math.max(0, Math.min(1, data.volume / 100))
-    if (nightMode && nightSound !== "off") {
-      setSoundVolume(vol * 0.45)
-      startSound(nightSound)
-    } else {
-      stopSound()
-    }
-  }, [nightMode, nightSound, data.volume])
+    setSoundVolume(vol * 0.45)
+  }, [data.volume])
 
+  const soundEndsAt = activeNight && data.soundTimer ? activeNight.soundStartedAt + data.soundTimer * 60_000 : null
   React.useEffect(() => {
-    if (!nightMode || nightSound === "off" || !data.soundTimer) return
-    const id = window.setTimeout(() => setNightSound("off"), data.soundTimer * 60_000)
+    if (!nightMode || nightSound === "off") {
+      stopSound()
+      return
+    }
+    const remaining = soundEndsAt === null ? null : soundEndsAt - Date.now()
+    if (remaining !== null && remaining <= 0) {
+      setNightSound("off")
+      return
+    }
+    startSound(nightSound)
+    if (remaining === null) return
+    const id = window.setTimeout(() => setNightSound("off"), remaining)
     return () => window.clearTimeout(id)
-  }, [nightMode, nightSound, data.soundTimer])
+  }, [nightMode, nightSound, soundEndsAt, setNightSound])
 
   React.useEffect(() => () => stopSound(), [])
 
   const actions = React.useMemo(() => {
-    const patch = (p: Partial<Persisted>) => setData((d) => ({ ...d, ...p }))
+    const patch = (p: Partial<Persisted>) => setData((d) => withSupportedReminders({ ...d, ...p }))
     const setWidgets: React.Dispatch<React.SetStateAction<Widget[]>> = (next) =>
       setData((d) => ({ ...d, widgets: typeof next === "function" ? next(d.widgets) : next }))
     return {
       patch,
       setWidgets,
       finishOnboarding: async (p: Partial<Persisted>) => {
-        const granted = !p.reminder || await requestReminderPermission()
-        const next = { ...latestData.current, ...p, ...(p.reminder && { reminder: granted }), onboarded: true }
+        const needsPermission = Capacitor.isNativePlatform() && p.reminder
+        const granted = !needsPermission || await requestReminderPermission()
+        const next = withSupportedReminders({ ...latestData.current, ...p, ...(needsPermission && { reminder: granted }), onboarded: true })
         React.startTransition(() => setData(next))
         void syncReminders(next).catch(() => notify("Не удалось обновить напоминания. Попробуйте ещё раз."))
         if (!granted) notify("Разрешите уведомления для Somna в настройках телефона")
@@ -568,6 +624,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       ]),
       resetAll: () => {
         clearSavedDataBackup()
+        setActiveNight(null)
+        setPendingBedtime(null)
         setData((d) => ({ ...defaults(), onboarded: d.onboarded, userName: d.userName, localAccount: d.localAccount }))
       },
     }
@@ -609,16 +667,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       nightMode,
       nightStart,
       startNight: () => {
-        const d = new Date()
-        setNightStart(`${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`)
-        setNightMode(true)
+        const now = new Date()
+        const start = minutesToTime(now.getHours() * 60 + now.getMinutes())
+        setActiveNight((night) => night ?? { start, sound: selectedSound, soundStartedAt: now.getTime() })
       },
       endNight,
-      clearNightStart: () => setNightStart(null),
+      clearNightStart: () => setPendingBedtime(null),
       nightSound,
       setNightSound,
     }),
-    [data, actions, savedDataDamage, tab, tabDir, setTab, sheet, sheetArg, openSheet, toast, notify, editing, nightMode, nightStart, nightSound, endNight]
+    [data, actions, savedDataDamage, tab, tabDir, setTab, sheet, sheetArg, openSheet, toast, notify, editing, nightMode, nightStart, nightSound, selectedSound, setNightSound, endNight]
   )
 
   return (
