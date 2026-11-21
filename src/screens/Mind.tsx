@@ -1,6 +1,8 @@
 import * as React from "react"
 import { motion } from "framer-motion"
-import { Plus, Smile } from "lucide-react"
+import { HeartPulse, Plus, Smile } from "lucide-react"
+import { who5Label } from "@/lib/features"
+import { EASE_OUT } from "@/lib/motion"
 import { cn } from "@/lib/cn"
 import { buildInsights, emotionCounts, factorImpacts, moodPct, sleepMoodLink } from "@/lib/metrics"
 import { riseIn } from "@/lib/motion"
@@ -10,14 +12,16 @@ import { useSummary } from "@/store/derived"
 import { useStore } from "@/store/store"
 import { TopBar } from "@/shell/TopBar"
 import { Card, CardTitle, type CardTone } from "@/ui/Card"
-import { Wave } from "@/ui/charts"
+import { Ring, Wave } from "@/ui/charts"
 import { Button, IconButton, SectionHead, Slider } from "@/ui/controls"
 import { Dots } from "@/ui/Dots"
 
 const rgb = (c: number[]) => `rgb(${c.join(" ")})`
 
 export function MindScreen() {
-  const { moods, nights, bedGoal, wakeGoal, spectrum, setSpectrum, openSheet } = useStore()
+  const { moods, nights, bedGoal, wakeGoal, spectrum, setSpectrum, openSheet, wellbeing } = useStore()
+  const who = wellbeing[wellbeing.length - 1]
+  const whoPrev = wellbeing[wellbeing.length - 2]
   const sum = useSummary()
   const last = sum.lastMood
 
@@ -32,6 +36,15 @@ export function MindScreen() {
           label: weekdayShort(d),
           value: entries.length ? entries.reduce((s, m) => s + m.valence, 0) / entries.length : null,
         }
+      }),
+    [moods]
+  )
+  const month = React.useMemo(
+    () =>
+      Array.from({ length: 28 }, (_, i) => {
+        const key = dateKey(daysAgo(27 - i))
+        const entries = moods.filter((m) => dateKey(new Date(m.at)) === key)
+        return { key, value: entries.length ? entries.reduce((s, m) => s + m.valence, 0) / entries.length : null }
       }),
     [moods]
   )
@@ -180,6 +193,52 @@ export function MindScreen() {
                   </li>
                 ))}
               </ul>
+            </div>
+          </div>
+        </Card>
+      </motion.div>
+
+      <motion.div {...riseIn(3)} className="mt-3 grid gap-3">
+        <Card tone="forest" r="lg" role="button" tabIndex={0} aria-label="Пройти тест благополучия" className="cursor-pointer" onClick={() => openSheet("wellbeing")} onKeyDown={(e) => e.key === "Enter" && openSheet("wellbeing")}>
+          <div className="flex items-center gap-5 p-6">
+            <Ring value={(who?.score ?? 0) / 100} size={104} stroke={5}>
+              <Dots value={who ? who.score : "--"} still shape="square" className="text-[26px]" />
+            </Ring>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 text-[12px] font-medium uppercase tracking-[0.08em] text-ink-2">
+                <HeartPulse className="size-4" /> Индекс WHO-5
+              </div>
+              <div className="mt-2 text-[19px] font-semibold leading-tight tracking-[-0.02em]">{who ? who5Label(who.score) : "Пройдите тест"}</div>
+              <div className="mt-1.5 text-[13px] leading-snug text-ink-2">
+                {who && whoPrev
+                  ? `${who.score - whoPrev.score >= 0 ? "+" : ""}${who.score - whoPrev.score} к прошлому разу`
+                  : "5 вопросов, 1 минута. Повторяйте раз в неделю"}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card tone="ink">
+          <div className="p-5">
+            <CardTitle sub="Каждая клетка: средний чек-ин за день">Месяц в цвете</CardTitle>
+            <div className="mt-5 grid grid-cols-7 gap-1.5">
+              {month.map((d, i) => (
+                <motion.span
+                  key={d.key}
+                  title={d.value != null ? `${relativeDay(d.key)}: ${moodPct(d.value)}%` : relativeDay(d.key)}
+                  initial={{ opacity: 0, scale: 0.4 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.35, ease: EASE_OUT, delay: i * 0.014 }}
+                  className="aspect-square rounded-[10px]"
+                  style={{ background: d.value != null ? rgb(sampleValencePalette(d.value).mid) : "rgb(255 255 255 / 0.06)" }}
+                />
+              ))}
+            </div>
+            <div className="mt-4 flex items-center gap-2 text-[11px] text-ink-3">
+              Неприятно
+              <span className="h-1.5 flex-1 rounded-full" style={{ background: `linear-gradient(90deg, ${[-1, -0.5, 0, 0.5, 1].map((v) => rgb(sampleValencePalette(v).mid)).join(",")})` }} />
+              Приятно
             </div>
           </div>
         </Card>

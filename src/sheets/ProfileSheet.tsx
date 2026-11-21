@@ -1,4 +1,6 @@
 import * as React from "react"
+import { Award as AwardIcon, Download } from "lucide-react"
+import { DotsCount } from "@/ui/Dots"
 import { durationRu, spanMinutes } from "@/lib/time"
 import { useStore, type Chronotype } from "@/store/store"
 import { Button, Segmented, Slider, TimeField, Toggle } from "@/ui/controls"
@@ -14,6 +16,22 @@ export function ProfileSheet() {
 
   return (
     <Sheet open={s.sheet === "profile"} onClose={close} title="Профиль" description="Данные хранятся только в этом браузере">
+      <div className="grid grid-cols-3 gap-2.5">
+        {[
+          [s.nights.length, "ночей"],
+          [s.moods.length, "чек-инов"],
+          [Math.round(s.sessions.reduce((a, x) => a + x.min, 0)), "мин практик"],
+        ].map(([v, k]) => (
+          <div key={k} className="glass-inset rounded-[22px] px-3 py-3.5">
+            <DotsCount value={Number(v)} shape="square" className="text-[22px]" />
+            <div className="mt-2 text-[11px] text-ink-2">{k}</div>
+          </div>
+        ))}
+      </div>
+      <Button variant="glass" className="mt-2.5 w-full" onClick={() => s.openSheet("awards")}>
+        <AwardIcon /> Достижения
+      </Button>
+
       <Field label="Имя">
         <input
           value={s.userName}
@@ -78,6 +96,21 @@ export function ProfileSheet() {
             }}
           >
             Пройти знакомство заново
+          </Button>
+          <Button
+            variant="glass"
+            onClick={() => {
+              const { nights, moods, sessions, worries, wellbeing, bedGoal, wakeGoal } = s
+              const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), bedGoal, wakeGoal, nights, moods, sessions, worries, wellbeing }, null, 2)], { type: "application/json" })
+              const a = document.createElement("a")
+              a.href = URL.createObjectURL(blob)
+              a.download = "somna-export.json"
+              a.click()
+              URL.revokeObjectURL(a.href)
+              s.notify("Данные выгружены")
+            }}
+          >
+            <Download /> Экспорт данных (JSON)
           </Button>
           <Button variant="glass" onClick={s.resetWidgets}>
             Вернуть виджеты по умолчанию

@@ -1,11 +1,13 @@
 import * as React from "react"
 import { motion } from "framer-motion"
-import { Lightbulb, MoonStar, Plus, Trash2 } from "lucide-react"
+import { AlarmClock, ChevronRight, Lightbulb, MoonStar, Plus } from "lucide-react"
+import { wakeOptions } from "@/lib/features"
+import { Hypnogram } from "@/sheets/Extras"
 import { cn } from "@/lib/cn"
 import type { SoundMode } from "@/lib/audio"
 import { SLEEP_TIPS, nightScore, qualityLabel } from "@/lib/metrics"
 import { riseIn } from "@/lib/motion"
-import { dayMonthShort, durationRu, hm, parseKey, pluralRu, relativeDay, timeToMinutes, weekdayShort } from "@/lib/time"
+import { dateKey, dayMonthShort, daysAgo, durationRu, hm, parseKey, pluralRu, relativeDay, timeToMinutes, weekdayShort } from "@/lib/time"
 import { useSummary } from "@/store/derived"
 import { useStore, type SleepNight } from "@/store/store"
 import { TopBar } from "@/shell/TopBar"
@@ -71,8 +73,56 @@ function Stat({ label, value, unit, note }: { label: string; value: string | num
   )
 }
 
+/** Last five weeks as a calendar; each night is tinted by its score. */
+function MonthGrid() {
+  const { nights, bedGoal, wakeGoal, openSheet } = useStore()
+  const byKey = new Map(nights.map((n) => [n.dateKey, n]))
+  const today = new Date()
+  const offset = (today.getDay() + 6) % 7
+  const days = Array.from({ length: 35 }, (_, i) => daysAgo(34 - i - (6 - offset)))
+  return (
+    <div className="glass mt-4 rounded-[30px] p-4">
+      <div className="grid grid-cols-7 gap-1.5 text-center text-[10px] text-ink-3">
+        {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((d) => (
+          <span key={d}>{d}</span>
+        ))}
+      </div>
+      <div className="mt-2 grid grid-cols-7 gap-1.5">
+        {days.map((d, i) => {
+          const key = dateKey(d)
+          const n = byKey.get(key)
+          const future = d > today
+          const score = n ? nightScore(n, bedGoal, wakeGoal) : 0
+          return (
+            <motion.button
+              key={key}
+              type="button"
+              disabled={!n}
+              aria-label={n ? `${relativeDay(key)}: оценка ${score}` : dayMonthShort(d)}
+              onClick={() => n && openSheet("night", n.id)}
+              initial={{ opacity: 0, scale: 0.6 }}
+              whileInView={{ opacity: future ? 0.25 : 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.3, delay: i * 0.012 }}
+              className={cn(
+                "grid aspect-square place-items-center rounded-[12px] text-[11px] font-medium tabular-nums",
+                n ? "text-lime-ink" : "bg-white/6 text-ink-3",
+                key === dateKey(today) && "ring-1 ring-white/70"
+              )}
+              style={n ? { background: `rgb(217 242 74 / ${0.25 + (score / 100) * 0.75})` } : undefined}
+            >
+              {d.getDate()}
+            </motion.button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export function SleepScreen() {
-  const { nights, bedGoal, wakeGoal, openSheet, removeNight, nightSound, setNightSound, startNight } = useStore()
+  const { nights, bedGoal, wakeGoal, openSheet, nightSound, setNightSound, startNight, soundTimer, patch } = useStore()
+  const cycles = wakeOptions(bedGoal)
   const [period, setPeriod] = React.useState<"7" | "14" | "30">("7")
   const sum = useSummary(Number(period))
   const last = sum.last
@@ -113,15 +163,14 @@ export function SleepScreen() {
                       <span>Отбой {last.bedtime}</span>
                       <span>Подъём {last.wakeTime}</span>
                     </div>
-                    <div className="relative mt-3 h-4">
-                      <div className="absolute inset-x-0 top-1/2 border-t-2 border-dotted border-white/30" />
-                      <div
-                        className="absolute top-1/2 h-[6px] -translate-y-1/2 rounded-full bg-gradient-to-r from-[#8ea0ff] to-lime"
-                        style={{ left: `${axisPos(last.bedtime)}%`, right: `${100 - axisPos(last.wakeTime)}%` }}
-                      />
-                      <span className="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white" style={{ left: `${axisPos(last.bedtime)}%` }} />
-                      <span className="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white" style={{ left: `${axisPos(last.wakeTime)}%` }} />
-                    </div>
+                    <button
+                      type="button"
+                      aria-label="Подробности ночи"
+                      onClick={() => openSheet("night", last.id)}
+                      className="press mt-3 block w-full rounded-[20px] bg-black/25 p-3"
+                    >
+                      <Hypnogram night={last} />
+                    </button>
                   </div>
                   <div className="mt-5 flex flex-wrap gap-2">
                     <span className="glass-inset rounded-full px-3 py-1.5 text-[12px]">{qualityLabel(last.quality)} · {last.quality}</span>
@@ -155,7 +204,21 @@ export function SleepScreen() {
                   </Chip>
                 ))}
               </div>
-              <p className="mb-6 mt-5 text-[13px] leading-relaxed text-ink-2">
+              <div className="mt-5 flex items-center justify-between gap-3">
+                <span className="text-[13px] text-ink-2">Таймер звука</span>
+                <Segmented
+                  id="sound-timer"
+                  value={String(soundTimer)}
+                  onChange={(v) => patch({ soundTimer: Number(v) })}
+                  options={[
+                    { value: "15", label: "15" },
+                    { value: "30", label: "30" },
+                    { value: "60", label: "60" },
+                    { value: "0", label: "∞" },
+                  ]}
+                />
+              </div>
+              <p className="mb-6 mt-4 text-[13px] leading-relaxed text-ink-2">
                 Утром нажмите «Я проснулся»: время отбоя и подъёма подставится в запись автоматически.
               </p>
               <Button className="mt-auto w-full" onClick={startNight}>
@@ -165,6 +228,29 @@ export function SleepScreen() {
           </Card>
         </motion.div>
       </div>
+
+      <motion.div {...riseIn(2)} className="mt-3">
+        <Card tone="plum" r="lg" role="button" tabIndex={0} aria-label="Калькулятор циклов сна" className="cursor-pointer" onClick={() => openSheet("cycles")} onKeyDown={(e) => e.key === "Enter" && openSheet("cycles")}>
+          <div className="p-6">
+            <div className="flex items-start justify-between">
+              <CardTitle sub={`Если лечь в ${bedGoal}`}>Циклы сна</CardTitle>
+              <span className="glass-inset grid size-9 place-items-center rounded-full">
+                <AlarmClock className="size-4" />
+              </span>
+            </div>
+            <div className="mt-6 grid grid-cols-3 gap-2">
+              {cycles.map((o) => (
+                <div key={o.cycles} className={cn("rounded-[22px] px-3 py-3.5", o.best ? "bg-lime text-lime-ink" : "glass-inset")}>
+                  <Dots value={o.time} still className="text-[19px]" />
+                  <div className={cn("mt-2.5 text-[11px]", o.best ? "text-lime-ink/70" : "text-ink-2")}>
+                    {o.cycles} {pluralRu(o.cycles, ["цикл", "цикла", "циклов"])}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+      </motion.div>
 
       <motion.section {...riseIn(2)} className="mt-8">
         <SectionHead title="Динамика" hint={`${shown.length} ${pluralRu(shown.length, ["ночь", "ночи", "ночей"])}`}>
@@ -236,6 +322,11 @@ export function SleepScreen() {
       </motion.div>
 
       <motion.section {...riseIn(4)} className="mt-8">
+        <SectionHead title="Месяц" hint="Цвет показывает оценку ночи" />
+        <MonthGrid />
+      </motion.section>
+
+      <motion.section {...riseIn(4)} className="mt-8">
         <SectionHead title="Журнал">
           <Chip onClick={() => openSheet("sleep")}>
             <Plus className="size-4" /> Запись
@@ -246,28 +337,23 @@ export function SleepScreen() {
             .reverse()
             .slice(0, 14)
             .map((n) => (
-              <li key={n.id} className="glass group flex items-center gap-4 rounded-[26px] p-3 pl-4">
-                <div className="grid size-12 shrink-0 place-items-center rounded-full bg-black/40">
-                  <Dots value={nightScore(n, bedGoal, wakeGoal)} still className="text-[15px]" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-[15px] font-medium">{relativeDay(n.dateKey)}</span>
-                    <span className="truncate text-[12px] text-ink-3">{dayMonthShort(parseKey(n.dateKey))}</span>
-                  </div>
-                  <div className="mt-0.5 truncate text-[13px] text-ink-2">
-                    {n.bedtime} → {n.wakeTime} · {durationRu(n.durationMin)}
-                    {n.note ? ` · ${n.note}` : ""}
-                  </div>
-                </div>
-                <IconButton
-                  label={`Удалить запись: ${relativeDay(n.dateKey)}`}
-                  size="sm"
-                  className="bg-transparent text-ink-3 shadow-none backdrop-blur-none hover:text-[#ff8f8f]"
-                  onClick={() => removeNight(n.id)}
-                >
-                  <Trash2 />
-                </IconButton>
+              <li key={n.id}>
+                <button type="button" onClick={() => openSheet("night", n.id)} className="press glass flex w-full items-center gap-4 rounded-[26px] p-3 pl-4 text-left">
+                  <span className="grid size-12 shrink-0 place-items-center rounded-full bg-black/40">
+                    <Dots value={nightScore(n, bedGoal, wakeGoal)} still className="text-[15px]" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-baseline gap-2">
+                      <span className="text-[15px] font-medium">{relativeDay(n.dateKey)}</span>
+                      <span className="truncate text-[12px] text-ink-3">{dayMonthShort(parseKey(n.dateKey))}</span>
+                    </span>
+                    <span className="mt-0.5 block truncate text-[13px] text-ink-2">
+                      {n.bedtime} → {n.wakeTime} · {durationRu(n.durationMin)}
+                      {n.note ? ` · ${n.note}` : ""}
+                    </span>
+                  </span>
+                  <ChevronRight className="mr-1 size-5 shrink-0 text-ink-3" />
+                </button>
               </li>
             ))}
         </ul>

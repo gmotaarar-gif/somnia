@@ -1,7 +1,8 @@
 import * as React from "react"
 import { motion, useReducedMotion } from "framer-motion"
-import { Check, Pause, Play, RotateCcw, Volume2 } from "lucide-react"
+import { Check, Eye, NotebookPen, Pause, Play, RotateCcw, ScanLine, Volume2 } from "lucide-react"
 import { cn } from "@/lib/cn"
+import { pluralRu } from "@/lib/time"
 import { SLEEP_TIPS } from "@/lib/metrics"
 import { riseIn } from "@/lib/motion"
 import { hm } from "@/lib/time"
@@ -71,7 +72,9 @@ function phaseAt(phases: Phase[], elapsed: number) {
 }
 
 export function PracticesScreen() {
-  const { ritual, toggleRitual, volume, patch, breath: today } = useStore()
+  const { ritual, toggleRitual, volume, patch, breath: today, sessions, worries, openSheet } = useStore()
+  const totalMin = Math.round(sessions.reduce((a, x) => a + x.min, 0))
+  const openWorries = worries.filter((w) => !w.done).length
   const { breath, setBreath } = useBreath()
   const reduce = useReducedMotion()
   const tech = TECHNIQUES[breath.technique]
@@ -232,6 +235,40 @@ export function PracticesScreen() {
           </motion.div>
         </div>
       </div>
+
+      <motion.section {...riseIn(3)} className="mt-8">
+        <SectionHead title="Библиотека" hint={`${sessions.length} ${pluralRu(sessions.length, ["сессия", "сессии", "сессий"])} · ${totalMin} мин всего`} />
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          {(
+            [
+              { id: "grounding", tone: "moss", icon: Eye, title: "Заземление", sub: "5-4-3-2-1 · 3 мин", wide: false },
+              { id: "bodyscan", tone: "plum", icon: ScanLine, title: "Скан тела", sub: "Расслабление · 3 мин", wide: false },
+              { id: "worry", tone: "ember", icon: NotebookPen, title: "Дневник тревог", sub: openWorries ? `${openWorries} отложено до завтра` : "Выгрузить мысли перед сном", wide: true },
+            ] as const
+          ).map((x) => (
+            <Card
+              key={x.id}
+              tone={x.tone}
+              role="button"
+              tabIndex={0}
+              aria-label={x.title}
+              onClick={() => openSheet(x.id)}
+              onKeyDown={(e) => e.key === "Enter" && openSheet(x.id)}
+              className={cn("cursor-pointer", x.wide && "col-span-2")}
+            >
+              <div className={cn("flex p-5", x.wide ? "items-center gap-4" : "h-[150px] flex-col")}>
+                <span className="glass-inset grid size-10 shrink-0 place-items-center rounded-full">
+                  <x.icon className="size-[18px]" />
+                </span>
+                <div className={cn("min-w-0", !x.wide && "mt-auto")}>
+                  <div className="text-[16px] font-semibold tracking-[-0.01em]">{x.title}</div>
+                  <div className="mt-1 truncate text-[12px] text-ink-2">{x.sub}</div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </motion.section>
 
       <motion.section {...riseIn(3)} className="mt-8">
         <SectionHead title="Гигиена сна" hint="Короткие правила КПТ-Б, которые работают" />
