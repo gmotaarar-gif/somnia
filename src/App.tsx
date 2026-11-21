@@ -1,4 +1,6 @@
 import { AnimatePresence, MotionConfig, motion } from "framer-motion"
+import { LocalAccountProvider } from "@/account/LocalAccountProvider"
+import { RegistrationSheet } from "@/account/RegistrationSheet"
 import { screenVariants } from "@/lib/motion"
 import { MindScreen } from "@/screens/Mind"
 import { Onboarding } from "@/screens/Onboarding"
@@ -51,6 +53,7 @@ function Shell() {
       </div>
       <Island />
       <Splash />
+      <RegistrationSheet />
       {onboarded && (
         <>
           <Dock />
@@ -77,7 +80,9 @@ export default function App() {
   return (
     <MotionConfig reducedMotion="user">
       <StoreProvider>
-        <Shell />
+        <LocalAccountProvider>
+          <Shell />
+        </LocalAccountProvider>
       </StoreProvider>
     </MotionConfig>
   )
