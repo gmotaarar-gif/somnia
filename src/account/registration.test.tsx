@@ -30,6 +30,16 @@ describe("local registration", () => {
     expect(validateRegistration({ name: "Мира", email })).toEqual({})
   })
 
+  it("validates the normalized Unicode length before saving", () => {
+    expect(validateRegistration({ name: "Мира", email: `${"İ".repeat(64)}@example.com` }).email).toBeTruthy()
+    const first = renderHook(useStore, { wrapper: Providers })
+    act(() => first.result.current.registerLocalProfile({ name: "Мира", email: `${"İ".repeat(32)}@example.com` }))
+    const email = first.result.current.localAccount!.email
+    first.unmount()
+    const restored = renderHook(useStore, { wrapper: Providers })
+    expect(restored.result.current.localAccount?.email).toBe(email)
+  })
+
   it("persists a normalized identity without replacing the existing journal or settings", () => {
     const first = renderHook(() => ({ account: useLocalAccount(), store: useStore() }), { wrapper: Providers })
     act(() => {

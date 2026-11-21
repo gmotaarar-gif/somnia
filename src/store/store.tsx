@@ -1,5 +1,5 @@
 import * as React from "react"
-import { normalizeLocalAccount, validateRegistration, type LocalAccount, type RegistrationInput } from "@/account/registration"
+import { normalizeEmail, normalizeLocalAccount, validateRegistration, type LocalAccount, type RegistrationInput } from "@/account/registration"
 import { setSoundVolume, startSound, stopSound, type SoundMode } from "@/lib/audio"
 import { dateKey, daysAgo, spanMinutes } from "@/lib/time"
 
@@ -566,7 +566,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           ...data,
           userName: input.name.trim(),
           localAccount: {
-            email: input.email.trim().toLowerCase(),
+            email: normalizeEmail(input.email),
             createdAt: data.localAccount?.createdAt ?? new Date().toISOString(),
           },
         }

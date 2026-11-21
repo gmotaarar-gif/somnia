@@ -9,6 +9,8 @@ export interface RegistrationInput {
   email: string
 }
 
+export const normalizeEmail = (email: string) => email.trim().toLowerCase()
+
 function validEmail(email: string) {
   // Unquoted addresses, including international mailbox/domain names. No delivery claim.
   const [local, domain, extra] = email.split("@")
@@ -21,10 +23,11 @@ function validEmail(email: string) {
 
 export function validateRegistration({ name, email }: RegistrationInput) {
   const errors: Partial<Record<keyof RegistrationInput, string>> = {}
+  const normalized = normalizeEmail(email)
   if (!name.trim()) errors.name = "Введите имя"
   else if (name.trim().length > 20) errors.name = "Не больше 20 символов"
-  if (!email.trim()) errors.email = "Введите почту"
-  else if (email.trim().length > 254 || !validEmail(email.trim())) {
+  if (!normalized) errors.email = "Введите почту"
+  else if (normalized.length > 254 || !validEmail(normalized)) {
     errors.email = "Проверьте адрес, например name@example.com"
   }
   return errors
@@ -34,5 +37,5 @@ export function normalizeLocalAccount(saved: unknown): LocalAccount | null {
   if (!saved || typeof saved !== "object" || !("email" in saved) || !("createdAt" in saved)) return null
   if (typeof saved.email !== "string" || typeof saved.createdAt !== "string") return null
   if (validateRegistration({ name: "Somna", email: saved.email }).email || !Number.isFinite(Date.parse(saved.createdAt))) return null
-  return { email: saved.email.trim().toLowerCase(), createdAt: saved.createdAt }
+  return { email: normalizeEmail(saved.email), createdAt: saved.createdAt }
 }
