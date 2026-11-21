@@ -24,6 +24,12 @@ describe("readSaved", () => {
     expect(saved).toEqual({ breath: 3, widgets: [{ id: "w-breath", kind: "breath", size: "1x1", tone: "ink", visible: true }] })
   })
 
+  it("ignores inherited object methods when matching saved keys", () => {
+    const { saved, dropped } = readSaved(JSON.stringify({ valueOf: [1], constructor: [2], onboarded: true }))
+    expect(dropped).toBe(0)
+    expect(saved).toEqual({ valueOf: [1], constructor: [2], onboarded: true })
+  })
+
   it.each(["{invalid", "null", "[1,2]", "42"])("reports %s as unreadable", (raw) => {
     expect(readSaved(raw)).toEqual({ saved: {}, unreadable: true, dropped: 0 })
   })

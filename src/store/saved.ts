@@ -79,6 +79,9 @@ export interface ReadResult {
   dropped: number
 }
 
+const ownCheck = (checks: Partial<Record<keyof Persisted, Check>>, key: string) =>
+  Object.prototype.hasOwnProperty.call(checks, key) ? checks[key as keyof Persisted] : undefined
+
 /** Parses stored state, keeping every field and record that is still well-formed. */
 export function readSaved(raw: string): ReadResult {
   let parsed: unknown
@@ -92,8 +95,8 @@ export function readSaved(raw: string): ReadResult {
   const saved: Record<string, unknown> = {}
   let dropped = 0
   for (const [key, value] of Object.entries(parsed)) {
-    const item = LISTS[key as keyof Persisted]
-    const field = FIELDS[key as keyof Persisted]
+    const item = ownCheck(LISTS, key)
+    const field = ownCheck(FIELDS, key)
     if (item) {
       if (!Array.isArray(value)) {
         dropped++
