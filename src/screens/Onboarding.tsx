@@ -3,6 +3,7 @@ import { useLocalAccount } from "@/account/LocalAccountProvider"
 import { AnimatePresence, motion } from "framer-motion"
 import { ArrowLeft, ArrowRight, BatteryCharging, Brain, Check, Moon, MoonStar, Smartphone, Sparkles, Sunrise, Wind, Zap } from "lucide-react"
 import { cn } from "@/lib/cn"
+import { onboardingWidgets } from "@/lib/onboarding"
 import { wakeOptions } from "@/lib/features"
 import { moodPct } from "@/lib/metrics"
 import { DUR, EASE_OUT } from "@/lib/motion"
@@ -212,7 +213,7 @@ export function Onboarding() {
   const [bedGoal, setBedGoal] = React.useState(store.bedGoal)
   const [wakeGoal, setWakeGoal] = React.useState(store.wakeGoal)
   const [valence, setValence] = React.useState(0.3)
-  const [picked, setPicked] = React.useState<string[]>(["w-streak", "w-sleep", "w-evening", "w-water", "w-breath", "w-mood"])
+  const [picked, setPicked] = React.useState<string[]>(() => STARTER.filter((id) => store.widgets.some((w) => w.id === id && w.visible)))
   const [reminder, setReminder] = React.useState(store.reminder)
   const [reminderTime, setReminderTime] = React.useState(store.reminderTime)
 
@@ -228,7 +229,7 @@ export function Onboarding() {
   }
 
   const finish = () => {
-    const widgets = DEFAULT_WIDGETS.map((w) => ({ ...w, visible: picked.includes(w.id) }))
+    const widgets = onboardingWidgets(store.widgets, picked)
     store.addMood({ valence, emotions: [], factors: [] })
     store.finishOnboarding({ userName: name.trim(), focus, chronotype, bedGoal, wakeGoal, reminder, reminderTime, widgets })
     store.notify(`Добро пожаловать, ${name.trim()}`)

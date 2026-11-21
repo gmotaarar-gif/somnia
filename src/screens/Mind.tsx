@@ -12,7 +12,8 @@ import { useSummary } from "@/store/derived"
 import { useStore } from "@/store/store"
 import { TopBar } from "@/shell/TopBar"
 import { Card, CardTitle, type CardTone } from "@/ui/Card"
-import { Ring, Wave } from "@/ui/charts"
+import { Ring } from "@/ui/charts"
+import { MoodTrend } from "@/ui/MoodTrend"
 import { Button, IconButton, SectionHead, Slider } from "@/ui/controls"
 import { Dots } from "@/ui/Dots"
 
@@ -48,11 +49,6 @@ export function MindScreen() {
       }),
     [moods]
   )
-  const trail = React.useMemo(() => {
-    let prev = days.find((d) => d.value != null)?.value ?? 0
-    return days.map((d) => (prev = d.value ?? prev))
-  }, [days])
-
   const emotions = React.useMemo(() => emotionCounts(moods).slice(0, 9), [moods])
   const factors = React.useMemo(() => factorImpacts(moods).filter((f) => f.count >= 2).slice(0, 6), [moods])
   const insights = React.useMemo(() => buildInsights(nights, moods, bedGoal, wakeGoal), [nights, moods, bedGoal, wakeGoal])
@@ -104,22 +100,13 @@ export function MindScreen() {
         </motion.div>
 
         <motion.div {...riseIn(1)} className="">
-          <Card tone="moss" r="lg" className="h-full">
-            <div className="flex h-full flex-col p-6">
-              <div className="flex items-start justify-between gap-3">
-                <CardTitle sub="Среднее по дням, 14 дней">Волна настроения</CardTitle>
-                <div className="flex items-end gap-1.5">
-                  <Dots value={sum.moodAvg != null ? `${sum.moodAvg}%` : "--"} className="text-[24px]" />
-                  <span className="text-[11px] leading-none text-ink-2">за неделю</span>
-                </div>
+          <Card className="h-full">
+            <div className="flex h-full flex-col p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <CardTitle sub="Среднее за день · 14 дней">Настроение во времени</CardTitle>
               </div>
-              <Wave values={trail} color="#d9f24a" height={92} fill className="mt-auto pt-8" />
-              <div className="mt-3 flex justify-between">
-                {days.map((d, i) => (
-                  <span key={d.key} className={cn("w-0 flex-1 text-center text-[10px]", d.value == null ? "text-ink-3/50" : "text-ink-3", i % 2 && "invisible")}>
-                    {d.label}
-                  </span>
-                ))}
+              <div className="mt-6">
+                <MoodTrend days={days} />
               </div>
               {link > 3 && (
                 <p className="mt-5 text-[13px] leading-relaxed text-ink-2">
@@ -132,7 +119,7 @@ export function MindScreen() {
       </div>
 
       <motion.div {...riseIn(2)} className="mt-3 grid gap-3">
-        <Card tone="dusk" className="">
+        <Card>
           <div className="p-5">
             <CardTitle sub="Передвиньте, чтобы уточнить">Спектр дня</CardTitle>
             <div className="mt-4 space-y-3">
@@ -154,7 +141,7 @@ export function MindScreen() {
           </div>
         </Card>
 
-        <Card tone="ink" className="">
+        <Card>
           <div className="flex h-full flex-col p-5">
             <CardTitle sub="Чем больше, тем чаще отмечаете">Эмоции</CardTitle>
             <div className="mt-5 flex flex-wrap items-center gap-2">
@@ -218,7 +205,7 @@ export function MindScreen() {
           </div>
         </Card>
 
-        <Card tone="ink">
+        <Card>
           <div className="p-5">
             <CardTitle sub="Каждая клетка: средний чек-ин за день">Месяц в цвете</CardTitle>
             <div className="mt-5 grid grid-cols-7 gap-1.5">
