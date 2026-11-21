@@ -94,10 +94,39 @@ it("loads the workspace directly for returning users", async () => {
   expect(screen.queryByText("Finish onboarding")).toBeNull()
 })
 
-it("loads onboarding when stored data is corrupt", async () => {
+it("loads onboarding when stored data is unreadable and keeps the original for export", async () => {
   localStorage.setItem("somna-state-v6", "{invalid")
   render(<App />)
 
   expect(await screen.findByText("Finish onboarding")).toBeTruthy()
   expect(screen.queryByText("Workspace")).toBeNull()
+  expect(screen.getByRole("alert").textContent).toContain("Сохранённые данные повреждены")
+  expect(screen.getByRole("alert").textContent).not.toContain("подключение")
+  expect(localStorage.getItem("somna-state-v6-backup")).toBe("{invalid")
+})
+
+it("keeps the readable part of a damaged save and says what happened", async () => {
+  const night = { id: "n1", dateKey: "2026-11-20", bedtime: "23:30", wakeTime: "07:30", durationMin: 480, quality: 70, awakenings: 0, tags: [] }
+  const raw = JSON.stringify({ onboarded: true, userName: "Мира", nights: [night, { id: "n2", bedtime: null }] })
+  localStorage.setItem("somna-state-v6", raw)
+  render(<App />)
+
+  expect(await screen.findByText("Workspace")).toBeTruthy()
+  expect(screen.getByRole("alert").textContent).toContain("Часть сохранённых записей повреждена")
+  expect(localStorage.getItem("somna-state-v6-backup")).toBe(raw)
+  const saved = JSON.parse(localStorage.getItem("somna-state-v6")!)
+  expect(saved.userName).toBe("Мира")
+  expect(saved.nights).toEqual([night])
+
+  fireEvent.click(screen.getByRole("button", { name: "Понятно" }))
+  expect(screen.queryByRole("alert")).toBeNull()
+})
+
+it("shows no recovery notice for a healthy save", async () => {
+  localStorage.setItem("somna-state-v6", JSON.stringify({ onboarded: true }))
+  render(<App />)
+
+  expect(await screen.findByText("Workspace")).toBeTruthy()
+  expect(screen.queryByRole("alert")).toBeNull()
+  expect(localStorage.getItem("somna-state-v6-backup")).toBeNull()
 })

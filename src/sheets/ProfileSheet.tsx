@@ -1,10 +1,8 @@
 import * as React from "react"
-import { Capacitor } from "@capacitor/core"
-import { Directory, Encoding, Filesystem } from "@capacitor/filesystem"
-import { Share } from "@capacitor/share"
 import { Award as AwardIcon, ChevronRight, Download, LayoutGrid, RotateCcw, Sparkles, Trash2 } from "lucide-react"
 import { cn } from "@/lib/cn"
 import { requestReminderPermission } from "@/lib/notifications"
+import { saveJsonFile } from "@/lib/saveFile"
 import type { ThemeMode } from "@/lib/theme"
 import { durationRu, pluralRu, spanMinutes } from "@/lib/time"
 import { useStore, type Chronotype } from "@/store/store"
@@ -79,19 +77,7 @@ export function ProfileSheet() {
     const { nights, moods, sessions, worries, wellbeing, bedGoal, wakeGoal } = s
     try {
       const data = JSON.stringify({ exportedAt: new Date().toISOString(), bedGoal, wakeGoal, nights, moods, sessions, worries, wellbeing }, null, 2)
-      if (Capacitor.isNativePlatform()) {
-        const { uri } = await Filesystem.writeFile({ path: "somna-export.json", data, directory: Directory.Cache, encoding: Encoding.UTF8 })
-        const result = await Share.share({ title: "Somna", dialogTitle: "Экспорт данных", files: [uri] })
-        if (!result.activityType) throw new Error("Share cancelled")
-      } else {
-        const blob = new Blob([data], { type: "application/json" })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = "somna-export.json"
-        a.click()
-        URL.revokeObjectURL(url)
-      }
+      await saveJsonFile("somna-export.json", data, "Экспорт данных")
       s.notify("Данные выгружены")
       return true
     } catch {
