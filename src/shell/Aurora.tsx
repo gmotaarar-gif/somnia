@@ -1,6 +1,7 @@
 import * as React from "react"
 import type { Theme } from "@/lib/theme"
 import { usePrefersReducedMotion } from "@/ui/MotionProvider"
+import { useWavePerformance } from "@/ui/wavePerformance"
 import { MESH_DRIFT_FRAG } from "@/shell/meshDrift.glsl"
 
 type Palette = [string, string, string, string]
@@ -98,8 +99,12 @@ export function Aurora({ tab, theme = "dark", snapshot = false }: { tab: string;
   const clock = React.useRef(0)
   const [webgl, setWebgl] = React.useState(false)
   const reduce = usePrefersReducedMotion()
+  const fastRenderer = useWavePerformance(!reduce)
 
   React.useEffect(() => {
+    // A static frame still compiles/runs the mesh shader. On software GPUs
+    // that can hold the compositor for seconds after the new DOM is ready.
+    if (!fastRenderer) return
     const canvas = canvasRef.current
     if (!canvas) return
     let created: ReturnType<typeof createMesh> = null
@@ -122,7 +127,7 @@ export function Aurora({ tab, theme = "dark", snapshot = false }: { tab: string;
       mesh.current = null
       setWebgl(false)
     }
-  }, [snapshot])
+  }, [snapshot, fastRenderer])
 
   React.useEffect(() => {
     const m = mesh.current

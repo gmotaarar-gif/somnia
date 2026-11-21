@@ -3,9 +3,10 @@ import { useInsertionEffect, useSyncExternalStore, type ReactNode } from "react"
 import { riseIn } from "@/lib/motion"
 
 const QUERY = "(prefers-reduced-motion: reduce)"
-const snapshot = () => window.matchMedia(QUERY).matches
+const snapshot = () => typeof window.matchMedia === "function" && window.matchMedia(QUERY).matches
 const serverSnapshot = () => false
 const subscribe = (notify: () => void) => {
+  if (typeof window.matchMedia !== "function") return () => {}
   const query = window.matchMedia(QUERY)
   const onChange = () => {
     // A consumer can commit before the root's subscription is notified.
