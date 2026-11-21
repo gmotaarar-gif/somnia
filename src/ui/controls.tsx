@@ -136,7 +136,7 @@ export function Segmented<T extends string>({
             role="radio"
             aria-checked={active}
             tabIndex={active || (!options.some((option) => option.value === value) && index === 0) ? 0 : -1}
-            onClick={() => onChange(o.value)}
+            onClick={() => { if (!active) onChange(o.value) }}
             onKeyDown={(event) => {
               let next: number
               switch (event.key) {
@@ -149,7 +149,7 @@ export function Segmented<T extends string>({
                 default: return
               }
               event.preventDefault()
-              onChange(options[next].value)
+              if (options[next].value !== value) onChange(options[next].value)
               const group = event.currentTarget.parentElement
               group?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[next]?.focus()
             }}

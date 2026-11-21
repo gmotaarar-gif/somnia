@@ -2,10 +2,23 @@
 
 import * as React from "react"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
-import { afterEach, expect, it } from "vitest"
+import { afterEach, expect, it, vi } from "vitest"
 import { Segmented } from "./controls"
 
 afterEach(cleanup)
+
+it("does not reset dependent settings when a selected option is activated again", () => {
+  const onChange = vi.fn()
+  render(<Segmented id="chronotype" value="early" onChange={onChange} options={[
+    { value: "early", label: "Жаворонок" }, { value: "late", label: "Сова" },
+  ]} />)
+  const selected = screen.getByRole("radio", { name: "Жаворонок" })
+  fireEvent.keyDown(selected, { key: "Home" })
+  fireEvent.click(selected)
+  expect(onChange).not.toHaveBeenCalled()
+  fireEvent.keyDown(selected, { key: "End" })
+  expect(onChange).toHaveBeenCalledExactlyOnceWith("late")
+})
 
 it("lets keyboard users select, wrap and leave a segmented group with one tab stop", () => {
   function Picker() {
