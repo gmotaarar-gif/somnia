@@ -1,11 +1,10 @@
 import * as React from "react"
 import { motion } from "framer-motion"
-import { usePrefersReducedMotion } from "@/ui/MotionProvider"
-import { Check, Eye, NotebookPen, Pause, Play, RotateCcw, ScanLine, Volume2 } from "lucide-react"
+import { Check, Eye, LockKeyhole, NotebookPen, Pause, Play, RotateCcw, ScanLine, Volume2 } from "lucide-react"
 import { cn } from "@/lib/cn"
 import { pluralRu } from "@/lib/time"
 import { SLEEP_TIPS } from "@/lib/metrics"
-import { useRiseIn } from "@/ui/MotionProvider"
+import { usePrefersReducedMotion, useRiseIn } from "@/ui/MotionProvider"
 import { hm } from "@/lib/time"
 import { useBreath, useStore, type Technique } from "@/store/store"
 import { SOUNDS } from "@/screens/Sleep"
@@ -14,6 +13,7 @@ import { Card, CardTitle } from "@/ui/Card"
 import { DotTrack } from "@/ui/charts"
 import { Chip, IconButton, SectionHead, Segmented, Slider } from "@/ui/controls"
 import { Dots } from "@/ui/Dots"
+import { useSubscription } from "@/store/subscription"
 
 interface Phase {
   label: string
@@ -202,6 +202,7 @@ const SoundControls = React.memo(function SoundControls({ sound, setBreath }: {
 
 export function PracticesScreen() {
   const riseIn = useRiseIn()
+  const { isPlus } = useSubscription()
   const { ritual, toggleRitual, breath: today, sessions, worries, openSheet } = useStore()
   const totalMin = Math.round(sessions.reduce((a, x) => a + x.min, 0))
   const openWorries = worries.filter((w) => !w.done).length
@@ -275,15 +276,22 @@ export function PracticesScreen() {
               tone={x.tone}
               role="button"
               tabIndex={0}
-              aria-label={x.title}
+              aria-label={x.id === "bodyscan" && !isPlus ? `${x.title} · Plus` : x.title}
               onClick={() => openSheet(x.id)}
-              onKeyDown={(e) => e.key === "Enter" && openSheet(x.id)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter" && e.key !== " ") return
+                e.preventDefault()
+                openSheet(x.id)
+              }}
               className={cn("cursor-pointer", x.wide && "col-span-2")}
             >
               <div className={cn("flex p-5", x.wide ? "items-center gap-4" : "min-h-[180px] flex-col")}>
-                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white/12">
-                  <x.icon className="size-[18px]" />
-                </span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white/12">
+                    <x.icon className="size-[18px]" />
+                  </span>
+                  {x.id === "bodyscan" && <span className="flex items-center gap-1 rounded-full bg-white/12 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]">{!isPlus && <LockKeyhole className="size-3" />} Plus</span>}
+                </div>
                 <div className={cn("min-w-0", !x.wide && "mt-auto")}>
                   <div className="text-[16px] font-semibold tracking-[-0.01em]">{x.title}</div>
                   <div className="mt-1.5 text-[12px] leading-snug text-ink-2">{x.sub}</div>

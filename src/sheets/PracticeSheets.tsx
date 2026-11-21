@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useSubscription } from "@/store/subscription"
 import { AnimatePresence, motion } from "framer-motion"
 import { Check, Ear, Eye, Hand, Leaf, Pause, Play, Soup, Trash2, X } from "lucide-react"
 import { cn } from "@/lib/cn"
@@ -179,7 +180,9 @@ function BodyScan({ onDone }: { onDone: () => void }) {
 
 export function BodyScanSheet() {
   const { sheet, openSheet } = useStore()
+  const { isPlus } = useSubscription()
   const close = React.useCallback(() => openSheet(null), [openSheet])
+  if (!isPlus) return null
   return (
     <Sheet open={sheet === "bodyscan"} onClose={close} title="Сканирование тела" bare>
       <CloseButton onClose={close} />
