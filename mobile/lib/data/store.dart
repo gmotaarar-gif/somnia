@@ -366,6 +366,15 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
+  /// Puts back a night that was running when the app was closed.
+  void resumeNight(String start, String sound, {Duration? soundLeft}) {
+    _nightStart = start;
+    _nightSound = sound;
+    _nightMode = true;
+    _scheduleSoundTimer(soundLeft);
+    notifyListeners();
+  }
+
   void clearNightStart() {
     _nightStart = null;
     notifyListeners();
@@ -396,11 +405,11 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
-  void _scheduleSoundTimer() {
+  void _scheduleSoundTimer([Duration? left]) {
     _soundTimer?.cancel();
     if (!_nightMode || _nightSound == 'off' || soundTimer == 0) return;
     _soundTimer = Timer(
-      Duration(minutes: soundTimer),
+      left ?? Duration(minutes: soundTimer),
       () => setNightSound('off'),
     );
   }
