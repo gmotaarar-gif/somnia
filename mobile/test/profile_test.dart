@@ -175,6 +175,10 @@ void main() {
       await drag.up();
       await tester.pumpAndSettle();
       expect(store.volume, 100, reason: 'the ring does not wrap past its end');
+      final corner = tester.getTopLeft(dial) + const Offset(6, 6);
+      await tester.dragFrom(corner, const Offset(0, 40));
+      await tester.pumpAndSettle();
+      expect(store.volume, 100, reason: 'a swipe off the ring scrolls instead');
       expect(tester.takeException(), null);
     });
 
