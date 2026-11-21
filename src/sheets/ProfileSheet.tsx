@@ -14,7 +14,7 @@ const CHRONOTYPES: { value: Chronotype; label: string; hint: string; icon: Lucid
 
 export function ProfileSheet() {
   const s = useStore()
-  const [confirm, setConfirm] = React.useState(false)
+  const [confirm, setConfirm] = React.useState<"widgets" | "journal" | null>(null)
   const open = s.sheet === "profile"
   const nameId = React.useId()
   const chronoId = React.useId()
@@ -23,11 +23,11 @@ export function ProfileSheet() {
   const initial = (Array.from(s.userName.trim())[0] ?? "S").toUpperCase()
 
   React.useEffect(() => {
-    if (!open) setConfirm(false)
+    if (!open) setConfirm(null)
   }, [open])
 
   const close = () => {
-    setConfirm(false)
+    setConfirm(null)
     s.openSheet(null)
   }
   const exportData = () => {
@@ -139,19 +139,14 @@ export function ProfileSheet() {
               Дополнительные настройки <ChevronDown aria-hidden className="size-4 text-ink-2 group-open:rotate-180" />
             </summary>
             <div className="space-y-2 border-t border-hair px-3 pb-3 pt-2">
-              <ProfileRow icon={LayoutGrid} title="Восстановить виджеты" description="Вернуть стандартный набор и порядок" onClick={() => { s.resetWidgets(); s.notify("Виджеты восстановлены") }} />
+              {confirm === "widgets" ? (
+                <ConfirmAction title="Восстановить виджеты?" description="Порядок, размеры и оформление стандартных виджетов вернутся к начальным настройкам." label="Да, восстановить" onCancel={() => setConfirm(null)} onConfirm={() => { s.resetWidgets(); setConfirm(null); s.notify("Виджеты восстановлены") }} />
+              ) : <ProfileRow icon={LayoutGrid} title="Восстановить виджеты" description="Вернуть стандартный набор и порядок" onClick={() => setConfirm("widgets")} />}
               <ProfileRow icon={RotateCcw} title="Пройти знакомство заново" description="Ещё раз настроить свой ритм" onClick={() => { s.patch({ onboarded: false }); close() }} />
               <div className="px-1 pt-3">
-                {confirm ? (
-                  <div className="rounded-[20px] border border-[#ff8f8f]/20 bg-[#ff5d5d]/5 p-4">
-                    <h3 className="text-[14px] font-medium text-[#ffb5b5]">Заменить журнал демо-данными?</h3>
-                    <p className="mt-2 text-[12px] leading-relaxed text-ink-2">Ваши записи и настройки будут заменены. Имя сохранится. Это нельзя отменить — сначала экспортируйте журнал.</p>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Button variant="glass" className="flex-1 px-4 text-[13px]" onClick={() => setConfirm(false)}>Отмена</Button>
-                      <Button variant="danger" className="flex-1 px-4 text-[13px]" onClick={() => { s.resetAll(); setConfirm(false); s.notify("Демо-данные восстановлены") }}>Да, заменить</Button>
-                    </div>
-                  </div>
-                ) : <Button variant="danger" className="h-auto min-h-12 w-full py-3 text-[13px]" onClick={() => setConfirm(true)}>Сбросить журнал к демо-данным</Button>}
+                {confirm === "journal" ? (
+                  <ConfirmAction title="Заменить журнал демо-данными?" description="Ваши записи и настройки будут заменены. Имя сохранится. Это нельзя отменить — сначала экспортируйте журнал." label="Да, заменить" danger onCancel={() => setConfirm(null)} onConfirm={() => { s.resetAll(); setConfirm(null); s.notify("Демо-данные восстановлены") }} />
+                ) : <Button variant="danger" className="h-auto min-h-12 w-full py-3 text-[13px]" onClick={() => setConfirm("journal")}>Сбросить журнал к демо-данным</Button>}
               </div>
             </div>
           </details>
@@ -159,6 +154,19 @@ export function ProfileSheet() {
         <p className="pb-1 text-center text-[11px] tracking-[0.04em] text-ink-3">Somna · В своём ритме</p>
       </div>
     </Sheet>
+  )
+}
+
+function ConfirmAction({ title, description, label, danger, onCancel, onConfirm }: { title: string; description: string; label: string; danger?: boolean; onCancel: () => void; onConfirm: () => void }) {
+  return (
+    <div role="group" aria-label={title} className={cn("rounded-[20px] border p-4", danger ? "border-[#ff8f8f]/20 bg-[#ff5d5d]/5" : "border-hair bg-white/3")}>
+      <h3 className={cn("text-[14px] font-medium", danger && "text-[#ffb5b5]")}>{title}</h3>
+      <p className="mt-2 text-[12px] leading-relaxed text-ink-2">{description}</p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button autoFocus variant="glass" className="flex-1 px-4 text-[13px]" onClick={onCancel}>Отмена</Button>
+        <Button variant={danger ? "danger" : "primary"} className="flex-1 px-4 text-[13px]" onClick={onConfirm}>{label}</Button>
+      </div>
+    </div>
   )
 }
 
