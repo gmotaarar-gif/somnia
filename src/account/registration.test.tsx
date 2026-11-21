@@ -113,4 +113,20 @@ describe("local registration", () => {
     expect(result.current.account.account).toEqual(identity)
     expect(result.current.store.userName).toBe("Мира")
   })
+
+  it("syncs registration to an older tab before its next journal save", () => {
+    const first = renderHook(useStore, { wrapper: Providers })
+    const olderTab = renderHook(useStore, { wrapper: Providers })
+    expect(olderTab.result.current.localAccount).toBeNull()
+    act(() => first.result.current.registerLocalProfile({ name: "Мира", email: "mira@example.com" }))
+    act(() => window.dispatchEvent(new StorageEvent("storage", {
+      key: STORAGE_KEY,
+      storageArea: localStorage,
+      newValue: localStorage.getItem(STORAGE_KEY),
+    })))
+    expect(olderTab.result.current.localAccount?.email).toBe("mira@example.com")
+    act(() => olderTab.result.current.addWater(250))
+    expect(savedAccount()?.email).toBe("mira@example.com")
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).userName).toBe("Мира")
+  })
 })

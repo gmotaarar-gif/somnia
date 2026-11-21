@@ -414,6 +414,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   }, [data])
 
+  // Keep an already-open tab from autosaving its pre-registration profile later.
+  React.useEffect(() => {
+    const sync = (event: StorageEvent) => {
+      if (event.storageArea === window.localStorage && (event.key === STORAGE_KEY || event.key === null)) {
+        setData(load())
+      }
+    }
+    window.addEventListener("storage", sync)
+    return () => window.removeEventListener("storage", sync)
+  }, [])
+
   // A tab left open past midnight moves to the new day: counters reset, "Сегодня" labels re-derive.
   React.useEffect(() => {
     const refresh = () => setData((d) => rollDay(d, today()))
