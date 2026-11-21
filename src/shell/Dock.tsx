@@ -45,7 +45,9 @@ export function Dock() {
         )}
       </AnimatePresence>
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-[max(var(--safe-bottom),16px)]">
+      {/* Inline so the wave library's unlayered overlay rule cannot make the
+          empty dock padding intercept scroll/taps; controls opt back in. */}
+      <div style={{ pointerEvents: "none" }} className="fixed inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-[max(var(--safe-bottom),16px)]">
         <div className="pointer-events-auto relative flex items-center gap-2">
           <nav aria-label="Разделы" className="glass-dark flex items-center gap-0.5 rounded-full p-1.5">
             {TABS.map(({ id, label, icon: Icon }) => {
