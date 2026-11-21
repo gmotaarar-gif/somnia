@@ -12,12 +12,13 @@ vi.mock("framer-motion", async (importOriginal) => ({
 }))
 
 function Probe({ open }: { open: "mood" | "sleep" }) {
-  const { openSheet, sheet, moods, nights } = useStore()
+  const { openSheet, sheet, moods, nights, toast } = useStore()
   const night = nights.find((n) => n.note === "probe")
   return (
     <>
       <button onClick={() => openSheet(open)}>open</button>
       <span data-testid="sheet">{sheet ?? "none"}</span>
+      <output data-variant={toast?.variant}>{toast?.text}</output>
       <span data-testid="mood">{moods[0] ? `${moods[0].valence}|${moods[0].emotions.join(",")}|${moods[0].factors.join(",")}` : ""}</span>
       <span data-testid="night">{night ? `${night.bedtime}-${night.wakeTime}|${night.durationMin}|${night.awakenings}|${night.tags.join(",")}` : ""}</span>
     </>
@@ -41,8 +42,26 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  vi.restoreAllMocks()
   localStorage.clear()
   vi.unstubAllGlobals()
+})
+
+it.each([
+  ["mood", "Сохранить", "Чек-ин сохранён"],
+  ["sleep", "Сохранить ночь", "Ночь записана"],
+] as const)("surfaces a failed %s save instead of success", (sheet, save, success) => {
+  mount(sheet)
+  const before = localStorage.getItem("somna-state-v6")
+  vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    throw new DOMException("Storage full", "QuotaExceededError")
+  })
+
+  fireEvent.click(screen.getByRole("button", { name: save }))
+
+  expect(screen.getByText("Не удалось сохранить данные. Проверьте свободное место и разрешения браузера.").getAttribute("data-variant")).toBe("error")
+  expect(screen.queryByText(success)).toBeNull()
+  expect(localStorage.getItem("somna-state-v6")).toBe(before)
 })
 
 it("saves a mood check-in straight from the first step", () => {

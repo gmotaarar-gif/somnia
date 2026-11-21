@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion"
-import { Check } from "lucide-react"
+import { Check, TriangleAlert } from "lucide-react"
 import { DUR, EASE_OUT } from "@/lib/motion"
 import { useIsFramed } from "@/shell/PhoneFrame"
 import { useStore } from "@/store/store"
@@ -46,12 +46,12 @@ export function Island() {
               exit={{ opacity: 0, transition: { duration: DUR.quick } }}
             >
               <motion.span
-                className="grid size-7 shrink-0 place-items-center rounded-full bg-lime text-lime-ink"
+                className={`grid size-7 shrink-0 place-items-center rounded-full ${toast.variant === "error" ? "bg-red-500 text-white" : "bg-lime text-lime-ink"}`}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 500, damping: 18, delay: 0.14 }}
               >
-                <Check className="size-4" strokeWidth={3} />
+                {toast.variant === "error" ? <TriangleAlert className="size-4" strokeWidth={3} /> : <Check className="size-4" strokeWidth={3} />}
               </motion.span>
               <span className="truncate text-[14px] font-medium">{toast.text}</span>
             </motion.div>

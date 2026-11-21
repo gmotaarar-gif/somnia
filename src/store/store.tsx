@@ -79,6 +79,7 @@ export interface WellbeingResult {
 export interface Toast {
   id: number
   text: string
+  variant: "success" | "error"
 }
 
 export interface SleepNight {
@@ -377,7 +378,7 @@ export interface Store extends Persisted {
   sheetArg: string | null
   openSheet: (s: SheetId, arg?: string) => void
   toast: Toast | null
-  notify: (text: string) => void
+  notify: (text: string, variant?: Toast["variant"]) => void
   /** +1 when the user moved to a tab on the right, -1 to the left */
   tabDir: number
   addSession: (kind: PracticeKind, min: number) => void
@@ -440,7 +441,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setSheet(s)
     if (s) setSheetArg(arg ?? null)
   }, [])
-  const notify = React.useCallback((text: string) => setToast({ id: Date.now(), text }), [])
+  const notify = React.useCallback((text: string, variant: Toast["variant"] = "success") => setToast({ id: Date.now(), text, variant }), [])
 
   React.useEffect(() => {
     void syncReminders(data).catch(() => notify("Не удалось обновить напоминания. Попробуйте ещё раз."))
@@ -482,16 +483,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   }, [activeNight])
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     const serialized = JSON.stringify(data)
     if (serialized === lastSaved.current) return
     try {
       window.localStorage.setItem(STORAGE_KEY, serialized)
       lastSaved.current = serialized
     } catch {
-      // storage can be full or disabled; the session keeps working in memory
+      notify("Не удалось сохранить данные. Проверьте свободное место и разрешения браузера.", "error")
     }
-  }, [data])
+  }, [data, notify])
 
   // Keep an already-open tab from autosaving its pre-registration profile later.
   React.useEffect(() => {
