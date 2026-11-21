@@ -137,7 +137,7 @@ export function TodayScreen() {
 
       <motion.section {...riseIn(3)} className="mt-10" aria-label="Виджеты">
         <SectionHead title="Виджеты" hint={editing ? "Перетащите, смените размер или цвет" : undefined}>
-          {shown > 0 && (
+          {(shown > 0 || editing) && (
             <Chip active={editing} onClick={() => setEditing(!editing)}>
               {editing ? "Готово" : "Изменить"}
             </Chip>

@@ -39,3 +39,14 @@ it("opens the sleep form, not the sleep tab, when Enter is pressed on the empty 
   fireEvent.keyDown(screen.getByRole("button", { name: "Прошлая ночь. Открыть сон" }), { key: "Enter" })
   expect(screen.getByTestId("where").textContent).toBe("sleep:none")
 })
+
+it("keeps the Done button after the last widget is removed in edit mode", () => {
+  renderToday()
+  fireEvent.click(screen.getByRole("button", { name: "Изменить" }))
+
+  for (const remove of screen.getAllByRole("button", { name: "Убрать виджет" })) fireEvent.click(remove)
+
+  expect(screen.queryAllByRole("button", { name: "Убрать виджет" })).toHaveLength(0)
+  fireEvent.click(screen.getByRole("button", { name: "Готово" }))
+  expect(screen.queryByRole("button", { name: "Готово" })).toBeNull()
+})
