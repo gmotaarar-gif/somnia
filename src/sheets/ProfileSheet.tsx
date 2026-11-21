@@ -48,6 +48,7 @@ export function ProfileSheet() {
   const widgetActionRef = React.useRef<HTMLButtonElement>(null)
   const journalActionRef = React.useRef<HTMLButtonElement>(null)
   const open = s.sheet === "profile"
+  const remindersAvailable = Capacitor.isNativePlatform()
   const [requesting, setRequesting] = React.useState(false)
   const toggleReminder = async (key: "reminder" | "morningReminder", enabled: boolean) => {
     if (requesting) return
@@ -145,20 +146,26 @@ export function ProfileSheet() {
           <TimeField label="Отбой" value={s.bedGoal} onChange={(bedGoal) => s.patch({ bedGoal })} />
           <TimeField label="Подъём" value={s.wakeGoal} onChange={(wakeGoal) => s.patch({ wakeGoal })} />
         </div>
-        <div className="glass mt-3 flex items-center justify-between gap-4 rounded-[22px] px-4 py-3">
-          <span className="text-[15px]">Напоминать об отбое</span>
-          <Toggle checked={s.reminder} onChange={(enabled) => { void toggleReminder("reminder", enabled) }} label="Напоминать об отбое" />
-        </div>
-        {s.reminder && (
-          <div className="mt-3 flex">
-            <TimeField label="Время" value={s.reminderTime} onChange={(reminderTime) => s.patch({ reminderTime })} />
-          </div>
+        {remindersAvailable ? (
+          <>
+            <div className="glass mt-3 flex items-center justify-between gap-4 rounded-[22px] px-4 py-3">
+              <span className="text-[15px]">Напоминать об отбое</span>
+              <Toggle checked={s.reminder} onChange={(enabled) => { void toggleReminder("reminder", enabled) }} label="Напоминать об отбое" />
+            </div>
+            {s.reminder && (
+              <div className="mt-3 flex">
+                <TimeField label="Время" value={s.reminderTime} onChange={(reminderTime) => s.patch({ reminderTime })} />
+              </div>
+            )}
+            <div className="glass mt-3 flex items-center justify-between gap-4 rounded-[22px] px-4 py-3">
+              <span className="text-[15px]">Утренний чек-ин</span>
+              <Toggle checked={s.morningReminder} onChange={(enabled) => { void toggleReminder("morningReminder", enabled) }} label="Утренний чек-ин" />
+            </div>
+            {s.morningReminder && <div className="mt-3 flex"><TimeField label="Время чек-ина" value={s.morningReminderTime} onChange={(morningReminderTime) => s.patch({ morningReminderTime })} /></div>}
+          </>
+        ) : (
+          <p className="glass mt-3 rounded-[22px] px-4 py-3 text-[14px] text-ink-2">Напоминания доступны только в мобильном приложении Somna.</p>
         )}
-        <div className="glass mt-3 flex items-center justify-between gap-4 rounded-[22px] px-4 py-3">
-          <span className="text-[15px]">Утренний чек-ин</span>
-          <Toggle checked={s.morningReminder} onChange={(enabled) => { void toggleReminder("morningReminder", enabled) }} label="Утренний чек-ин" />
-        </div>
-        {s.morningReminder && <div className="mt-3 flex"><TimeField label="Время чек-ина" value={s.morningReminderTime} onChange={(morningReminderTime) => s.patch({ morningReminderTime })} /></div>}
       </Field>
 
       <Field label="Хронотип">

@@ -8,7 +8,7 @@ import { DUR, EASE_OUT } from "@/lib/motion"
 import { useRiseIn } from "@/ui/MotionProvider"
 import { clockOf, dateKey, daysAgo, pluralRu, relativeDay, weekdayShort } from "@/lib/time"
 import { getValenceLabel, sampleValencePalette } from "@/lib/valence"
-import { useSummary } from "@/store/derived"
+import { useNow, useSummary } from "@/store/derived"
 import { useStore, type MoodEntry } from "@/store/store"
 import { TopBar } from "@/shell/TopBar"
 import { Card, type CardTone } from "@/ui/Card"
@@ -63,14 +63,14 @@ function DiaryEntry({ entry: m }: { entry: MoodEntry }) {
   )
 }
 
-function MonthHeat({ moods }: { moods: MoodEntry[] }) {
+function MonthHeat({ moods, today }: { moods: MoodEntry[]; today: string }) {
   const month = React.useMemo(
     () =>
       Array.from({ length: 28 }, (_, i) => {
         const key = dateKey(daysAgo(27 - i))
         return { key, value: dayAverage(moods, key) }
       }),
-    [moods]
+    [moods, today]
   )
   return (
     <>
@@ -83,7 +83,7 @@ function MonthHeat({ moods }: { moods: MoodEntry[] }) {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: DUR.medium, ease: EASE_OUT, delay: i * 0.012 }}
             className="aspect-square rounded-[10px]"
-            style={{ background: d.value != null ? rgb(sampleValencePalette(d.value).mid) : "rgb(255 255 255 / 0.06)" }}
+            style={{ background: d.value != null ? rgb(sampleValencePalette(d.value).mid) : "var(--glass-inset)" }}
           />
         ))}
       </div>
@@ -165,6 +165,7 @@ export function MindScreen() {
   const who = wellbeing[wellbeing.length - 1]
   const whoPrev = wellbeing[wellbeing.length - 2]
   const sum = useSummary()
+  const today = dateKey(useNow(60_000))
   const last = sum.lastMood
   const [view, setView] = React.useState<"trend" | "month">("trend")
   const [pattern, setPattern] = React.useState<"factors" | "emotions">("factors")
@@ -177,13 +178,13 @@ export function MindScreen() {
         const d = daysAgo(13 - i)
         return { key: dateKey(d), label: weekdayShort(d), value: dayAverage(moods, dateKey(d)) }
       }),
-    [moods]
+    [moods, today]
   )
   const insights = React.useMemo(() => buildInsights(nights, moods, bedGoal, wakeGoal), [nights, moods, bedGoal, wakeGoal])
   const link = React.useMemo(() => sleepMoodLink(nights, moods), [nights, moods])
   const weekCheckins = moods.filter((m) => dateKey(new Date(m.at)) >= dateKey(daysAgo(6))).length
   const insight = insights.length ? insights[insightAt % insights.length] : null
-  const diary = [...moods].reverse().slice(0, allEntries ? 12 : 3)
+  const diary = [...moods].reverse().slice(0, allEntries ? undefined : 3)
 
   return (
     <>
@@ -237,7 +238,7 @@ export function MindScreen() {
                 ]}
               />
             </div>
-            <div className="mt-6">{swap(view, view === "trend" ? <MoodTrend days={days} /> : <MonthHeat moods={moods} />)}</div>
+            <div className="mt-6">{swap(view, view === "trend" ? <MoodTrend days={days} /> : <MonthHeat moods={moods} today={today} />)}</div>
             {link > 3 && (
               <p className="mt-5 border-t border-white/8 pt-4 text-[13px] leading-relaxed text-ink-2">
                 После ночей от 7 часов настроение выше в среднем на <span className="font-semibold text-lime">{link} {pluralRu(link, ["пункт", "пункта", "пунктов"])}</span>.

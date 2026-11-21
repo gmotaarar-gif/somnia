@@ -55,8 +55,8 @@ class ProceduralAudioEngine {
 
     const now = ctx.currentTime
     this.masterGain.gain.cancelScheduledValues(now)
-    this.masterGain.gain.setValueAtTime(Math.max(0.0001, this.masterGain.gain.value), now)
-    this.masterGain.gain.exponentialRampToValueAtTime(Math.max(0.01, this.volume), now + 0.8)
+    this.masterGain.gain.setValueAtTime(this.volume === 0 ? 0 : Math.max(0.0001, this.masterGain.gain.value), now)
+    if (this.volume > 0) this.masterGain.gain.exponentialRampToValueAtTime(this.volume, now + 0.8)
 
     if (mode === "pink" || mode === "rain") {
       const bufferSize = ctx.sampleRate * 3
@@ -140,8 +140,8 @@ class ProceduralAudioEngine {
     }
     const now = this.ctx.currentTime
     this.masterGain.gain.cancelScheduledValues(now)
-    this.masterGain.gain.setValueAtTime(Math.max(0.0001, this.masterGain.gain.value), now)
-    this.masterGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35)
+    this.masterGain.gain.setValueAtTime(this.volume === 0 ? 0 : Math.max(0.0001, this.masterGain.gain.value), now)
+    if (this.volume > 0) this.masterGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35)
     setTimeout(() => {
       if (this.currentMode === "off") {
         this.clearActiveNodes()
@@ -150,10 +150,12 @@ class ProceduralAudioEngine {
   }
 
   setSoundVolume(vol: number) {
-    this.volume = Math.max(0.001, Math.min(1, vol))
+    this.volume = Math.max(0, Math.min(1, vol))
     if (this.ctx && this.masterGain && this.currentMode !== "off") {
       const now = this.ctx.currentTime
-      this.masterGain.gain.setTargetAtTime(this.volume, now, 0.12)
+      this.masterGain.gain.cancelScheduledValues(now)
+      if (this.volume === 0) this.masterGain.gain.setValueAtTime(0, now)
+      else this.masterGain.gain.setTargetAtTime(this.volume, now, 0.12)
     }
   }
 }

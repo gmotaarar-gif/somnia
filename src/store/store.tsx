@@ -1,4 +1,5 @@
 import * as React from "react"
+import { Capacitor } from "@capacitor/core"
 import { normalizeEmail, normalizeLocalAccount, validateRegistration, type LocalAccount, type RegistrationInput } from "@/account/registration"
 import { setSoundVolume, startSound, stopSound, type SoundMode } from "@/lib/audio"
 import { isThemeMode, type ThemeMode } from "@/lib/theme"
@@ -191,7 +192,7 @@ function defaults(): Persisted {
     theme: "system",
     bedGoal: "23:30",
     wakeGoal: "07:30",
-    reminder: true,
+    reminder: Capacitor.isNativePlatform(),
     reminderTime: "22:30",
     morningReminder: false,
     morningReminderTime: "07:30",
@@ -215,6 +216,12 @@ function defaults(): Persisted {
 }
 
 const STORAGE_KEY = "somna-state-v6"
+
+function withSupportedReminders(data: Persisted): Persisted {
+  return Capacitor.isNativePlatform() || (!data.reminder && !data.morningReminder)
+    ? data
+    : { ...data, reminder: false, morningReminder: false }
+}
 
 /** One night per morning (the latest save wins), in calendar order, capped at 90. */
 function normalizeNights(nights: SleepNight[]): SleepNight[] {
@@ -263,7 +270,7 @@ function load(): Persisted {
     // widgets added in later versions appear in the gallery of existing installs
     const missing = DEFAULT_WIDGETS.filter((w) => !saved.widgets.some((x) => x.id === w.id))
     if (missing.length) saved.widgets = [...saved.widgets, ...missing.map((w) => ({ ...w, visible: false }))]
-    return saved
+    return withSupportedReminders(saved)
   } catch {
     return base
   }
@@ -423,15 +430,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => () => stopSound(), [])
 
   const actions = React.useMemo(() => {
-    const patch = (p: Partial<Persisted>) => setData((d) => ({ ...d, ...p }))
+    const patch = (p: Partial<Persisted>) => setData((d) => withSupportedReminders({ ...d, ...p }))
     const setWidgets: React.Dispatch<React.SetStateAction<Widget[]>> = (next) =>
       setData((d) => ({ ...d, widgets: typeof next === "function" ? next(d.widgets) : next }))
     return {
       patch,
       setWidgets,
       finishOnboarding: async (p: Partial<Persisted>) => {
-        const granted = !p.reminder || await requestReminderPermission()
-        const next = { ...latestData.current, ...p, ...(p.reminder && { reminder: granted }), onboarded: true }
+        const needsPermission = Capacitor.isNativePlatform() && p.reminder
+        const granted = !needsPermission || await requestReminderPermission()
+        const next = withSupportedReminders({ ...latestData.current, ...p, ...(needsPermission && { reminder: granted }), onboarded: true })
         React.startTransition(() => setData(next))
         void syncReminders(next).catch(() => notify("Не удалось обновить напоминания. Попробуйте ещё раз."))
         if (!granted) notify("Разрешите уведомления для Somna в настройках телефона")

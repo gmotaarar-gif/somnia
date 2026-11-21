@@ -140,7 +140,7 @@ function BodyScan({ onDone }: { onDone: () => void }) {
       <div className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-3">Шаг {step + 1} из {BODY.length}</div>
       <div className="relative mt-5 h-[300px] w-[150px]">
         <svg viewBox="0 0 100 200" className="size-full" aria-hidden>
-          <g fill="rgb(255 255 255 / 0.1)" stroke="rgb(255 255 255 / 0.22)" strokeWidth="0.8">
+          <g fill="currentColor" fillOpacity="0.1" stroke="currentColor" strokeOpacity="0.22" strokeWidth="0.8">
             <circle cx="50" cy="20" r="13" />
             <rect x="30" y="38" width="40" height="62" rx="14" />
             <rect x="14" y="42" width="12" height="62" rx="6" />
@@ -197,7 +197,6 @@ export function WorrySheet() {
   const { sheet, openSheet, worries, addWorry, toggleWorry, removeWorry, addSession, notify } = useStore()
   const [text, setText] = React.useState("")
   const [plan, setPlan] = React.useState("")
-  const today = dateKey(new Date())
 
   const save = () => {
     if (!text.trim()) return
@@ -269,7 +268,7 @@ export function WorrySheet() {
                   <div className={cn("min-w-0 flex-1 transition-opacity duration-250", w.done && "opacity-45")}>
                     <div className={cn("text-[15px] leading-snug", w.done && "line-through")}>{w.text}</div>
                     {w.plan && <div className="mt-1 text-[13px] text-ink-2">→ {w.plan}</div>}
-                    <div className="mt-1 text-[11px] text-ink-3">{relativeDay(w.at.slice(0, 10) === today ? today : dateKey(new Date(w.at)))}</div>
+                    <div className="mt-1 text-[11px] text-ink-3">{relativeDay(dateKey(new Date(w.at)))}</div>
                   </div>
                   <button type="button" aria-label="Удалить" onClick={() => removeWorry(w.id)} className="press grid size-8 shrink-0 place-items-center rounded-full text-ink-3 hover:text-ink">
                     <Trash2 className="size-4" />

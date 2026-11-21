@@ -143,7 +143,7 @@ export function SleepScreen() {
   const last = sum.last
   const shown = sum.week
   const labelEvery = shown.length > 14 ? 5 : shown.length > 7 ? 2 : 1
-  const journal = [...nights].reverse().slice(0, allNights ? 14 : 3)
+  const journal = [...nights].reverse().slice(0, allNights ? undefined : 3)
   const soundLabel = SOUNDS.find((s) => s.id === nightSound)?.label ?? "Тишина"
 
   return (

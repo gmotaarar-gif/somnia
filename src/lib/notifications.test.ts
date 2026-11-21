@@ -35,7 +35,7 @@ describe("reminders", () => {
   it("is a no-op on web", async () => {
     vi.mocked(Capacitor.isNativePlatform).mockReturnValue(false)
     await syncReminders(settings)
-    expect(await requestReminderPermission()).toBe(true)
+    expect(await requestReminderPermission()).toBe(false)
     listenForReminders(vi.fn())()
     expect(LocalNotifications.cancel).not.toHaveBeenCalled()
     expect(LocalNotifications.requestPermissions).not.toHaveBeenCalled()

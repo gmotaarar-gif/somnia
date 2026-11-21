@@ -1,8 +1,55 @@
 import { describe, expect, it } from "vitest"
 import type { SleepNight } from "@/store/store"
-import { bedtimeCountdown, computeStreak } from "./metrics"
+import { bedtimeCountdown, buildInsights, computeStreak, summarize } from "./metrics"
+import { dateKey, daysAgo } from "./time"
+
+describe("buildInsights bedtime sample", () => {
+  it("requires two nights in the current window before describing bedtime stability", () => {
+    const night = (ago: number, bedtime = "23:30"): SleepNight => ({
+      id: `${ago}`, dateKey: dateKey(daysAgo(ago)), bedtime, wakeTime: "07:30",
+      durationMin: 480, quality: 80, awakenings: 0, tags: [],
+    })
+    const bedtimeInsights = (nights: SleepNight[]) => buildInsights(nights, [], "23:30", "07:30")
+      .filter((insight) => insight.id === "steady" || insight.id === "variance")
+
+    expect(bedtimeInsights([])).toEqual([])
+    expect(bedtimeInsights([night(20), night(19)])).toEqual([])
+    expect(bedtimeInsights([night(20), night(0)])).toEqual([])
+    expect(bedtimeInsights([night(1), night(0)]).map((insight) => insight.id)).toEqual(["steady"])
+    expect(bedtimeInsights([night(1, "21:30"), night(0)]).map((insight) => insight.id)).toEqual(["variance"])
+  })
+})
+
+describe("summarize calendar windows", () => {
+  it.each([7, 14, 30])("uses the last %i calendar days and the preceding window", (span) => {
+    const night = (ago: number, durationMin: number): SleepNight => ({
+      id: `${ago}`, dateKey: dateKey(daysAgo(ago)), bedtime: "23:30", wakeTime: "07:30",
+      durationMin, quality: 80, awakenings: 0, tags: [],
+    })
+    const nights = [night(span * 2, 60), night(span * 2 - 1, 240), night(span, 240), night(span - 1, 480), night(0, 480), night(-1, 60)]
+    const summary = summarize(nights, [], "23:30", "07:30", span)
+    expect(summary.week.map((n) => n.dateKey)).toEqual([dateKey(daysAgo(span - 1)), dateKey(daysAgo(0))])
+    expect(summary.avgDuration).toBe(480)
+    expect(summary.indexDelta).toBe(20)
+    expect(summarize([], [], "23:30", "07:30", span)).toMatchObject({ week: [], avgDuration: 0, indexDelta: 0 })
+    expect(summarize([night(span, 240)], [], "23:30", "07:30", span)).toMatchObject({ week: [], indexDelta: 0 })
+  })
+})
 
 describe("bedtimeCountdown", () => {
+  it("keeps the three-hour grace window across midnight and resets afterwards", () => {
+    for (const [hour, minute] of [[0, 15], [2, 30]]) {
+      expect(bedtimeCountdown("23:30", "07:30", new Date(2027, 0, 3, hour, minute)))
+        .toEqual({ minutes: 0, past: true, dayProgress: 1 })
+    }
+    expect(bedtimeCountdown("23:30", "07:30", new Date(2027, 0, 3, 2, 31)))
+      .toMatchObject({ minutes: 1259, past: false })
+    expect(bedtimeCountdown("23:30", "07:30", new Date(2027, 0, 3, 22, 30)))
+      .toMatchObject({ minutes: 60, past: false })
+    expect(bedtimeCountdown("00:15", "08:15", new Date(2027, 0, 3, 0, 30)))
+      .toMatchObject({ minutes: 0, past: true })
+  })
+
   it("counts toward a bedtime after midnight", () => {
     const now = new Date(2027, 0, 2, 23, 55)
 

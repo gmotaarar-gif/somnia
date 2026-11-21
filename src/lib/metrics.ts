@@ -46,11 +46,15 @@ export function summarize(
   moods: MoodEntry[],
   bedGoal: string,
   wakeGoal: string,
-  span = 7
+  span = 7,
+  now = new Date()
 ): Summary {
   const target = spanMinutes(bedGoal, wakeGoal)
-  const week = nights.slice(-span)
-  const prev = nights.slice(-span * 2, -span)
+  const today = dateKey(now)
+  const start = dateKey(daysAgo(span - 1, now))
+  const previousStart = dateKey(daysAgo(span * 2 - 1, now))
+  const week = nights.filter((n) => n.dateKey >= start && n.dateKey <= today).sort((a, b) => a.dateKey.localeCompare(b.dateKey))
+  const prev = nights.filter((n) => n.dateKey >= previousStart && n.dateKey < start)
   const last = nights[nights.length - 1]
   const devs = week.map((n) => deviationMinutes(n.bedtime, bedGoal))
   const scores = week.map((n) => nightScore(n, bedGoal, wakeGoal))
@@ -70,8 +74,8 @@ export function summarize(
     calmNights: week.filter((n) => n.awakenings === 0).length,
     goalNights: week.filter((n) => n.durationMin >= target * 0.93).length,
     index: Math.round(mean(scores)),
-    indexDelta: prevScores.length ? Math.round(mean(scores) - mean(prevScores)) : 0,
-    streak: computeStreak(nights),
+    indexDelta: scores.length && prevScores.length ? Math.round(mean(scores) - mean(prevScores)) : 0,
+    streak: computeStreak(nights, now),
     moodNow: lastMood ? moodPct(lastMood.valence) : null,
     moodAvg: recentMoods.length ? Math.round(mean(recentMoods.map((m) => moodPct(m.valence)))) : null,
     lastMood,
@@ -115,8 +119,8 @@ export interface Countdown {
 
 export function bedtimeCountdown(bedGoal: string, wakeGoal: string, now = new Date()): Countdown {
   const nowMin = now.getHours() * 60 + now.getMinutes()
-  let left = timeToMinutes(bedGoal) - nowMin
-  if (left < -180) left += 1440
+  let left = (timeToMinutes(bedGoal) - nowMin + 1440) % 1440
+  if (left >= 1440 - 180) left -= 1440
   const past = left <= 0
   const dayLen = Math.max(60, 1440 - spanMinutes(bedGoal, wakeGoal))
   const sinceWake = (((nowMin - timeToMinutes(wakeGoal)) % 1440) + 1440) % 1440
@@ -187,7 +191,7 @@ export function buildInsights(
       title: "Сон поднимает настроение",
       body: `После ночей от 7 часов баланс состояния выше в среднем на ${link} ${pluralRu(link, ["пункт", "пункта", "пунктов"])} из 100.`,
     })
-  if (nights.length >= 2)
+  if (s.week.length >= 2)
     out.push(
       s.bedSd > 30
         ? {
