@@ -16,7 +16,7 @@ vi.mock("distortion-waves", () => ({
       prepare: wave.prepare, play() {}, reverse() {}, reset() {}, element: null, controller: null,
     }))
     wave.props = props
-    return <div onClickCapture={props.onClickCapture} onKeyDownCapture={props.onKeyDownCapture}>
+    return <div data-testid="wave" onClickCapture={props.onClickCapture} onKeyDownCapture={props.onKeyDownCapture}>
       <div>{props.children}</div><div>{props.revealedContent}</div><aside>{props.overlay}</aside>
     </div>
   },
@@ -215,11 +215,13 @@ it("reveals the live destination if playback never completes and skips later slo
   expect(wave.props.revealed).toBe(true)
   // Simulate a renderer that prepared successfully but never calls onFinish.
   await act(async () => { vi.advanceTimersByTime(2500) })
-  expect(wave.props.scrub).toBe(1)
+  expect(screen.queryByTestId("wave")).toBeNull()
   expect(screen.getAllByRole("main", { hidden: true })).toHaveLength(1)
   expect(screen.getByRole("main").textContent).toBe("sleep")
   rerender(view("practices"))
   await ready()
-  expect(wave.props.scrub).toBe(0)
+  expect(screen.queryByTestId("wave")).toBeNull()
+  expect(screen.getByRole("main").textContent).toBe("practices")
+  await act(async () => { vi.advanceTimersByTime(5000) })
   expect(screen.getByRole("main").textContent).toBe("practices")
 })
