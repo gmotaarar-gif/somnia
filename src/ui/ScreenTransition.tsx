@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type SyntheticEvent } from "react"
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type SyntheticEvent } from "react"
 import { AnimatePresence } from "framer-motion"
 import { DistortionWave, type DistortionWaveHandle, type WaveStyleInput, type WaveType } from "distortion-waves"
 import { usePrefersReducedMotion } from "./MotionProvider"
@@ -32,6 +32,8 @@ type Views = {
 
 // Slow/unsupported capture must never hold navigation indefinitely.
 const CAPTURE_BUDGET = 1200
+// Include playback too: a software GPU can prepare quickly but draw very slowly.
+const NAVIGATION_BUDGET = 2500
 
 /** Two real DOM views; only the destination is interactive or exposed to AT.
  * Alternate slots so settling a wave never remounts the destination screen.
@@ -47,6 +49,7 @@ export function ScreenTransition({ screenKey, children, overlay }: {
   const preparation = useRef(Promise.resolve())
   const [shown, setShown] = useState<Slot>(0)
   const [captureTooSlow, setCaptureTooSlow] = useState(false)
+  const [skipPlayback, setSkipPlayback] = useState(false)
   const source = useRef<HTMLElement | null>(null)
   const type = useRef<WaveType>("vertical")
   const latest = useRef<View>({ key: screenKey, content: children })
@@ -108,6 +111,25 @@ export function ScreenTransition({ screenKey, children, overlay }: {
     return () => { cancelled = true; window.clearTimeout(timer) }
   }, [views.key, views.active, shown, crossfade, pictures])
 
+  useEffect(() => {
+    if (!views.slots[0] || !views.slots[1]) return
+    const timer = window.setTimeout(() => {
+      // Clear any running canvas before scrubbing to the live destination.
+      // Keep slow devices on the cheap path for subsequent navigation too.
+      wave.current?.reset()
+      setCaptureTooSlow(true)
+      setSkipPlayback(true)
+      setShown(views.active)
+      setViews((current) => {
+        if (current.key !== views.key) return current
+        const slots: [View | null, View | null] = [...current.slots]
+        slots[current.active === 0 ? 1 : 0] = null
+        return { ...current, slots }
+      })
+    }, NAVIGATION_BUDGET)
+    return () => window.clearTimeout(timer)
+  }, [views.key, views.active, views.slots])
+
   // Keep the real control even if its lazy-loaded screen takes time to arrive.
   const rememberSource = (event: SyntheticEvent) => {
     if (!(event.target instanceof Element)) return
@@ -129,7 +151,7 @@ export function ScreenTransition({ screenKey, children, overlay }: {
         {/* The wave replaces screen-entry animations; capture fully visible
             cards/charts rather than their initial opacity/path-length zero. */}
         <AnimatePresence initial={false}>
-          {views.active === slot ? children : view.content}
+          <Fragment key={view.key}>{views.active === slot ? children : view.content}</Fragment>
         </AnimatePresence>
       </main>
     )
@@ -152,6 +174,7 @@ export function ScreenTransition({ screenKey, children, overlay }: {
       prewarm={false}
       live={false}
       reducedMotion={crossfade ? "always" : "system"}
+      scrub={skipPlayback ? shown : undefined}
       onClickCapture={rememberSource}
       onKeyDownCapture={(event) => {
         if (event.key === "Enter" || event.key === " ") rememberSource(event)

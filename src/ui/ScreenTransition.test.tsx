@@ -168,6 +168,23 @@ it("pictures destination content fully visible instead of its entrance frame", a
   await ready()
 })
 
+it("keeps a multi-layer screen current after theme updates and repeated navigation", async () => {
+  const layered = (key: string, theme: string) => <ScreenTransition screenKey={key}>
+    <div>Backdrop {theme}</div>
+    <div>{key} content</div>
+  </ScreenTransition>
+  const errors = vi.spyOn(console, "error").mockImplementation(() => {})
+  const { rerender } = render(layered("today", "dark"))
+  for (const key of ["sleep", "mind", "practices", "today", "practices"]) {
+    rerender(layered(key, "light"))
+    await ready()
+    finish()
+    expect(screen.getByRole("main").textContent).toBe(`Backdrop light${key} content`)
+  }
+  expect(errors.mock.calls.filter((args) => args.some((arg) => String(arg).includes("same key")))).toEqual([])
+  errors.mockRestore()
+})
+
 it("does not dirty prepared main attributes when playback starts", async () => {
   const { container, rerender } = render(view("today"))
   rerender(view("sleep"))
@@ -188,4 +205,21 @@ it("enforces the capture budget even when synchronous work starves timers", asyn
   expect(wave.props.reducedMotion).toBe("always")
   expect(wave.props.revealed).toBe(true)
   clock.mockRestore()
+})
+
+it("reveals the live destination if playback never completes and skips later slow waves", async () => {
+  vi.useFakeTimers()
+  const { rerender } = render(view("today"))
+  rerender(view("sleep"))
+  await ready()
+  expect(wave.props.revealed).toBe(true)
+  // Simulate a renderer that prepared successfully but never calls onFinish.
+  await act(async () => { vi.advanceTimersByTime(2500) })
+  expect(wave.props.scrub).toBe(1)
+  expect(screen.getAllByRole("main", { hidden: true })).toHaveLength(1)
+  expect(screen.getByRole("main").textContent).toBe("sleep")
+  rerender(view("practices"))
+  await ready()
+  expect(wave.props.scrub).toBe(0)
+  expect(screen.getByRole("main").textContent).toBe("practices")
 })

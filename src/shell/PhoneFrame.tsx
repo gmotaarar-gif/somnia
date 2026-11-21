@@ -68,18 +68,22 @@ export function PhoneFrame({ tab, children }: { tab: string; children: React.Rea
     </div>
   )
 
-  if (!framed) return screen
-
+  // Keep the screen at the same tree position across breakpoints: remounting
+  // resets lazy navigation, open sheets and any in-progress local edits.
   return (
-    <div className="stage" data-tab={tab}>
-      <div className="phone">
-        <span className="phone-btn -left-[3px] top-[118px] h-[30px]" aria-hidden />
-        <span className="phone-btn -left-[3px] top-[176px] h-[58px]" aria-hidden />
-        <span className="phone-btn -left-[3px] top-[246px] h-[58px]" aria-hidden />
-        <span className="phone-btn -right-[3px] top-[204px] h-[92px] -scale-x-100" aria-hidden />
+    <div className={framed ? "stage" : "contents"} data-tab={tab}>
+      <div className={framed ? "phone" : "contents"}>
+        {framed && (
+          <>
+            <span className="phone-btn -left-[3px] top-[118px] h-[30px]" aria-hidden />
+            <span className="phone-btn -left-[3px] top-[176px] h-[58px]" aria-hidden />
+            <span className="phone-btn -left-[3px] top-[246px] h-[58px]" aria-hidden />
+            <span className="phone-btn -right-[3px] top-[204px] h-[92px] -scale-x-100" aria-hidden />
+          </>
+        )}
         {screen}
       </div>
-      <aside className="stage-note left-[max(40px,calc(50%-560px))]">
+      {framed && <><aside className="stage-note left-[max(40px,calc(50%-560px))]">
         <div className="text-[15px] font-semibold tracking-[-0.01em]">Somna</div>
         <p className="mt-3 text-[34px] font-semibold leading-[1.05] tracking-[-0.04em]">
           Сон и состояние
@@ -93,7 +97,7 @@ export function PhoneFrame({ tab, children }: { tab: string; children: React.Rea
           <li><b className="block text-[15px] font-semibold text-ink">Плюс в доке</b>Чек-ин состояния и запись сна за минуту.</li>
           <li><b className="block text-[15px] font-semibold text-ink">Итоги недели</b>Истории с индексом сна и целью на следующую неделю.</li>
         </ul>
-      </aside>
+      </aside></>}
     </div>
   )
 }
