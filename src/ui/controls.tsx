@@ -114,6 +114,7 @@ export function Segmented<T extends string>({
   value,
   onChange,
   id,
+  label = "Выбор варианта",
   className,
 }: {
   options: { value: T; label: string }[]
@@ -121,19 +122,37 @@ export function Segmented<T extends string>({
   onChange: (v: T) => void
   /** Unique per instance: scopes the sliding thumb */
   id: string
+  label?: string
   className?: string
 }) {
   return (
-    <div role="tablist" className={cn("glass inline-flex rounded-full p-1", className)}>
-      {options.map((o) => {
+    <div role="radiogroup" aria-label={label} className={cn("glass inline-flex rounded-full p-1", className)}>
+      {options.map((o, index) => {
         const active = o.value === value
         return (
           <button
             key={o.value}
             type="button"
-            role="tab"
-            aria-selected={active}
+            role="radio"
+            aria-checked={active}
+            tabIndex={active || (!options.some((option) => option.value === value) && index === 0) ? 0 : -1}
             onClick={() => onChange(o.value)}
+            onKeyDown={(event) => {
+              let next: number
+              switch (event.key) {
+                case "ArrowRight":
+                case "ArrowDown": next = (index + 1) % options.length; break
+                case "ArrowLeft":
+                case "ArrowUp": next = (index - 1 + options.length) % options.length; break
+                case "Home": next = 0; break
+                case "End": next = options.length - 1; break
+                default: return
+              }
+              event.preventDefault()
+              onChange(options[next].value)
+              const group = event.currentTarget.parentElement
+              group?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[next]?.focus()
+            }}
             className={cn(
               "relative h-9 flex-1 whitespace-nowrap rounded-full px-4 text-[13px] font-medium transition-colors duration-250",
               active ? "text-black" : "text-ink-2 hover:text-ink"
@@ -172,7 +191,7 @@ export function Slider({
 }) {
   const pct = ((value - min) / (max - min)) * 100
   return (
-    <div className={cn("relative h-11 touch-none select-none", className)}>
+    <div className={cn("relative h-11 touch-none select-none rounded-full has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-lime", className)}>
       <div
         className="absolute inset-x-0 top-1/2 h-[14px] -translate-y-1/2 overflow-hidden rounded-full bg-white/12"
         style={track ? { background: track } : undefined}

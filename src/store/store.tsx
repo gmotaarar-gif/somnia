@@ -524,7 +524,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         setWidgets((ws) =>
           ws.map((w) => (w.id === id ? { ...w, value: (w.value ?? 0) + (w.step ?? 1), day: today() } : w))
         ),
-      resetWidgets: () => setWidgets(DEFAULT_WIDGETS),
+      resetWidgets: () => setWidgets((widgets) => [
+        ...widgets.filter((widget) => widget.kind === "custom"),
+        ...DEFAULT_WIDGETS.map((widget) => ({ ...widget })),
+      ]),
       resetAll: () => setData((d) => ({ ...defaults(), onboarded: d.onboarded, userName: d.userName })),
     }
   }, [])
