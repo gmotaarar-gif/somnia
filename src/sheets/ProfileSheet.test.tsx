@@ -80,7 +80,7 @@ describe("ProfileSheet", () => {
   it("exports journal records and the schedule without changing stored data", async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ nights: [savedNight], moods: [], sessions: [], worries: [], wellbeing: [], bedGoal: "00:00", wakeGoal: "08:00" }))
     vi.stubGlobal("Blob", NodeBlob)
-    const createObjectURL = vi.fn(() => "blob:profile-export")
+    const createObjectURL = vi.fn((_blob: NodeBlob) => "blob:profile-export")
     const revokeObjectURL = vi.fn()
     vi.stubGlobal("URL", { createObjectURL, revokeObjectURL })
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {})
@@ -92,7 +92,7 @@ describe("ProfileSheet", () => {
     const exported = JSON.parse(await blob.text())
     expect(exported).toMatchObject({ nights: [savedNight], moods: [], sessions: [], worries: [], wellbeing: [], bedGoal: "00:00", wakeGoal: "08:00" })
     expect(Number.isNaN(Date.parse(exported.exportedAt))).toBe(false)
-    expect(click.mock.instances[0].download).toBe("somna-export.json")
+    expect((click.mock.instances[0] as HTMLAnchorElement).download).toBe("somna-export.json")
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:profile-export")
     expect(localStorage.getItem(STORAGE_KEY)).toBe(before)
   })
