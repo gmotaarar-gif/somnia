@@ -57,7 +57,7 @@ export function ScreenTransition({ screenKey, children, overlay }: {
     key: screenKey, active: 0, slots: [latest.current, null], source: null, type: "vertical",
   }))
 
-  if (views.key !== screenKey) {
+  if (!skipPlayback && views.key !== screenKey) {
     // A new request while capture is pending replaces the pending view,
     // not the still-visible one. Late captures cannot select an old tab.
     const next: Slot = shown === 0 ? 1 : 0
@@ -72,6 +72,7 @@ export function ScreenTransition({ screenKey, children, overlay }: {
   const pictures = useMemo(() => createWaveCapture(), [views.key])
   const crossfade = reduce || captureTooSlow
   useEffect(() => {
+    if (skipPlayback) return
     const destination = views.active
     if (destination === shown) return
     if (crossfade) {
@@ -109,26 +110,17 @@ export function ScreenTransition({ screenKey, children, overlay }: {
       setShown(destination)
     }).catch(fallback)
     return () => { cancelled = true; window.clearTimeout(timer) }
-  }, [views.key, views.active, shown, crossfade, pictures])
+  }, [views.key, views.active, shown, crossfade, pictures, skipPlayback])
 
   useEffect(() => {
-    if (!views.slots[0] || !views.slots[1]) return
+    if (skipPlayback || !views.slots[0] || !views.slots[1]) return
     const timer = window.setTimeout(() => {
-      // Clear any running canvas before scrubbing to the live destination.
-      // Keep slow devices on the cheap path for subsequent navigation too.
-      wave.current?.reset()
-      setCaptureTooSlow(true)
+      // Stop using the renderer entirely: changing reducedMotion/scrub while
+      // its playback is running still leaves the library owning visibility.
       setSkipPlayback(true)
-      setShown(views.active)
-      setViews((current) => {
-        if (current.key !== views.key) return current
-        const slots: [View | null, View | null] = [...current.slots]
-        slots[current.active === 0 ? 1 : 0] = null
-        return { ...current, slots }
-      })
     }, NAVIGATION_BUDGET)
     return () => window.clearTimeout(timer)
-  }, [views.key, views.active, views.slots])
+  }, [views.key, views.active, views.slots, skipPlayback])
 
   // Keep the real control even if its lazy-loaded screen takes time to arrive.
   const rememberSource = (event: SyntheticEvent) => {
@@ -157,6 +149,19 @@ export function ScreenTransition({ screenKey, children, overlay }: {
     )
   }
 
+  // Exceptional recovery: release the slow renderer and mount the current
+  // screen visibly. Further section changes use ordinary DOM navigation.
+  if (skipPlayback) return (
+    <div className="absolute inset-0 z-10 overflow-hidden rounded-[inherit]">
+      <main className="relative h-full min-h-0 overflow-hidden bg-bg" data-active-screen="true">
+        <AnimatePresence initial={false}>
+          <Fragment key={screenKey}>{children}</Fragment>
+        </AnimatePresence>
+      </main>
+      {overlay}
+    </div>
+  )
+
   return (
     <DistortionWave
       ref={wave}
@@ -174,7 +179,6 @@ export function ScreenTransition({ screenKey, children, overlay }: {
       prewarm={false}
       live={false}
       reducedMotion={crossfade ? "always" : "system"}
-      scrub={skipPlayback ? shown : undefined}
       onClickCapture={rememberSource}
       onKeyDownCapture={(event) => {
         if (event.key === "Enter" || event.key === " ") rememberSource(event)
