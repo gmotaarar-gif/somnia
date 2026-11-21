@@ -2,7 +2,7 @@ import * as React from "react"
 import { normalizeEmail, normalizeLocalAccount, validateRegistration, type LocalAccount, type RegistrationInput } from "@/account/registration"
 import { setSoundVolume, startSound, stopSound, type SoundMode } from "@/lib/audio"
 import { isThemeMode, type ThemeMode } from "@/lib/theme"
-import { listenForReminders, syncReminders } from "@/lib/notifications"
+import { listenForReminders, requestReminderPermission, syncReminders } from "@/lib/notifications"
 import { dateKey, daysAgo, spanMinutes } from "@/lib/time"
 
 export type TabId = "today" | "sleep" | "mind" | "practices"
@@ -363,7 +363,7 @@ export interface Store extends Persisted {
   nightSound: SoundMode
   setNightSound: (s: SoundMode) => void
   patch: (p: Partial<Persisted>) => void
-  finishOnboarding: (p: Partial<Persisted>) => void
+  finishOnboarding: (p: Partial<Persisted>) => Promise<boolean>
   addNight: (n: Omit<SleepNight, "id">) => void
   removeNight: (id: string) => void
   addMood: (m: Omit<MoodEntry, "id" | "at">) => void
@@ -487,7 +487,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return {
       patch,
       setWidgets,
-      finishOnboarding: (p: Partial<Persisted>) => React.startTransition(() => setData((d) => ({ ...d, ...p, onboarded: true }))),
+      finishOnboarding: async (p: Partial<Persisted>) => {
+        const granted = !p.reminder || await requestReminderPermission()
+        React.startTransition(() => setData((d) => ({ ...d, ...p, ...(p.reminder && { reminder: granted }), onboarded: true })))
+        if (!granted) notify("Разрешите уведомления для Somna в настройках телефона")
+        return granted
+      },
       addNight: (n: Omit<SleepNight, "id">) =>
         setData((d) => ({
           ...d,

@@ -218,6 +218,7 @@ export function Onboarding() {
   const [picked, setPicked] = React.useState<string[]>(() => STARTER.filter((id) => store.widgets.some((w) => w.id === id && w.visible)))
   const [reminder, setReminder] = React.useState(store.reminder)
   const [reminderTime, setReminderTime] = React.useState(store.reminderTime)
+  const [finishing, setFinishing] = React.useState(false)
 
   const target = spanMinutes(bedGoal, wakeGoal)
   const gain = Math.max(0, target - hours * 60)
@@ -230,11 +231,13 @@ export function Onboarding() {
     setStep((s) => s + d)
   }
 
-  const finish = () => {
+  const finish = async () => {
+    if (finishing) return
+    setFinishing(true)
     const widgets = onboardingWidgets(store.widgets, picked)
+    const granted = await store.finishOnboarding({ userName: name.trim(), focus, chronotype, bedGoal, wakeGoal, reminder, reminderTime, widgets })
     store.addMood({ valence, emotions: [], factors: [] })
-    store.finishOnboarding({ userName: name.trim(), focus, chronotype, bedGoal, wakeGoal, reminder, reminderTime, widgets })
-    store.notify(`Добро пожаловать, ${name.trim()}`)
+    if (granted) store.notify(`Добро пожаловать, ${name.trim()}`)
   }
 
   const pickChrono = (c: Chronotype) => {
@@ -522,16 +525,16 @@ export function Onboarding() {
 
       {!building && (
         <>
-          <Button className="mt-7 h-14 w-full shrink-0 text-[16px]" disabled={!canNext} onClick={() => {
+          <Button className="mt-7 h-14 w-full shrink-0 text-[16px]" disabled={!canNext || finishing} onClick={async () => {
             if (step !== STEPS - 1) return go(1)
-            finish()
+            await finish()
             if (!account) openRegistration()
           }}>
             {step === 0 ? "Начать" : step === STEPS - 1 ? account ? "Открыть Somna" : "Создать профиль" : "Далее"}
             <ArrowRight />
           </Button>
           {step === STEPS - 1 && !account && (
-            <Button variant="ghost" className="mt-2 w-full shrink-0" onClick={finish}>Продолжить без регистрации</Button>
+            <Button variant="ghost" className="mt-2 w-full shrink-0" disabled={finishing} onClick={finish}>Продолжить без регистрации</Button>
           )}
         </>
       )}

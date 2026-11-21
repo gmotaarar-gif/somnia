@@ -1,13 +1,21 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, renderHook } from "@testing-library/react"
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { DEFAULT_WIDGETS, StoreProvider, useStore, type Widget } from "@/store/store"
 import { onboardingWidgets } from "./onboarding"
+import { requestReminderPermission } from "./notifications"
+
+vi.mock("./notifications", () => ({
+  requestReminderPermission: vi.fn().mockResolvedValue(true),
+  syncReminders: vi.fn().mockResolvedValue(undefined),
+  listenForReminders: vi.fn(() => () => {}),
+}))
 
 afterEach(() => {
   cleanup()
   localStorage.clear()
+  vi.clearAllMocks()
 })
 
 const custom: Widget = {
@@ -45,6 +53,23 @@ describe("onboardingWidgets", () => {
 })
 
 describe("redoing onboarding", () => {
+  it.each([true, false])("requests permission before saving an enabled bedtime reminder (granted: %s)", async (granted) => {
+    vi.mocked(requestReminderPermission).mockResolvedValueOnce(granted)
+    const { result } = renderHook(useStore, { wrapper: StoreProvider })
+    await act(async () => { await result.current.finishOnboarding({ reminder: true }) })
+    expect(requestReminderPermission).toHaveBeenCalledOnce()
+    expect(result.current.reminder).toBe(granted)
+    expect(result.current.onboarded).toBe(true)
+    expect(JSON.parse(localStorage.getItem("somna-state-v6")!).reminder).toBe(granted)
+    if (!granted) expect(result.current.toast?.text).toBe("Разрешите уведомления для Somna в настройках телефона")
+  })
+
+  it("does not request permission for a disabled bedtime reminder", async () => {
+    const { result } = renderHook(useStore, { wrapper: StoreProvider })
+    await act(async () => { await result.current.finishOnboarding({ reminder: false }) })
+    expect(requestReminderPermission).not.toHaveBeenCalled()
+    expect(result.current.reminder).toBe(false)
+  })
   it("does not drop custom habits or their progress", () => {
     const { result } = renderHook(useStore, { wrapper: StoreProvider })
 
