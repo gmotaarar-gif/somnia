@@ -190,7 +190,9 @@ export function HomeScreen() {
       <header className="flex items-center justify-between gap-2.5">
         <div className="min-w-0">
           <h1 className="truncate text-[19px] font-semibold tracking-tight text-white">
-            {getTimeGreeting(now)}, {userName}
+            {userName.trim()
+              ? `${getTimeGreeting(now)}, ${userName.trim()}`
+              : getTimeGreeting(now)}
           </h1>
           <div className="mt-0.5 text-[11.5px]">
             <WordRoll

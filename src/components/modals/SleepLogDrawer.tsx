@@ -13,7 +13,11 @@ import { Moon as KeylineMoon } from "@/components/icons/duotone/moon"
 import { Sun as KeylineSun } from "@/components/icons/duotone/sun"
 import { SOMNA_TIME_COLUMNS } from "@/lib/wheelColumns"
 import { STEP_SLIDE_VARIANTS, haptic } from "@/lib/motion"
-import { getTargetDurationMin, toLocalDateKey } from "@/lib/sleepTime"
+import {
+  getNightDateLabels,
+  getTargetDurationMin,
+  toLocalDateKey,
+} from "@/lib/sleepTime"
 import {
   getSleepQualityLabel,
   getSleepTone,
@@ -22,7 +26,6 @@ import {
 import { useSomna } from "@/store/useSomnaStore"
 import { cn } from "@/lib/utils"
 
-const WEEKDAYS_RU = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"]
 const MONTHS_RU = [
   "янв",
   "фев",
@@ -99,13 +102,9 @@ function formatDurationShort(mins: number) {
 function buildNightDateInfo(offsetDays: number) {
   const d = new Date()
   d.setDate(d.getDate() - offsetDays)
-  const dayShort = WEEKDAYS_RU[d.getDay()] ?? "Вс"
   const dateKey = toLocalDateKey(d)
-  const date =
-    offsetDays === 0
-      ? "Сегодня"
-      : `${dayShort}, ${d.getDate()} ${MONTHS_RU[d.getMonth()] ?? ""}`
-  return { date, dayShort, dateKey }
+  const labels = getNightDateLabels(dateKey) ?? { date: "Сегодня", dayShort: "Вс" }
+  return { ...labels, dateKey }
 }
 
 function SleepQualityStep({
