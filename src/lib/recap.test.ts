@@ -56,6 +56,16 @@ describe("buildWeeklyRecap", () => {
     expect(r.summary.goalNights).toBe(1)
   })
 
+  it("keeps five ranked emotions for the polished story without including old check-ins", () => {
+    const r = buildWeeklyRecap([], [
+      { ...mood(14), emotions: ["Старая эмоция"] },
+      { ...mood(15), emotions: ["Радость", "Спокойствие", "Интерес", "Надежда", "Усталость", "Грусть"] },
+      { ...mood(20), emotions: ["Усталость"] },
+    ], [], "23:30", "07:30", now)
+    expect(r.emotions.map((e) => e.name)).toEqual(["Усталость", "Радость", "Спокойствие", "Интерес", "Надежда"])
+    expect(r.emotions[0].count).toBe(2)
+  })
+
   it("handles a week crossing a year boundary using local dates", () => {
     const r = buildWeeklyRecap([night("2026-12-27"), night("2026-12-28"), night("2027-01-03")], [], [], "23:30", "07:30", new Date(2027, 0, 3, 12))
     expect(r.days[0].key).toBe("2026-12-28")

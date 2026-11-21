@@ -99,21 +99,33 @@ function RecapStories({ onClose }: { onClose: () => void }) {
       </div>
     </React.Fragment>,
     <React.Fragment key="mood">
-      <div className="mt-6 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <Dots value={sum.moodAvg !== null ? `${sum.moodAvg}%` : "--"} className="text-[54px]" still />
-        <span className="text-[13px] text-ink-2">{sum.moodAvg !== null ? "средний баланс" : "ещё нет чек-инов"}</span>
+      <div className="flex flex-1 flex-col justify-center py-6">
+        <p className="mb-6 text-[11px] font-semibold uppercase tracking-[0.1em] text-white/80">
+          {recap.emotions.length ? "Чаще всего вы чувствовали" : "Неделя в ощущениях"}
+        </p>
+        {recap.emotions.length ? (
+          <ul className="space-y-2" aria-label="Частые эмоции недели">
+            {recap.emotions.map((emotion, n) => (
+              <li key={emotion.name} className="flex items-baseline gap-2" style={{ opacity: 1 - n * 0.1 }}>
+                <span
+                  className="min-w-0 break-words font-semibold leading-[1.08] tracking-[-0.055em]"
+                  style={{ fontSize: `${Math.min(42 - n * 5, 520 / (emotion.name.length + 1))}px` }}
+                >{emotion.name}</span>
+                <span className="shrink-0 text-[13px]">×{emotion.count}</span>
+              </li>
+            ))}
+          </ul>
+        ) : <h3 className="text-[36px] font-semibold leading-[1.08] tracking-[-0.045em]">Каждое чувство<br />имеет значение</h3>}
+        <p className="mt-6 text-[13px] text-white/85">
+          {sum.moodAvg !== null ? `${sum.moodAvg}% — настроение в среднем` : <span>ещё нет чек-инов</span>}
+        </p>
+        <p className="mt-2 text-[12px] text-white/80">{recap.moods.length} {pluralRu(recap.moods.length, ["чек-ин", "чек-ина", "чек-инов"])} · {recap.moodDays} из 7 дней</p>
       </div>
-      <WeekChart days={recap.days} kind="mood" />
-      <p className="mt-3 text-[12px] text-ink-2">{recap.moods.length} {pluralRu(recap.moods.length, ["чек-ин", "чек-ина", "чек-инов"])} · {recap.moodDays} из 7 дней</p>
-      <div className="mt-6 flex flex-wrap gap-2">
-        {recap.emotions.map((emotion) => (
-          <span key={emotion.name} className="glass-inset rounded-full px-3 py-2 text-[12px]">{emotion.name} <span className="ml-1 text-ink-2">{emotion.count}</span></span>
-        ))}
-      </div>
-      <div className="glass-inset mt-auto rounded-[24px] p-4">
-        <div className="mb-2 flex items-center gap-2 text-[13px] font-semibold"><Heart className="size-4" />Без оценок и правильных ответов</div>
-        <p className="text-[13px] leading-relaxed text-ink-2">{recap.moods.length ? "На графике — среднее за каждый день, выше — по всем чек-инам. Любое состояние заслуживает внимания" : "Один короткий чек-ин в день поможет заметить, что поддерживает вас. Пропущенные дни останутся пустыми"}</p>
-      </div>
+      <details className="shrink-0 rounded-[24px] bg-black/15 p-4">
+        <summary className="cursor-pointer text-[13px] font-semibold">Состояние по дням</summary>
+        <WeekChart days={recap.days} kind="mood" />
+        <p className="mt-4 text-[12px] leading-relaxed text-white/85">{recap.moods.length ? "На графике — среднее за каждый день, выше — по всем чек-инам. Любое состояние заслуживает внимания" : "Один короткий чек-ин в день поможет заметить, что поддерживает вас. Пропущенные дни останутся пустыми"}</p>
+      </details>
     </React.Fragment>,
     <React.Fragment key="habits">
       <p className="mt-4 text-[14px] leading-relaxed text-ink-2">Маленькие действия тоже считаются. Вот что вы успели за эти семь дней</p>
@@ -150,7 +162,7 @@ function RecapStories({ onClose }: { onClose: () => void }) {
   ]
 
   return (
-    <Card tone={STORIES[index].tone} r="lg" className="flex h-full min-h-0 flex-col rounded-b-none">
+    <Card tone={STORIES[index].tone} r="lg" className={cn("flex h-full min-h-0 flex-col rounded-b-none", index === 2 && "recap-emotions")}>
       <header className="relative z-10 shrink-0 px-6 pt-8">
         <div className="flex items-center justify-between gap-3">
           <span className="flex items-center gap-2 text-[12px] text-ink-2"><StoryIcon className="size-4" />{range}</span>

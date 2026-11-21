@@ -50,7 +50,7 @@ export function buildWeeklyRecap(
     days,
     moods: weekMoods,
     moodDays,
-    emotions: emotionCounts(weekMoods).slice(0, 4),
+    emotions: emotionCounts(weekMoods).slice(0, 5),
     activeDays,
     practiceCount: weekSessions.length,
     practiceMinutes: Math.round(weekSessions.reduce((s, p) => s + p.min, 0)),
