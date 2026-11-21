@@ -3,6 +3,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import { StoreProvider } from "@/store/store"
+import { SubscriptionProvider } from "@/store/subscription"
 import { PracticesScreen } from "./Practices"
 
 const { topBarRender } = vi.hoisted(() => ({ topBarRender: vi.fn() }))
@@ -24,7 +25,7 @@ afterEach(() => {
 it("keeps the rest of the practices screen out of breathing timer updates", () => {
   vi.useFakeTimers()
   vi.stubGlobal("matchMedia", () => ({ matches: true, addListener() {}, addEventListener() {}, removeEventListener() {} }))
-  render(<StoreProvider><PracticesScreen /></StoreProvider>)
+  render(<StoreProvider><SubscriptionProvider><PracticesScreen /></SubscriptionProvider></StoreProvider>)
   fireEvent.click(screen.getByRole("button", { name: "Начать" }))
   topBarRender.mockClear()
   for (let i = 0; i < 5; i++) act(() => vi.advanceTimersByTime(1000))

@@ -8,6 +8,7 @@ import { PhoneFrame } from "@/shell/PhoneFrame"
 import { lazyWithRetry as lazy } from "@/shell/LazyChunk"
 import { Deferred } from "@/shell/Deferred"
 import { StoreProvider, useStore } from "@/store/store"
+import { SubscriptionProvider } from "@/store/subscription"
 
 const Workspace = lazy(() => import("@/shell/Workspace"))
 const Onboarding = lazy(() => import("@/screens/Onboarding").then((module) => ({ default: module.Onboarding })))
@@ -50,9 +51,11 @@ export default function App() {
   return (
     <MotionConfig reducedMotion="user">
       <StoreProvider>
-        <LocalAccountProvider>
-          <Shell />
-        </LocalAccountProvider>
+        <SubscriptionProvider>
+          <LocalAccountProvider>
+            <Shell />
+          </LocalAccountProvider>
+        </SubscriptionProvider>
       </StoreProvider>
     </MotionConfig>
   )

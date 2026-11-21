@@ -37,6 +37,7 @@ export type SheetId =
   | "mood"
   | "sleep"
   | "profile"
+  | "subscription"
   | "gallery"
   | "recap"
   | "night"

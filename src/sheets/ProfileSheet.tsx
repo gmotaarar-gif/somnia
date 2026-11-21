@@ -4,6 +4,7 @@ import { durationRu, spanMinutes } from "@/lib/time"
 import { useStore, type Chronotype } from "@/store/store"
 import { Button, Segmented, Slider, TimeField, Toggle } from "@/ui/controls"
 import { Field, Sheet } from "@/ui/Sheet"
+import { SubscriptionCard } from "@/ui/SubscriptionCard"
 
 export function ProfileSheet() {
   const s = useStore()
@@ -23,6 +24,7 @@ export function ProfileSheet() {
           <div className="mt-1.5 text-[12px] text-ink-2">Маленькие шаги к спокойным ночам</div>
         </div>
       </div>
+      <SubscriptionCard className="mb-4" />
       <div className="grid grid-cols-3 gap-2.5">
         {[
           [s.nights.length, "ночей"],

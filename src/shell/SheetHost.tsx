@@ -1,12 +1,14 @@
 import { lazyWithRetry as lazy } from "@/shell/LazyChunk"
 import { Deferred } from "@/shell/Deferred"
 import { useStore } from "@/store/store"
+import { useSubscription } from "@/store/subscription"
 
 const MoodSheet = lazy(() => import("@/sheets/MoodSheet").then((m) => ({ default: m.MoodSheet })))
 const SleepSheet = lazy(() => import("@/sheets/SleepSheet").then((m) => ({ default: m.SleepSheet })))
 const GallerySheet = lazy(() => import("@/sheets/GallerySheet").then((m) => ({ default: m.GallerySheet })))
 const RecapSheet = lazy(() => import("@/sheets/RecapSheet").then((m) => ({ default: m.RecapSheet })))
 const ProfileSheet = lazy(() => import("@/sheets/ProfileSheet").then((m) => ({ default: m.ProfileSheet })))
+const SubscriptionSheet = lazy(() => import("@/sheets/SubscriptionSheet").then((m) => ({ default: m.SubscriptionSheet })))
 const CyclesSheet = lazy(() => import("@/sheets/Extras").then((m) => ({ default: m.CyclesSheet })))
 const WellbeingSheet = lazy(() => import("@/sheets/Extras").then((m) => ({ default: m.WellbeingSheet })))
 const NightSheet = lazy(() => import("@/sheets/Extras").then((m) => ({ default: m.NightSheet })))
@@ -18,6 +20,7 @@ const NightMode = lazy(() => import("@/shell/NightMode").then((m) => ({ default:
 
 export function SheetHost() {
   const { sheet, nightMode, endNight } = useStore()
+  const { isPlus } = useSubscription()
   return (
     <>
       <Deferred active={sheet === "mood"}><MoodSheet /></Deferred>
@@ -25,12 +28,13 @@ export function SheetHost() {
       <Deferred active={sheet === "gallery"}><GallerySheet /></Deferred>
       <Deferred active={sheet === "recap"}><RecapSheet /></Deferred>
       <Deferred active={sheet === "profile"}><ProfileSheet /></Deferred>
+      <Deferred active={sheet === "subscription" || (sheet === "bodyscan" && !isPlus)}><SubscriptionSheet /></Deferred>
       <Deferred active={sheet === "cycles"}><CyclesSheet /></Deferred>
       <Deferred active={sheet === "wellbeing"}><WellbeingSheet /></Deferred>
       <Deferred active={sheet === "night"}><NightSheet /></Deferred>
       <Deferred active={sheet === "awards"}><AwardsSheet /></Deferred>
       <Deferred active={sheet === "grounding"}><GroundingSheet /></Deferred>
-      <Deferred active={sheet === "bodyscan"}><BodyScanSheet /></Deferred>
+      <Deferred active={sheet === "bodyscan" && isPlus}><BodyScanSheet /></Deferred>
       <Deferred active={sheet === "worry"}><WorrySheet /></Deferred>
       <Deferred active={nightMode}><NightMode onLoadError={() => endNight(false)} /></Deferred>
     </>
