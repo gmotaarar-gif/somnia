@@ -2,9 +2,10 @@ import * as React from "react"
 import { Capacitor } from "@capacitor/core"
 import { normalizeEmail, normalizeLocalAccount, validateRegistration, type LocalAccount, type RegistrationInput } from "@/account/registration"
 import { setSoundVolume, startSound, stopSound, type SoundMode } from "@/lib/audio"
-import { isThemeMode, type ThemeMode } from "@/lib/theme"
+import type { ThemeMode } from "@/lib/theme"
 import { listenForReminders, requestReminderPermission, syncReminders } from "@/lib/notifications"
 import { dateKey, minutesToTime } from "@/lib/time"
+import { readSaved } from "@/store/saved"
 
 export type TabId = "today" | "sleep" | "mind" | "practices"
 export type Tone =
@@ -147,7 +148,7 @@ const HOME_LAYOUT = 2
 /** Built-in widgets whose numbers the home screen already shows. */
 const REDUNDANT_WIDGETS = new Set<WidgetKind>(["sleep", "mood", "week", "energy", "plan"])
 
-interface Persisted {
+export interface Persisted {
   onboarded: boolean
   userName: string
   localAccount: LocalAccount | null
@@ -216,6 +217,8 @@ function defaults(): Persisted {
 }
 
 const STORAGE_KEY = "somna-state-v6"
+/** The original text of a save that had to be repaired, kept until the next repair. */
+export const BACKUP_KEY = "somna-state-v6-backup"
 const ACTIVE_NIGHT_KEY = "somna-active-night-v1"
 
 interface ActiveNight {
@@ -270,38 +273,102 @@ function rollDay(d: Persisted, day: string): Persisted {
   }
 }
 
-function load(): Persisted {
+/** "partial": malformed records were skipped; "unreadable": nothing could be read. */
+export type SavedDataDamage = "partial" | "unreadable"
+
+interface Loaded {
+  data: Persisted
+  damage: SavedDataDamage | null
+}
+
+function load(): Loaded {
   const base = defaults()
+  let raw: string | null
+  try {
+    raw = window.localStorage.getItem(STORAGE_KEY)
+  } catch {
+    return { data: base, damage: null }
+  }
+  if (!raw) return { data: base, damage: null }
+  const { saved: parsed, unreadable, dropped } = readSaved(raw)
+  const damage: SavedDataDamage | null = unreadable ? "unreadable" : dropped ? "partial" : null
+  // Autosave replaces the damaged text, so the original stays available for export.
+  if (damage) backupSavedData(raw)
+  try {
+    return { data: migrate(base, parsed), damage }
+  } catch {
+    backupSavedData(raw)
+    return { data: base, damage: "unreadable" }
+  }
+}
+
+function migrate(base: Persisted, parsed: Partial<Persisted>): Persisted {
+  const saved = rollDay({ ...base, ...parsed }, today())
+  saved.morningReminderTime = parsed.morningReminderTime ?? saved.wakeGoal ?? "08:00"
+  saved.localAccount = normalizeLocalAccount(saved.localAccount)
+  saved.nights = normalizeNights(saved.nights.filter((n) => !/^demo-n-\d+$/.test(n.id)))
+  saved.moods = saved.moods.filter((m) => !/^demo-m-\d+$/.test(m.id))
+  saved.sessions = saved.sessions.filter((s) => !/^demo-s-\d+$/.test(s.id))
+  // Breathing practices were removed: drop their counter, widget and ritual step.
+  // Finished sessions stay, so earned practice minutes and awards are not lost.
+  delete (saved as { breath?: unknown }).breath
+  saved.widgets = saved.widgets.filter((w) => (w.kind as string) !== "breath")
+  saved.ritual = { ...saved.ritual, done: saved.ritual.done.filter((id) => id !== "breath") }
+  if (parsed.layout !== HOME_LAYOUT) {
+    if (parsed.widgets) saved.widgets = saved.widgets.map((w) => (REDUNDANT_WIDGETS.has(w.kind) ? { ...w, visible: false } : w))
+    saved.layout = HOME_LAYOUT
+  }
+  // widgets added in later versions appear in the gallery of existing installs
+  const missing = DEFAULT_WIDGETS.filter((w) => !saved.widgets.some((x) => x.id === w.id))
+  if (missing.length) saved.widgets = [...saved.widgets, ...missing.map((w) => ({ ...w, visible: false }))]
+  return withSupportedReminders(saved)
+}
+
+// Holds the damaged original for download when storage has no room for a backup copy.
+let unstoredOriginal: string | null = null
+
+function backupSavedData(raw: string) {
+  try {
+    window.localStorage.setItem(BACKUP_KEY, raw)
+    unstoredOriginal = null
+  } catch {
+    unstoredOriginal = raw
+  }
+}
+
+function clearSavedDataBackup() {
+  unstoredOriginal = null
+  try {
+    window.localStorage.removeItem(BACKUP_KEY)
+  } catch {
+    // storage is disabled; there is no backup to remove
+  }
+}
+
+/** The saved text a user can download: the original damaged save if one was kept, else the current save. */
+export function readSavedDataCopy(): string | null {
+  try {
+    return window.localStorage.getItem(BACKUP_KEY) ?? unstoredOriginal ?? window.localStorage.getItem(STORAGE_KEY)
+  } catch {
+    return unstoredOriginal
+  }
+}
+
+/** Last resort when saved data keeps the app from rendering: keep a backup and start fresh. */
+export function resetSavedData() {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return base
-    const parsed = JSON.parse(raw) as Partial<Persisted>
-    const saved = rollDay({ ...base, ...parsed }, today())
-    saved.morningReminderTime = parsed.morningReminderTime ?? saved.wakeGoal ?? "08:00"
-    saved.localAccount = normalizeLocalAccount(saved.localAccount)
-    saved.nights = normalizeNights(saved.nights.filter((n) => !/^demo-n-\d+$/.test(n.id)))
-    saved.moods = saved.moods.filter((m) => !/^demo-m-\d+$/.test(m.id))
-    saved.sessions = saved.sessions.filter((s) => !/^demo-s-\d+$/.test(s.id))
-    if (!isThemeMode(saved.theme)) saved.theme = base.theme
-    // Breathing practices were removed: drop their counter, widget and ritual step.
-    // Finished sessions stay, so earned practice minutes and awards are not lost.
-    delete (saved as { breath?: unknown }).breath
-    saved.widgets = saved.widgets.filter((w) => (w.kind as string) !== "breath")
-    saved.ritual = { ...saved.ritual, done: saved.ritual.done.filter((id) => id !== "breath") }
-    if (parsed.layout !== HOME_LAYOUT) {
-      if (parsed.widgets) saved.widgets = saved.widgets.map((w) => (REDUNDANT_WIDGETS.has(w.kind) ? { ...w, visible: false } : w))
-      saved.layout = HOME_LAYOUT
-    }
-    // widgets added in later versions appear in the gallery of existing installs
-    const missing = DEFAULT_WIDGETS.filter((w) => !saved.widgets.some((x) => x.id === w.id))
-    if (missing.length) saved.widgets = [...saved.widgets, ...missing.map((w) => ({ ...w, visible: false }))]
-    return withSupportedReminders(saved)
+    if (raw) backupSavedData(raw)
+    window.localStorage.removeItem(STORAGE_KEY)
   } catch {
-    return base
+    // nothing more can be done without storage
   }
 }
 
 export interface Store extends Persisted {
+  /** Set when the last load had to skip or discard damaged saved data. */
+  savedDataDamage: SavedDataDamage | null
+  dismissSavedDataDamage: () => void
   registerLocalProfile: (input: RegistrationInput) => void
   tab: TabId
   setTab: (t: TabId) => void
@@ -351,7 +418,9 @@ const TAB_ORDER: TabId[] = ["today", "sleep", "mind", "practices"]
 const StoreContext = React.createContext<Store | null>(null)
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const [data, setData] = React.useState<Persisted>(load)
+  const [initial] = React.useState(load)
+  const [data, setData] = React.useState<Persisted>(initial.data)
+  const [savedDataDamage, setSavedDataDamage] = React.useState(initial.damage)
   const latestData = React.useRef(data)
   latestData.current = data
   const lastSaved = React.useRef<string | null>(null)
@@ -430,10 +499,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (event.storageArea === window.localStorage && (event.key === STORAGE_KEY || event.key === null)) {
         // A failed local autosave may be the only copy of a new check-in.
         if (JSON.stringify(latestData.current) !== lastSaved.current) return
-        const incoming = load()
+        const { data: incoming, damage } = load()
         // Imported snapshots must not be written back over a newer remote save.
         lastSaved.current = JSON.stringify(incoming)
         setData(incoming)
+        if (damage) setSavedDataDamage(damage)
       }
     }
     window.addEventListener("storage", sync)
@@ -553,6 +623,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         ...DEFAULT_WIDGETS.map((widget) => ({ ...widget })),
       ]),
       resetAll: () => {
+        clearSavedDataBackup()
         setActiveNight(null)
         setPendingBedtime(null)
         setData((d) => ({ ...defaults(), onboarded: d.onboarded, userName: d.userName, localAccount: d.localAccount }))
@@ -564,6 +635,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     () => ({
       ...data,
       ...actions,
+      savedDataDamage,
+      dismissSavedDataDamage: () => setSavedDataDamage(null),
       registerLocalProfile: (input) => {
         if (Object.keys(validateRegistration(input)).length) throw new Error("Invalid local registration")
         const next: Persisted = {
@@ -603,7 +676,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       nightSound,
       setNightSound,
     }),
-    [data, actions, tab, tabDir, setTab, sheet, sheetArg, openSheet, toast, notify, editing, nightMode, nightStart, nightSound, selectedSound, setNightSound, endNight]
+    [data, actions, savedDataDamage, tab, tabDir, setTab, sheet, sheetArg, openSheet, toast, notify, editing, nightMode, nightStart, nightSound, selectedSound, setNightSound, endNight]
   )
 
   return (

@@ -8,6 +8,7 @@ import { Splash } from "@/shell/Splash"
 import { PhoneFrame } from "@/shell/PhoneFrame"
 import { lazyWithRetry as lazy } from "@/shell/LazyChunk"
 import { Deferred } from "@/shell/Deferred"
+import { SavedDataNotice } from "@/shell/SavedDataNotice"
 import { StoreProvider, useStore } from "@/store/store"
 import { SubscriptionProvider } from "@/store/subscription"
 
@@ -44,6 +45,7 @@ function Shell() {
           )}
         </InitialContent>
       </Suspense>
+      <SavedDataNotice />
       <Island />
       <Splash ready={ready} />
       {/* A pending onboarding transition still exposes the old store snapshot. */}

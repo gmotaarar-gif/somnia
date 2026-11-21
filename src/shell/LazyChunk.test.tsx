@@ -9,6 +9,7 @@ import { lazyWithRetry, loadWithRetry } from "./LazyChunk"
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
+  localStorage.clear()
 })
 
 it("recovers a transient import failure automatically", async () => {
@@ -52,4 +53,25 @@ it("contains a rejected sheet import without unmounting the current screen", asy
   expect(screen.getByText("Current screen")).toBeTruthy()
   expect(screen.getByRole("button", { name: "Обновить" })).toBeTruthy()
   expect(load).toHaveBeenCalledTimes(2)
+})
+
+it("blames saved data, not the connection, when a loaded screen crashes", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {})
+  const onLoadError = vi.fn()
+  const Crashing = lazyWithRetry(async () => ({ default: () => { throw new TypeError("Cannot read properties of null") } }))
+  localStorage.setItem("somna-state-v6", "{\"nights\":[1]}")
+  render(<Suspense fallback={null}><Crashing onLoadError={onLoadError} /></Suspense>)
+
+  const alert = await screen.findByRole("alert")
+  expect(alert.textContent).toContain("сохранённые данные повреждены")
+  expect(alert.textContent).not.toContain("подключение")
+  expect(screen.queryByRole("button", { name: "Повторить" })).toBeNull()
+  expect(onLoadError).toHaveBeenCalledTimes(1)
+
+  // Starting over asks twice and keeps a backup of what it removes.
+  fireEvent.click(screen.getByRole("button", { name: "Начать заново" }))
+  expect(localStorage.getItem("somna-state-v6")).toBe("{\"nights\":[1]}")
+  fireEvent.click(screen.getByRole("button", { name: "Удалить и начать" }))
+  expect(localStorage.getItem("somna-state-v6")).toBeNull()
+  expect(localStorage.getItem("somna-state-v6-backup")).toBe("{\"nights\":[1]}")
 })
