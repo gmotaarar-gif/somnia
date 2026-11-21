@@ -36,15 +36,15 @@ function Figure({
   className,
   shape = "round",
 }: {
-  value: string | number
+  value: string | number | null
   unit?: string
   className?: string
   shape?: "round" | "square"
 }) {
   return (
     <div className="flex items-end gap-2">
-      <Dots value={value} shape={shape} className={cn("text-[32px]", className)} />
-      {unit && <span className="pb-px text-[12px] leading-none text-ink-2">{unit}</span>}
+      {value == null ? <span className={cn("text-[32px] leading-none", className)}>—</span> : <Dots value={value} shape={shape} className={cn("text-[32px]", className)} />}
+      {value != null && unit && <span className="pb-px text-[12px] leading-none text-ink-2">{unit}</span>}
     </div>
   )
 }
@@ -113,6 +113,9 @@ function Body({ widget, wide }: BodyProps) {
   const store = useStore()
   const sum = useSummary()
   const { nights, bedGoal } = store
+  if (widget.kind !== "custom" && ["sleep", "week", "energy", "rhythm", "debt"].includes(widget.kind) && !sum.week.length) {
+    return <><Head title={WIDGET_META[widget.kind].title} /><div className="mt-auto text-[14px] text-ink-2">Пока нет данных. Запишите сон.</div></>
+  }
 
   switch (widget.kind) {
     case "streak": {
@@ -164,7 +167,7 @@ function Body({ widget, wide }: BodyProps) {
       const pct = m ? moodPct(m.valence) : 0
       const ring = (
         <Ring value={pct / 100} size={wide ? 118 : 96} stroke={2.4} color="#c9ec5a">
-          <Dots value={m ? pct : "--"} shape="square" className={wide ? "text-[30px]" : "text-[24px]"} />
+          {m ? <Dots value={pct} shape="square" className={wide ? "text-[30px]" : "text-[24px]"} /> : <span className={wide ? "text-[30px] leading-none" : "text-[24px] leading-none"}>—</span>}
         </Ring>
       )
       return wide ? (
@@ -293,7 +296,7 @@ function Body({ widget, wide }: BodyProps) {
         <>
           <Head title={wide ? "Благополучие" : "WHO-5"} sub={wide ? "Индекс WHO-5" : undefined} right={<Badge><HeartPulse /></Badge>} />
           <div className="mt-auto">
-            <Figure value={lastW ? lastW.score : "--"} unit="/ 100" shape="square" className={wide ? "text-[44px]" : undefined} />
+            <Figure value={lastW ? lastW.score : null} unit="/ 100" shape="square" className={wide ? "text-[44px]" : undefined} />
             <div className="mt-2 text-[12px] text-ink-2">{lastW ? who5Label(lastW.score) : "пройдите тест"}</div>
           </div>
         </>

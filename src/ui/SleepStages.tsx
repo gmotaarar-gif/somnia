@@ -24,6 +24,7 @@ export function stageMinutes(night: SleepNight): Record<Stage, number> {
 export function Hypnogram({ night, className, compact = false }: { night: SleepNight; className?: string; compact?: boolean }) {
   const id = React.useId()
   const segs = React.useMemo(() => hypnogram(night), [night])
+  if (!segs.length) return <p className={cn("text-[13px] text-ink-2", className)}>Пока нет данных о фазах сна. Запись в дневнике не измеряет фазы.</p>
   const total = segs.reduce((a, s) => a + s.min, 0)
   const left = compact ? 4 : 62
   const right = 312
@@ -64,6 +65,7 @@ export function Hypnogram({ night, className, compact = false }: { night: SleepN
 
 export function StageLegend({ night }: { night: SleepNight }) {
   const totals = React.useMemo(() => stageMinutes(night), [night])
+  if (!Object.values(totals).some(Boolean)) return null
   return (
     <div>
       <div className="flex h-1.5 overflow-hidden rounded-full" aria-hidden>

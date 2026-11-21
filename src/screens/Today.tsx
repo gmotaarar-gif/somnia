@@ -84,8 +84,8 @@ export function TodayScreen() {
               {last && <span className="rounded-full bg-white/16 px-3 py-1.5 text-[12px] font-medium">{qualityLabel(last.quality)}</span>}
             </div>
             <div className="mt-8 flex items-end gap-3">
-              <Dots value={last ? hm(last.durationMin) : "0:00"} shape="square" className="text-[64px]" />
-              <span className="pb-0.5 text-[17px] text-white/65">ч</span>
+              {last ? <Dots value={hm(last.durationMin)} shape="square" className="text-[64px]" /> : <span className="text-[64px] leading-none">—</span>}
+              {last && <span className="pb-0.5 text-[17px] text-white/65">ч</span>}
             </div>
             {last ? (
               <>
@@ -124,17 +124,17 @@ export function TodayScreen() {
           tone={!mood ? "ink" : mood.valence < -0.12 ? "dusk" : mood.valence < 0.3 ? "cobalt" : "moss"}
           onClick={() => openSheet("mood")}
         >
-          <Dots value={mood ? `${moodPct(mood.valence)}%` : "--"} className="text-[34px]" />
+          {mood ? <Dots value={`${moodPct(mood.valence)}%`} className="text-[34px]" /> : <span className="text-[34px] leading-none">—</span>}
         </Tile>
         <Tile
           title="Неделя"
           label="Индекс недели. Открыть итоги"
           icon={<ArrowUpRight />}
-          note={`${indexLabel(sum.index)}${sum.indexDelta ? ` · ${sum.indexDelta > 0 ? "+" : ""}${sum.indexDelta}` : ""}`}
+          note={sum.week.length ? `${indexLabel(sum.index)}${sum.indexDelta ? ` · ${sum.indexDelta > 0 ? "+" : ""}${sum.indexDelta}` : ""}` : "Пока нет данных"}
           tone="ember"
           onClick={() => openSheet("recap")}
         >
-          <Dots value={sum.index} shape="square" className="text-[34px]" />
+          {sum.week.length ? <Dots value={sum.index} shape="square" className="text-[34px]" /> : <span className="text-[34px] leading-none">—</span>}
         </Tile>
       </motion.div>
 

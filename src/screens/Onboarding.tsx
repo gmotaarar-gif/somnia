@@ -11,7 +11,7 @@ import { durationRu, hm, shiftTime, spanMinutes, timeToMinutes } from "@/lib/tim
 import { getValenceLabel, sampleValencePalette } from "@/lib/valence"
 import { DEFAULT_WIDGETS, useStore, type Chronotype, type Widget } from "@/store/store"
 import { Card, type CardTone } from "@/ui/Card"
-import { Bars, Orbits, Ring, Wave } from "@/ui/charts"
+import { Orbits, Ring } from "@/ui/charts"
 import { Button, IconButton, Segmented, Slider, TimeField, Toggle } from "@/ui/controls"
 import { Dots, DotsCount } from "@/ui/Dots"
 import { usePrefersReducedMotion } from "@/ui/MotionProvider"
@@ -45,7 +45,7 @@ const INTRO: { tone: CardTone; title: string; body: React.ReactNode }[] = [
     title: "Сон",
     body: (
       <>
-        <Dots value="7:42" className="mt-5 text-[52px]" />
+        <span className="mt-5 text-[52px] leading-none">—</span>
         <Orbits className="-mx-5 mt-auto w-[calc(100%+40px)]" />
       </>
     ),
@@ -55,8 +55,8 @@ const INTRO: { tone: CardTone; title: string; body: React.ReactNode }[] = [
     title: "Состояние",
     body: (
       <>
-        <Dots value="71%" className="mt-5 text-[52px]" />
-        <Wave values={[0.1, 0.5, 0.2, 0.6, 0.4, 0.8, 0.7]} color="#f4ffb0" height={70} className="mt-auto" />
+        <span className="mt-5 text-[52px] leading-none">—</span>
+        <p className="mt-auto text-[13px] text-white/70">После первого чек-ина</p>
       </>
     ),
   },
@@ -65,9 +65,9 @@ const INTRO: { tone: CardTone; title: string; body: React.ReactNode }[] = [
     title: "Неделя",
     body: (
       <>
-        <Dots value="85" shape="square" className="mt-5 text-[52px]" />
+        <span className="mt-5 text-[52px] leading-none">—</span>
         <div className="mt-auto h-[84px]">
-          <Bars values={[6.4, 7.1, 5.9, 7.6, 7.9, 8.2, 7.7]} />
+          <p className="text-[13px] text-white/70">Пока нет данных</p>
         </div>
       </>
     ),
@@ -215,6 +215,7 @@ export function Onboarding() {
   const [bedGoal, setBedGoal] = React.useState(store.bedGoal)
   const [wakeGoal, setWakeGoal] = React.useState(store.wakeGoal)
   const [valence, setValence] = React.useState(0.3)
+  const [moodAnswered, setMoodAnswered] = React.useState(false)
   const [picked, setPicked] = React.useState<string[]>(() => STARTER.filter((id) => store.widgets.some((w) => w.id === id && w.visible)))
   const [reminder, setReminder] = React.useState(store.reminder)
   const [reminderTime, setReminderTime] = React.useState(store.reminderTime)
@@ -236,8 +237,8 @@ export function Onboarding() {
     setFinishing(true)
     const widgets = onboardingWidgets(store.widgets, picked)
     const granted = await store.finishOnboarding({ userName: name.trim(), focus, chronotype, bedGoal, wakeGoal, reminder, reminderTime, widgets })
-    store.addMood({ valence, emotions: [], factors: [] })
-    if (granted) store.notify(`Добро пожаловать, ${name.trim()}`)
+    if (moodAnswered) store.addMood({ valence, emotions: [], factors: [] })
+    if (granted) store.notify(name.trim() ? `Добро пожаловать, ${name.trim()}` : "Добро пожаловать!")
   }
 
   const pickChrono = (c: Chronotype) => {
@@ -431,7 +432,7 @@ export function Onboarding() {
                 max={1}
                 step={0.02}
                 value={valence}
-                onChange={setValence}
+                onChange={(value) => { setValence(value); setMoodAnswered(true) }}
                 track="linear-gradient(90deg,#5b3fd9,#3b82f6,#34d399,#d9f24a,#fb923c)"
               />
               <div className="mt-2 flex justify-between text-[12px] text-ink-3">
@@ -526,7 +527,10 @@ export function Onboarding() {
       {!building && (
         <>
           <Button className="mt-7 h-14 w-full shrink-0 text-[16px]" disabled={!canNext || finishing} onClick={async () => {
-            if (step !== STEPS - 1) return go(1)
+            if (step !== STEPS - 1) {
+              if (step === 5) setMoodAnswered(true)
+              return go(1)
+            }
             await finish()
             if (!account) openRegistration()
           }}>

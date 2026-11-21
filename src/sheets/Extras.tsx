@@ -227,11 +227,11 @@ export function NightSheet() {
             </div>
           </Card>
 
-          <Field label="Фазы сна" hint="оценка по вашей записи">
+          <Field label="Фазы сна" hint="нет измерений">
             <div className="glass rounded-[26px] p-4">
               <Hypnogram night={night} />
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-2.5">
+            {Object.values(totals).some(Boolean) && <div className="mt-3 grid grid-cols-2 gap-2.5">
               {(Object.keys(STAGE_META) as Stage[]).map((st) => (
                 <div key={st} className="glass-inset flex items-center gap-3 rounded-[20px] px-4 py-3">
                   <span className="size-2.5 shrink-0 rounded-full" style={{ background: STAGE_META[st].color }} />
@@ -241,7 +241,7 @@ export function NightSheet() {
                   </span>
                 </div>
               ))}
-            </div>
+            </div>}
           </Field>
 
           <Field label="Утро">
