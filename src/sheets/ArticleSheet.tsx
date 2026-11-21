@@ -1,3 +1,4 @@
+import * as React from "react"
 import { ArrowRight, Check, Clock } from "lucide-react"
 import { ARTICLES, articleById } from "@/lib/articles"
 import { useStore } from "@/store/store"
@@ -11,6 +12,13 @@ export function ArticleSheet() {
   const article = articleById(sheetArg)
   const read = !!article && readArticles.includes(article.id)
   const next = article ? ARTICLES[(ARTICLES.indexOf(article) + 1) % ARTICLES.length] : null
+  const body = React.useRef<HTMLElement>(null)
+
+  // "Дальше" swaps the article inside the same sheet, so start it from the top
+  React.useEffect(() => {
+    const scroller = body.current?.parentElement
+    if (scroller) scroller.scrollTop = 0
+  }, [article?.id])
 
   return (
     <Sheet
@@ -37,7 +45,7 @@ export function ArticleSheet() {
       }
     >
       {article && next && (
-        <article>
+        <article ref={body}>
           <Card tone={article.tone} r="lg">
             <div className="flex min-h-[220px] flex-col p-6">
               <span className="flex items-center gap-1.5 self-start rounded-full bg-black/25 px-3 py-1.5 text-[12px] font-medium">
