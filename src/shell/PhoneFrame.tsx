@@ -55,6 +55,7 @@ export function PhoneFrame({ tab, children }: { tab: string; children: React.Rea
       <FramedContext.Provider value={framed}>
         <ScreenContext.Provider value={el}>{children}</ScreenContext.Provider>
       </FramedContext.Provider>
+      <span className="top-scrim" data-framed={framed ? "" : undefined} aria-hidden />
       {framed && (
         <>
           <StatusBar />

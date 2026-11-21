@@ -332,7 +332,7 @@ export function SleepScreen() {
             <Plus className="size-4" /> Запись
           </Chip>
         </SectionHead>
-        <ul className="mt-4 grid gap-2">
+        <ul className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-2">
           {[...nights]
             .reverse()
             .slice(0, 14)

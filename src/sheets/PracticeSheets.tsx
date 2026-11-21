@@ -1,13 +1,21 @@
 import * as React from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { Check, Ear, Eye, Hand, Leaf, Pause, Play, Soup, Trash2 } from "lucide-react"
+import { Check, Ear, Eye, Hand, Leaf, Pause, Play, Soup, Trash2, X } from "lucide-react"
 import { cn } from "@/lib/cn"
 import { DUR, EASE_OUT } from "@/lib/motion"
 import { relativeDay, dateKey } from "@/lib/time"
 import { useStore } from "@/store/store"
-import { Button } from "@/ui/controls"
+import { Button, IconButton } from "@/ui/controls"
 import { Dots } from "@/ui/Dots"
 import { Field, Sheet } from "@/ui/Sheet"
+
+function CloseButton({ onClose }: { onClose: () => void }) {
+  return (
+    <IconButton label="Закрыть" size="sm" className="absolute right-5 top-6 z-10 size-9" onClick={onClose}>
+      <X />
+    </IconButton>
+  )
+}
 
 /* ── Grounding 5-4-3-2-1 ────────────────────────────────────────── */
 
@@ -40,7 +48,7 @@ function Grounding({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="flex h-full flex-col items-center px-6 pb-[max(var(--safe-bottom),24px)] pt-12 text-center">
-      <div className="flex w-full gap-1.5">
+      <div className="flex w-full gap-1.5 pr-12">
         {SENSES.map((x, i) => (
           <span key={x.n} className="h-1 flex-1 overflow-hidden rounded-full bg-white/15">
             <span
@@ -86,6 +94,7 @@ export function GroundingSheet() {
   const { sheet, openSheet } = useStore()
   return (
     <Sheet open={sheet === "grounding"} onClose={() => openSheet(null)} title="Заземление 5-4-3-2-1" bare>
+      <CloseButton onClose={() => openSheet(null)} />
       <Grounding onDone={() => openSheet(null)} />
     </Sheet>
   )
@@ -170,6 +179,7 @@ export function BodyScanSheet() {
   const close = React.useCallback(() => openSheet(null), [openSheet])
   return (
     <Sheet open={sheet === "bodyscan"} onClose={close} title="Сканирование тела" bare>
+      <CloseButton onClose={close} />
       <BodyScan onDone={close} />
     </Sheet>
   )

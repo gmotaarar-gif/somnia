@@ -263,7 +263,7 @@ export function MindScreen() {
 
       <motion.section {...riseIn(4)} className="mt-8">
         <SectionHead title="Дневник" />
-        <ul className="mt-4 grid gap-2">
+        <ul className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-2">
           {[...moods]
             .reverse()
             .slice(0, 10)

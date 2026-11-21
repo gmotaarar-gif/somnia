@@ -19,7 +19,7 @@ export function Island() {
   if (!framed && mode === "idle") return <AnimatePresence />
 
   const size =
-    mode === "toast" ? { width: 300, height: 48 } : mode === "live" ? { width: 214, height: 38 } : { width: 122, height: 35 }
+    mode === "toast" ? { width: framed ? 371 : 320, height: 50 } : mode === "live" ? { width: 184, height: 37 } : { width: 122, height: 35 }
   const mm = Math.floor(breath.remainingSec / 60)
   const ss = String(breath.remainingSec % 60).padStart(2, "0")
 
@@ -67,7 +67,7 @@ export function Island() {
               exit={{ opacity: 0, transition: { duration: DUR.quick } }}
             >
               <span className="flex items-center gap-2 text-[13px] font-medium text-lime">
-                <Wind className="size-4" /> Дыхание
+                <Wind className="size-4" /> {framed ? "" : "Дыхание"}
               </span>
               <span className="flex items-center gap-2 text-[13px] font-semibold tabular-nums">
                 <span className="size-1.5 animate-pulse rounded-full bg-lime" />

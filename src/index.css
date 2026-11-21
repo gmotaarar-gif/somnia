@@ -124,28 +124,57 @@ button:disabled {
   --a2: #7a3aa8;
   --a3: #3a52d8;
 }
+/* Blobs glide to a new pose when the tab changes and then rest: a perpetual drift
+   would force every glass surface above to re-blur on each frame. */
 .aurora-blob {
   position: absolute;
   border-radius: 50%;
-  will-change: transform;
+  transition: transform 2.6s var(--ease-out-smooth);
 }
 .aurora-blob.b1 {
   inset: -30% -20% 20% -20%;
   background: radial-gradient(closest-side, var(--a2), transparent 100%);
   opacity: 0.75;
-  animation: drift-a 26s ease-in-out infinite alternate;
 }
 .aurora-blob.b2 {
   inset: 25% -35% -35% 20%;
   background: radial-gradient(closest-side, var(--a3), transparent 100%);
   opacity: 0.5;
-  animation: drift-b 32s ease-in-out infinite alternate;
 }
 .aurora-blob.b3 {
   inset: 30% 25% -40% -40%;
   background: radial-gradient(closest-side, var(--a1), transparent 100%);
   opacity: 0.9;
-  animation: drift-c 38s ease-in-out infinite alternate;
+}
+.aurora[data-tab="sleep"] .b1 {
+  transform: translate3d(14%, 8%, 0) scale(1.12);
+}
+.aurora[data-tab="sleep"] .b2 {
+  transform: translate3d(-22%, -12%, 0) scale(0.9);
+}
+.aurora[data-tab="sleep"] .b3 {
+  transform: translate3d(10%, -10%, 0) scale(1.1);
+}
+.aurora[data-tab="mind"] .b1 {
+  transform: translate3d(-12%, 14%, 0) scale(1.05);
+}
+.aurora[data-tab="mind"] .b2 {
+  transform: translate3d(-30%, 6%, 0) scale(1.15);
+}
+.aurora[data-tab="mind"] .b3 {
+  transform: translate3d(26%, -18%, 0) scale(0.95);
+}
+.aurora[data-tab="practices"] .b1 {
+  transform: translate3d(6%, 22%, 0) scale(1.18);
+}
+.aurora[data-tab="practices"] .b2 {
+  transform: translate3d(-8%, -26%, 0) scale(1.05);
+}
+.aurora[data-tab="practices"] .b3 {
+  transform: translate3d(30%, 4%, 0) scale(1.1);
+}
+.aurora[data-tab="onboarding"] .b1 {
+  transform: translate3d(0, 6%, 0) scale(1.1);
 }
 .aurora-veil {
   position: absolute;
@@ -171,21 +200,6 @@ button:disabled {
   opacity: 0.32;
 }
 
-@keyframes drift-a {
-  to {
-    transform: translate3d(8%, 10%, 0) scale(1.12);
-  }
-}
-@keyframes drift-b {
-  to {
-    transform: translate3d(-12%, -8%, 0) scale(0.92);
-  }
-}
-@keyframes drift-c {
-  to {
-    transform: translate3d(10%, -12%, 0) scale(1.1);
-  }
-}
 
 /* ── Squircle cards ────────────────────────────────────────────── */
 
@@ -331,10 +345,10 @@ button:disabled {
 
 /* ── Glass ─────────────────────────────────────────────────────── */
 
+/* In-flow glass sits on the already-soft aurora, so a translucent fill reads the same as a
+   backdrop blur and costs nothing while scrolling. Only floating chrome (.glass-dark) blurs. */
 .glass {
   background: rgb(255 255 255 / 0.09);
-  backdrop-filter: blur(22px) saturate(170%);
-  -webkit-backdrop-filter: blur(22px) saturate(170%);
   box-shadow:
     inset 0 1px 0 0 rgb(255 255 255 / 0.24),
     inset 0 0 0 1px rgb(255 255 255 / 0.08);
@@ -408,12 +422,12 @@ button:disabled {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .aurora-blob,
   .jiggle,
   .dots .d {
     animation: none;
   }
-  .aurora {
+  .aurora,
+  .aurora-blob {
     transition: none;
   }
 }
@@ -426,6 +440,7 @@ button:disabled {
   place-items: center;
   height: 100dvh;
   overflow: hidden;
+  overflow: clip; /* hidden still scrolls on focus(); clip never does */
   background: #050508;
   transition:
     --a1 1.2s var(--ease-out-smooth),
@@ -476,6 +491,7 @@ button:disabled {
   position: relative;
   height: 100%;
   overflow: hidden;
+  overflow: clip;
   border-radius: 56px;
   background: var(--color-bg);
   /* makes position:fixed descendants (dock, sheets) stay inside the screen */
@@ -531,4 +547,17 @@ button:disabled {
   .track-dot {
     animation: none;
   }
+}
+
+/* Keeps scrolled content from colliding with the status bar */
+.top-scrim {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 40;
+  height: calc(var(--safe-top) + 18px);
+  pointer-events: none;
+  background: linear-gradient(rgb(7 7 12 / 0.96) 45%, rgb(7 7 12 / 0.6) 75%, transparent);
+}
+.top-scrim[data-framed] {
+  height: 78px;
 }
