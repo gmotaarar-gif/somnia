@@ -1,16 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen, waitFor } from "@testing-library/react"
-import { MotionConfig, motion, useReducedMotion } from "framer-motion"
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
+import { MotionConfig, MotionConfigContext, motion } from "framer-motion"
+import { useContext, useState } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { Island } from "@/shell/Island"
 import { MotionProvider } from "./MotionProvider"
 import { ScreenTransition } from "./ScreenTransition"
-
-vi.mock("framer-motion", async (original) => ({
-  ...await original<typeof import("framer-motion")>(),
-  useReducedMotion: vi.fn(() => false),
-}))
 
 const { store } = vi.hoisted(() => ({
   store: { toast: null as null | { id: number; text: string }, tab: "today", setTab: vi.fn(), nightMode: false },
@@ -21,12 +17,18 @@ vi.mock("@/store/store", () => ({
   useBreath: () => ({ breath: { running: false, remainingSec: 0 } }),
 }))
 
+let reduced = false
+const listeners = new Set<() => void>()
+
 beforeEach(() => {
-  vi.mocked(useReducedMotion).mockReturnValue(false)
+  reduced = false
+  listeners.clear()
   store.toast = null
   vi.stubGlobal("matchMedia", vi.fn(() => ({
-    matches: false, addListener: vi.fn(), removeListener: vi.fn(),
-    addEventListener: vi.fn(), removeEventListener: vi.fn(),
+    get matches() { return reduced },
+    addListener: vi.fn(), removeListener: vi.fn(),
+    addEventListener: (_: string, callback: () => void) => listeners.add(callback),
+    removeEventListener: (_: string, callback: () => void) => listeners.delete(callback),
   })))
 })
 
@@ -71,7 +73,7 @@ describe("screen transition lifecycle", () => {
 })
 
 it("settles animations without waiting for explicit delays when reduced motion is enabled", async () => {
-  vi.mocked(useReducedMotion).mockReturnValue(true)
+  reduced = true
   render(
     <MotionProvider>
       <motion.div data-testid="content" initial={{ opacity: 0, x: 100 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 10, delay: 10 }} />
@@ -81,6 +83,23 @@ it("settles animations without waiting for explicit delays when reduced motion i
     expect(screen.getByTestId("content").style.opacity).toBe("1")
     expect(screen.getByTestId("content").style.transform).toBe("none")
   })
+})
+
+it("follows live preference changes without reloading or remounting application state", () => {
+  function Content() {
+    const { skipAnimations } = useContext(MotionConfigContext)
+    const [count, setCount] = useState(0)
+    return <button onClick={() => setCount(count + 1)}>{String(skipAnimations)}:{count}</button>
+  }
+  render(<MotionProvider><Content /></MotionProvider>)
+  const button = screen.getByRole("button")
+  act(() => button.click())
+  act(() => {
+    reduced = true
+    listeners.forEach((notify) => notify())
+  })
+  expect(screen.getByRole("button")).toBe(button)
+  expect(button.textContent).toBe("true:1")
 })
 
 it("retains the mobile toast during its exit rather than unmounting it abruptly", async () => {
