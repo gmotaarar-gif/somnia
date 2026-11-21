@@ -13,7 +13,11 @@ import { Moon as KeylineMoon } from "@/components/icons/duotone/moon"
 import { Sun as KeylineSun } from "@/components/icons/duotone/sun"
 import { SOMNA_TIME_COLUMNS } from "@/lib/wheelColumns"
 import { STEP_SLIDE_VARIANTS, haptic } from "@/lib/motion"
-import { getTargetDurationMin, toLocalDateKey } from "@/lib/sleepTime"
+import {
+  getNightDateLabels,
+  getTargetDurationMin,
+  toLocalDateKey,
+} from "@/lib/sleepTime"
 import {
   getSleepQualityLabel,
   getSleepTone,
@@ -22,7 +26,6 @@ import {
 import { useSomna } from "@/store/useSomnaStore"
 import { cn } from "@/lib/utils"
 
-const WEEKDAYS_RU = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"]
 const MONTHS_RU = [
   "янв",
   "фев",
@@ -96,19 +99,27 @@ function formatDurationShort(mins: number) {
   return `${Math.floor(mins / 60)}ч ${String(mins % 60).padStart(2, "0")}м`
 }
 
+function splitStoredNote(stored: string | undefined) {
+  if (!stored) return { tags: [] as string[], note: "" }
+  const [head = "", ...rest] = stored.split(" — ")
+  const tags = head.split(" · ")
+  if (tags.every((t) => SLEEP_TAGS.includes(t))) {
+    return { tags, note: rest.join(" — ") }
+  }
+  return { tags: [] as string[], note: stored }
+}
+
 function buildNightDateInfo(offsetDays: number) {
   const d = new Date()
   d.setDate(d.getDate() - offsetDays)
-  const dayShort = WEEKDAYS_RU[d.getDay()] ?? "Вс"
   const dateKey = toLocalDateKey(d)
-  const date =
-    offsetDays === 0
-      ? "Сегодня"
-      : `${dayShort}, ${d.getDate()} ${MONTHS_RU[d.getMonth()] ?? ""}`
-  return { date, dayShort, dateKey }
+  const labels = getNightDateLabels(dateKey) ?? { date: "Сегодня", dayShort: "Вс" }
+  return { ...labels, dateKey }
 }
 
 function SleepQualityStep({
+  dayOffset,
+  onDayOffsetChange,
   quality,
   label,
   accentColor,
@@ -117,6 +128,8 @@ function SleepQualityStep({
   dir,
   reduceMotion,
 }: {
+  dayOffset: DayOffsetId
+  onDayOffsetChange: (v: DayOffsetId) => void
   quality: number
   label: string
   accentColor: string
@@ -135,8 +148,16 @@ function SleepQualityStep({
       exit="exit"
       className="flex flex-1 flex-col items-center justify-between px-6 pt-2 pb-8 text-center"
     >
-      <div>
-        <h2 className="max-w-[290px] text-[20px] leading-snug font-bold tracking-tight text-white">
+      <div className="w-full">
+        <SlidingTabs
+          items={DAY_CHOICES}
+          value={dayOffset}
+          onValueChange={onDayOffsetChange}
+          ariaLabel="День записи сна"
+          size="xs"
+          fullWidth
+        />
+        <h2 className="mx-auto mt-3 max-w-[290px] text-[20px] leading-snug font-bold tracking-tight text-white">
           Как вы выспались этой ночью?
         </h2>
         <div className="mt-2.5 flex justify-center text-[23px] font-bold tracking-tight">
@@ -187,8 +208,6 @@ function SleepQualityStep({
 }
 
 function SleepScheduleStep({
-  dayOffset,
-  onDayOffsetChange,
   bedWheel,
   wakeWheel,
   onBedChange,
@@ -201,8 +220,6 @@ function SleepScheduleStep({
   dir,
   reduceMotion,
 }: {
-  dayOffset: DayOffsetId
-  onDayOffsetChange: (v: DayOffsetId) => void
   bedWheel: Record<string, string>
   wakeWheel: Record<string, string>
   onBedChange: (v: Record<string, string>) => void
@@ -247,15 +264,6 @@ function SleepScheduleStep({
             <span className="text-xs text-white/55">{deltaBadge}</span>
           </div>
         </div>
-
-        <SlidingTabs
-          items={DAY_CHOICES}
-          value={dayOffset}
-          onValueChange={onDayOffsetChange}
-          ariaLabel="День записи сна"
-          size="xs"
-          fullWidth
-        />
 
         <div className="grid grid-cols-2 gap-2.5">
           <div className="space-y-1.5">
@@ -441,13 +449,22 @@ function SleepNightDetailsStep({
 }
 
 export function SleepLogDrawer() {
-  const { sleepLogOpen, setSleepLogOpen, bedtimeGoal, wakeGoal, addSleepNight } =
-    useSomna()
+  const {
+    sleepLogOpen,
+    setSleepLogOpen,
+    bedtimeGoal,
+    wakeGoal,
+    sleepHistory,
+    addSleepNight,
+  } = useSomna()
   const reduceMotion = useReducedMotion()
 
   const [step, setStep] = React.useState(0) // 0: quality orb, 1: time wheels, 2: awakenings/tags/note, 3: Записано
   const [dir, setDir] = React.useState<1 | -1>(1)
   const [dayOffset, setDayOffset] = React.useState<DayOffsetId>("0")
+  const [targetDateKey, setTargetDateKey] = React.useState(() =>
+    toLocalDateKey(new Date())
+  )
   const [bedWheel, setBedWheel] = React.useState<Record<string, string>>(() =>
     splitTime(bedtimeGoal)
   )
@@ -468,22 +485,44 @@ export function SleepLogDrawer() {
     }
   }, [])
 
+  const sleepHistoryRef = React.useRef(sleepHistory)
+  sleepHistoryRef.current = sleepHistory
+
+  // Prefill the form from the saved night for the selected date, so re-saving edits it.
+  const loadFormForDay = React.useCallback(
+    (offset: DayOffsetId) => {
+      const { dateKey } = buildNightDateInfo(Number(offset))
+      const existing = [...sleepHistoryRef.current]
+        .reverse()
+        .find((n) => n.dateKey === dateKey)
+      setTargetDateKey(dateKey)
+      const { tags, note: savedNote } = splitStoredNote(existing?.note)
+      setBedWheel(splitTime(existing?.bedtime ?? bedtimeGoal))
+      setWakeWheel(splitTime(existing?.wakeTime ?? wakeGoal))
+      setQuality(existing?.quality ?? 84)
+      setAwakenings(existing?.awakenings ?? 0)
+      setSelectedTags(tags)
+      setNote(savedNote)
+    },
+    [bedtimeGoal, wakeGoal]
+  )
+
+  const handleDayOffsetChange = (offset: DayOffsetId) => {
+    setDayOffset(offset)
+    loadFormForDay(offset)
+  }
+
   React.useEffect(() => {
     if (sleepLogOpen) {
       clearCloseTimer()
       setStep(0)
       setDir(1)
       setDayOffset("0")
-      setBedWheel(splitTime(bedtimeGoal))
-      setWakeWheel(splitTime(wakeGoal))
-      setQuality(84)
-      setAwakenings(0)
-      setSelectedTags([])
-      setNote("")
+      loadFormForDay("0")
     } else {
       clearCloseTimer()
     }
-  }, [sleepLogOpen, bedtimeGoal, wakeGoal, clearCloseTimer])
+  }, [sleepLogOpen, loadFormForDay, clearCloseTimer])
 
   React.useEffect(() => {
     return () => clearCloseTimer()
@@ -510,7 +549,11 @@ export function SleepLogDrawer() {
     haptic(12)
     const bedtime = `${bedWheel.hour}:${bedWheel.minute}`
     const wakeTime = `${wakeWheel.hour}:${wakeWheel.minute}`
-    const { date, dayShort, dateKey } = buildNightDateInfo(Number(dayOffset))
+    const dateKey = targetDateKey
+    const { date, dayShort } = getNightDateLabels(dateKey) ?? {
+      date: "Сегодня",
+      dayShort: "Вс",
+    }
     const composedNote = [selectedTags.join(" · "), note.trim()]
       .filter(Boolean)
       .join(" — ")
@@ -589,6 +632,8 @@ export function SleepLogDrawer() {
         <AnimatePresence mode="wait" custom={{ dir, reduced: !!reduceMotion }}>
           {step === 0 && (
             <SleepQualityStep
+              dayOffset={dayOffset}
+              onDayOffsetChange={handleDayOffsetChange}
               quality={quality}
               label={label}
               accentColor={accentColor}
@@ -601,8 +646,6 @@ export function SleepLogDrawer() {
 
           {step === 1 && (
             <SleepScheduleStep
-              dayOffset={dayOffset}
-              onDayOffsetChange={setDayOffset}
               bedWheel={bedWheel}
               wakeWheel={wakeWheel}
               onBedChange={setBedWheel}

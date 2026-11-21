@@ -5,7 +5,7 @@ import {
   stopSound,
   type SoundMode,
 } from "@/lib/audioEngine"
-import { toLocalDateKey } from "@/lib/sleepTime"
+import { getNightDateLabels, toLocalDateKey } from "@/lib/sleepTime"
 
 export type GlowTheme =
   | "emerald-lime"
@@ -549,6 +549,24 @@ const STORAGE_KEY = "somna-app-state-v5"
 const SomnaContext = React.createContext<SomnaStore | null>(null)
 const SomnaTimerContext = React.createContext<SomnaTimerStore | null>(null)
 
+/** One night per dateKey (latest save wins), in calendar order, capped at 90. */
+function normalizeSleepHistory(nights: SleepNight[]): SleepNight[] {
+  const byKey = new Map<string, SleepNight>()
+  const unkeyed: SleepNight[] = []
+  for (const n of nights) {
+    if (n.dateKey) {
+      byKey.delete(n.dateKey)
+      byKey.set(n.dateKey, n)
+    } else {
+      unkeyed.push(n)
+    }
+  }
+  const keyed = [...byKey.values()].sort((a, b) =>
+    (a.dateKey ?? "").localeCompare(b.dateKey ?? "")
+  )
+  return [...unkeyed, ...keyed].slice(-90)
+}
+
 export function SomnaProvider({ children }: { children: React.ReactNode }) {
   const saved = React.useMemo(() => {
     if (typeof window === "undefined") return null
@@ -590,9 +608,29 @@ export function SomnaProvider({ children }: { children: React.ReactNode }) {
   const [eveningDetox, setEveningDetox] = React.useState<boolean>(saved?.eveningDetox ?? true)
   const [waterMl, setWaterMl] = React.useState<number>(saved?.waterMl ?? 1500)
   const [breathMinutes, setBreathMinutes] = React.useState<number>(saved?.breathMinutes ?? 6)
-  const [sleepHistory, setSleepHistory] = React.useState<SleepNight[]>(
-    saved?.sleepHistory ?? DEFAULT_SLEEP_HISTORY
+  const [storedSleepHistory, setSleepHistory] = React.useState<SleepNight[]>(
+    () => normalizeSleepHistory(saved?.sleepHistory ?? DEFAULT_SLEEP_HISTORY)
   )
+  const [todayKey, setTodayKey] = React.useState(() => toLocalDateKey(new Date()))
+  React.useEffect(() => {
+    const refresh = () => setTodayKey(toLocalDateKey(new Date()))
+    const id = window.setInterval(refresh, 60_000)
+    document.addEventListener("visibilitychange", refresh)
+    window.addEventListener("focus", refresh)
+    return () => {
+      window.clearInterval(id)
+      document.removeEventListener("visibilitychange", refresh)
+      window.removeEventListener("focus", refresh)
+    }
+  }, [])
+  const sleepHistory = React.useMemo(() => {
+    const today = new Date()
+    return storedSleepHistory.map((n) => {
+      const labels = n.dateKey ? getNightDateLabels(n.dateKey, today) : null
+      return labels ? { ...n, ...labels } : n
+    })
+    // todayKey re-derives "Сегодня" labels after midnight
+  }, [storedSleepHistory, todayKey])
   const [streakDays, setStreakDays] = React.useState<number>(
     saved?.streakDays ?? DEFAULT_SLEEP_HISTORY.length
   )
@@ -661,7 +699,7 @@ export function SomnaProvider({ children }: { children: React.ReactNode }) {
           waterMl,
           breathMinutes,
           streakDays,
-          sleepHistory,
+          sleepHistory: storedSleepHistory,
           moodHistory,
           spectrum,
           widgets,
@@ -689,7 +727,7 @@ export function SomnaProvider({ children }: { children: React.ReactNode }) {
     waterMl,
     breathMinutes,
     streakDays,
-    sleepHistory,
+    storedSleepHistory,
     moodHistory,
     spectrum,
     widgets,
@@ -751,15 +789,21 @@ export function SomnaProvider({ children }: { children: React.ReactNode }) {
     setBreathMinutes((prev) => +(prev + min).toFixed(1))
   }, [])
 
-  const addSleepNight = React.useCallback((night: Omit<SleepNight, "id">) => {
-    const newNight: SleepNight = {
-      ...night,
-      dateKey: night.dateKey ?? toLocalDateKey(new Date()),
-      id: `s-${Date.now()}`,
-    }
-    setSleepHistory((prev) => [...prev.slice(-89), newNight])
-    setStreakDays((d) => d + 1)
-  }, [])
+  const addSleepNight = React.useCallback(
+    (night: Omit<SleepNight, "id">) => {
+      const newNight: SleepNight = {
+        ...night,
+        dateKey: night.dateKey ?? toLocalDateKey(new Date()),
+        id: `s-${Date.now()}`,
+      }
+      const replacesExisting = storedSleepHistory.some(
+        (n) => n.dateKey === newNight.dateKey
+      )
+      setSleepHistory((prev) => normalizeSleepHistory([...prev, newNight]))
+      if (!replacesExisting) setStreakDays((d) => d + 1)
+    },
+    [storedSleepHistory]
+  )
 
   const addMoodEntry = React.useCallback(
     (entry: Omit<MoodEntry, "id" | "timestamp">) => {
