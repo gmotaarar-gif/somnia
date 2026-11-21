@@ -122,7 +122,22 @@ void main() {
     expect(s.theme, 'system');
     expect(s.morningReminderTime, '09:15');
     expect(s.volume, 60);
-    expect(s.nights.length, 14);
+    expect(s.nights, isEmpty);
+    expect(s.moods, isEmpty);
+    expect(s.sessions, isEmpty);
+    expect(s.wellbeing, isEmpty);
+    expect(s.water.ml, 0);
+    expect(s.ritual.done, isEmpty);
+    final seeded = create(
+      MemoryPersistence.json({
+        'nights': [night('2026-11-19').toJson()..['id'] = 'demo-n-3'],
+        'moods': [mood(19).toJson()..['id'] = 'demo-m-0', mood(20).toJson()],
+        'sessions': [session(19).toJson()..['id'] = 'demo-s-1'],
+      }),
+    );
+    expect(seeded.nights, isEmpty);
+    expect(seeded.moods.single.id, '20-10');
+    expect(seeded.sessions, isEmpty);
     final valid = create(
       MemoryPersistence.json({
         'theme': 'light',
@@ -307,6 +322,8 @@ void main() {
     expect(s.spectrum.first.value, 0);
     s.setSpectrum('calm', 2);
     expect(s.spectrum.first.value, 1);
+    s.toggleRitual('dim');
+    expect(s.ritual.done, ['dim']);
     s.toggleRitual('dim');
     expect(s.ritual.done, isEmpty);
     s.toggleRitual('dim');
