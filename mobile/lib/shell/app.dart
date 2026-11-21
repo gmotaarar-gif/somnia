@@ -9,6 +9,8 @@ import '../ui/sheets.dart';
 import '../native/android_reminders.dart';
 import '../native/reminders.dart';
 import '../native/export.dart';
+import '../sleep/night_mode.dart';
+import '../sleep/sheets.dart';
 import 'onboarding.dart';
 import 'profile_sheet.dart';
 import 'splash.dart';
@@ -49,6 +51,7 @@ class _SomnaAppState extends State<SomnaApp> {
             ProfileSheet(reminders: _reminders, exporter: _exporter),
       );
     }
+    registerSleepSheets(_registry);
     _store = widget.store;
     if (_store != null && _reminders != null) {
       unawaited(_reminders!.start(_store!));
@@ -105,6 +108,7 @@ class _SomnaAppState extends State<SomnaApp> {
           fit: StackFit.expand,
           children: [
             child!,
+            if (store != null) const NightModeHost(),
             if (store?.toast != null)
               Positioned(
                 left: 20,
