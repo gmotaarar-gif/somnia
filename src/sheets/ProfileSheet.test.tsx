@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { StoreProvider, useStore } from "@/store/store"
 import { SubscriptionProvider } from "@/store/subscription"
 import { LocalAccountProvider, useLocalAccount } from "@/account/LocalAccountProvider"
-import { today } from "@/lib/time"
+import { dateKey } from "@/lib/time"
 import { ProfileSheet } from "./ProfileSheet"
 
 // Exercise profile/store behavior without the shared sheet's animation/portal lifecycle.
@@ -147,7 +147,7 @@ describe("ProfileSheet", () => {
   it("switches reset confirmation without mixing actions or deleting custom habits", () => {
     openProfile()
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
-    const habit = { ...saved.widgets[0], id: "own-habit", kind: "custom", title: "Читать", value: 3, day: today() }
+    const habit = { ...saved.widgets[0], id: "own-habit", kind: "custom", title: "Читать", value: 3, day: dateKey(new Date()) }
     cleanup()
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...saved, nights: [savedNight], widgets: [habit, ...saved.widgets] }))
     openProfile()
