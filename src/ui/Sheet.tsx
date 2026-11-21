@@ -43,7 +43,7 @@ export function Sheet({ open, onClose, title, description, children, footer, bar
             <Dialog.Content asChild forceMount aria-describedby={undefined}>
               <motion.div
                 className={cn(
-                  "pointer-events-auto relative flex max-h-[93%] w-full flex-col overflow-hidden rounded-t-[40px] bg-[#0d0d13] shadow-[inset_0_1px_0_rgb(255_255_255/0.16),0_-30px_80px_rgb(0_0_0/0.6)] outline-none",
+                  "pointer-events-auto relative flex max-h-[93%] w-full flex-col overflow-hidden rounded-t-[40px] bg-sheet shadow-[inset_0_1px_0_var(--glass-edge),0_-30px_80px_rgb(0_0_0/0.35)] outline-none",
                   "",
                   bare && "h-[93%]",
                   className
@@ -92,7 +92,7 @@ export function Sheet({ open, onClose, title, description, children, footer, bar
                       <div className="no-scrollbar flex-1 overflow-y-auto overscroll-contain px-6 pb-6">{children}</div>
                     )}
                     {footer && (
-                      <footer className="border-t border-hair bg-[#0d0d13] px-6 pb-[max(var(--safe-bottom),20px)] pt-4">
+                      <footer className="border-t border-hair bg-sheet px-6 pb-[max(var(--safe-bottom),20px)] pt-4">
                         {footer}
                       </footer>
                     )}

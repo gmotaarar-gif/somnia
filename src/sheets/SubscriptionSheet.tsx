@@ -122,7 +122,7 @@ function SubscriptionContent({ fromPractice, onClose }: { fromPractice: boolean;
         )}
         {error && <p role="alert" className="mt-4 rounded-[18px] bg-[#ff5d5d]/10 p-3 text-[12px] leading-relaxed text-[#ffabab]">{error}</p>}
       </div>
-      <footer className="shrink-0 border-t border-hair bg-[#0d0d13] px-6 pb-[max(var(--safe-bottom),20px)] pt-4">
+      <footer className="shrink-0 border-t border-hair bg-sheet px-6 pb-[max(var(--safe-bottom),20px)] pt-4">
         <Button className="w-full" onClick={isPlus ? onClose : enable}>{isPlus ? "Готово" : <>Включить Plus бесплатно <ArrowRight /></>}</Button>
         <p className="mt-2.5 text-center text-[11px] leading-relaxed text-ink-3">{isPlus ? "Демодоступ · без оплаты и автопродления" : "Это демо: деньги не списываются, карта не нужна. Цены выше — пример, не платёж."}</p>
         {!isPlus && <button type="button" onClick={onClose} className="press mt-2 min-h-9 w-full text-[12px] text-ink-2">Продолжить бесплатно</button>}

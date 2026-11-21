@@ -29,7 +29,7 @@ it("keeps the shell mounted after repeated failure and retries with a fresh lazy
 
   expect(await screen.findByRole("alert")).toBeTruthy()
   expect(screen.getByRole("alert").parentElement).toBe(document.body)
-  expect(screen.getByRole("alert").classList.contains("bg-[#0d0d13]")).toBe(true)
+  expect(screen.getByRole("alert").classList.contains("bg-sheet")).toBe(true)
   expect(screen.getByRole("alert").classList.contains("z-[100]")).toBe(true)
   expect(screen.getByRole("alert").classList.contains("glass")).toBe(false)
   expect(screen.getByText("App shell")).toBeTruthy()
