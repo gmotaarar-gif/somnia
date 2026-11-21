@@ -238,7 +238,7 @@ export function Onboarding() {
     const widgets = onboardingWidgets(store.widgets, picked)
     const granted = await store.finishOnboarding({ userName: name.trim(), focus, chronotype, bedGoal, wakeGoal, reminder, reminderTime, widgets })
     if (moodAnswered) store.addMood({ valence, emotions: [], factors: [] })
-    if (granted) store.notify(`Добро пожаловать, ${name.trim()}`)
+    if (granted) store.notify(name.trim() ? `Добро пожаловать, ${name.trim()}` : "Добро пожаловать!")
   }
 
   const pickChrono = (c: Chronotype) => {

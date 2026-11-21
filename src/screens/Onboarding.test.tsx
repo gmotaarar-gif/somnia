@@ -25,8 +25,8 @@ afterEach(() => {
 })
 
 function Probe() {
-  const { moods, onboarded } = useStore()
-  return <output data-testid="journal">{JSON.stringify({ moods, onboarded })}</output>
+  const { moods, onboarded, toast } = useStore()
+  return <><output data-testid="journal">{JSON.stringify({ moods, onboarded })}</output><output data-testid="toast">{toast?.text}</output></>
 }
 
 function start() {
@@ -44,6 +44,18 @@ it("does not save a mood when onboarding is skipped", async () => {
   start()
   fireEvent.click(screen.getByRole("button", { name: "Позже" }))
   expect(await finish()).toEqual({ moods: [], onboarded: true })
+})
+
+it.each([
+  ["", "Добро пожаловать!"],
+  ["   ", "Добро пожаловать!"],
+  [" Мира ", "Добро пожаловать, Мира"],
+])("greets a skipped onboarding user with name %j", async (name, greeting) => {
+  start()
+  fireEvent.change(screen.getByRole("textbox", { name: "Ваше имя" }), { target: { value: name } })
+  fireEvent.click(screen.getByRole("button", { name: "Позже" }))
+  await finish()
+  expect(screen.getByTestId("toast").textContent).toBe(greeting)
 })
 
 it("does not treat merely viewing the mood step as answering it", async () => {
