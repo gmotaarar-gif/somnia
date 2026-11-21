@@ -292,20 +292,33 @@ function migrate(base: Persisted, parsed: Partial<Persisted>): Persisted {
   return saved
 }
 
+// Holds the damaged original for download when storage has no room for a backup copy.
+let unstoredOriginal: string | null = null
+
 function backupSavedData(raw: string) {
   try {
     window.localStorage.setItem(BACKUP_KEY, raw)
+    unstoredOriginal = null
   } catch {
-    // storage is full or disabled; the damaged original stays in STORAGE_KEY until the next save
+    unstoredOriginal = raw
   }
 }
 
-/** The saved text a user can download: the backed-up original if one was kept, else the current save. */
+function clearSavedDataBackup() {
+  unstoredOriginal = null
+  try {
+    window.localStorage.removeItem(BACKUP_KEY)
+  } catch {
+    // storage is disabled; there is no backup to remove
+  }
+}
+
+/** The saved text a user can download: the original damaged save if one was kept, else the current save. */
 export function readSavedDataCopy(): string | null {
   try {
-    return window.localStorage.getItem(BACKUP_KEY) ?? window.localStorage.getItem(STORAGE_KEY)
+    return window.localStorage.getItem(BACKUP_KEY) ?? unstoredOriginal ?? window.localStorage.getItem(STORAGE_KEY)
   } catch {
-    return null
+    return unstoredOriginal
   }
 }
 
@@ -553,7 +566,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         ...widgets.filter((widget) => widget.kind === "custom"),
         ...DEFAULT_WIDGETS.map((widget) => ({ ...widget })),
       ]),
-      resetAll: () => setData((d) => ({ ...defaults(), onboarded: d.onboarded, userName: d.userName, localAccount: d.localAccount })),
+      resetAll: () => {
+        clearSavedDataBackup()
+        setData((d) => ({ ...defaults(), onboarded: d.onboarded, userName: d.userName, localAccount: d.localAccount }))
+      },
     }
   }, [])
 
