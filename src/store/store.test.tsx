@@ -151,4 +151,14 @@ describe("StoreProvider", () => {
     expect(result.current.widgets.find((w) => w.id === "w-water")?.visible).toBe(true)
     expect(result.current.sessions.map((x) => x.min)).toEqual([4, 3])
   })
+
+  it("does not count the removed breathing step toward today's ritual", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2030, 0, 2, 21, 0))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ layout: 2, ritual: { day: "2030-01-02", done: ["dim", "breath"] } }))
+
+    const { result } = renderHook(useStore, { wrapper: StoreProvider })
+
+    expect(result.current.ritual).toEqual({ day: "2030-01-02", done: ["dim"] })
+  })
 })

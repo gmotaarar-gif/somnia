@@ -306,10 +306,11 @@ function load(): Persisted {
     const saved = rollDay({ ...base, ...parsed }, today())
     saved.localAccount = normalizeLocalAccount(saved.localAccount)
     saved.nights = normalizeNights(saved.nights)
-    // Breathing practices were removed: drop their counter and widget.
+    // Breathing practices were removed: drop their counter, widget and ritual step.
     // Finished sessions stay, so earned practice minutes and awards are not lost.
     delete (saved as { breath?: unknown }).breath
     saved.widgets = saved.widgets.filter((w) => (w.kind as string) !== "breath")
+    saved.ritual = { ...saved.ritual, done: saved.ritual.done.filter((id) => id !== "breath") }
     if (parsed.layout !== HOME_LAYOUT) {
       if (parsed.widgets) saved.widgets = saved.widgets.map((w) => (REDUNDANT_WIDGETS.has(w.kind) ? { ...w, visible: false } : w))
       saved.layout = HOME_LAYOUT
