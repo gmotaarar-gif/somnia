@@ -10,7 +10,7 @@ const mood = (day: number, valence = 0, hour = 10): MoodEntry => ({
   id: `${day}-${hour}`, at: new Date(2026, 10, day, hour).toISOString(), valence, emotions: ["Спокойствие"], factors: [],
 })
 const session = (day: number): PracticeSession => ({
-  id: `${day}`, at: new Date(2026, 10, day, 10).toISOString(), kind: "breath", min: 5,
+  id: `${day}`, at: new Date(2026, 10, day, 10).toISOString(), kind: "grounding", min: 5,
 })
 
 describe("buildWeeklyRecap", () => {

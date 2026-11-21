@@ -117,7 +117,7 @@ function SubscriptionContent({ fromPractice, onClose }: { fromPractice: boolean;
                 )
               })}
             </fieldset>
-            <p className="mt-4 text-[12px] leading-relaxed text-ink-3">Дневник сна, чек-ины, дыхание, заземление и дневник тревог остаются бесплатными.</p>
+            <p className="mt-4 text-[12px] leading-relaxed text-ink-3">Дневник сна, чек-ины, статьи, заземление и дневник тревог остаются бесплатными.</p>
           </>
         )}
         {error && <p role="alert" className="mt-4 rounded-[18px] bg-[#ff5d5d]/10 p-3 text-[12px] leading-relaxed text-[#ffabab]">{error}</p>}

@@ -145,9 +145,9 @@ export function SleepScreen() {
               <span className="text-[14px] font-medium text-white/80">Прошлая ночь</span>
               {last && <span className="rounded-full bg-white/16 px-3 py-1.5 text-[12px] font-medium">{qualityLabel(last.quality)}</span>}
             </div>
-            <div className="mt-7 flex items-end gap-2">
-              <span className="text-[68px] font-medium leading-[0.9] tracking-[-0.06em] tabular-nums">{last ? hm(last.durationMin) : "0:00"}</span>
-              <span className="pb-1 text-[17px] text-white/65">ч</span>
+            <div className="mt-8 flex items-end gap-3">
+              <Dots value={last ? hm(last.durationMin) : "0:00"} shape="square" className="text-[64px]" />
+              <span className="pb-0.5 text-[17px] text-white/65">ч</span>
             </div>
             {last ? (
               <>

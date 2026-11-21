@@ -1,5 +1,5 @@
 import * as React from "react"
-import { AlarmClock, ArrowUpRight, Flame, HeartPulse, ListChecks, Plus, Sparkles, Wind, Zap } from "lucide-react"
+import { AlarmClock, ArrowUpRight, Flame, HeartPulse, ListChecks, Plus, Sparkles, Zap } from "lucide-react"
 import { dayPlan, wakeOptions, who5Label } from "@/lib/features"
 import { cn } from "@/lib/cn"
 import { bedtimeCountdown, moodPct, qualityLabel } from "@/lib/metrics"
@@ -8,7 +8,7 @@ import { getValenceLabel } from "@/lib/valence"
 import { useNow, useSummary } from "@/store/derived"
 import { useStore, type Widget } from "@/store/store"
 import { Card, CardTitle } from "@/ui/Card"
-import { Arc, DotRow, DotTrack, Hops, Ring, Wave } from "@/ui/charts"
+import { Arc, DotRow, DotTrack, Ring, Wave } from "@/ui/charts"
 import { Toggle } from "@/ui/controls"
 import { Dots } from "@/ui/Dots"
 import { WATER_GOAL_ML, WIDGET_META } from "@/widgets/catalog"
@@ -68,8 +68,6 @@ function useWidgetAction(widget: Widget): { run: () => void; label: string } {
       return { run: () => s.openSheet("mood"), label: "Чек-ин состояния" }
     case "evening":
       return { run: () => s.patch({ eveningMode: !s.eveningMode }), label: "Переключить вечерний режим" }
-    case "breath":
-      return { run: () => s.setTab("practices"), label: "Открыть практики" }
     case "energy":
       return { run: () => s.openSheet("sleep"), label: "Записать сон" }
     case "plan":
@@ -194,18 +192,6 @@ function Body({ widget, wide }: BodyProps) {
     }
     case "evening":
       return <EveningBody wide={wide} />
-    case "breath": {
-      const min = store.breath.min
-      return (
-        <>
-          <Head title="Дыхание" sub={wide ? "Практика сегодня" : undefined} right={wide ? <Badge><Wind /></Badge> : undefined} />
-          <div className="mt-auto">
-            <Figure value={min.toFixed(1)} unit="мин" />
-            <Hops values={wide ? [2, 5, 3, 6, 4, 7] : [3, 6]} className={cn("-mx-[18px] -mb-2 w-[calc(100%+36px)]", wide ? "-mt-10" : "-mt-1")} />
-          </div>
-        </>
-      )
-    }
     case "week": {
       const span = nights.slice(wide ? -28 : -14)
       return (
@@ -274,7 +260,6 @@ function Body({ widget, wide }: BodyProps) {
       const plan = dayPlan({
         nights,
         moods: store.moods,
-        breathMin: store.breath.min,
         waterMl: store.water.ml,
         waterGoal: WATER_GOAL_ML,
         ritualDone: store.ritual.done.length,

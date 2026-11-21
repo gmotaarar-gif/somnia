@@ -1,6 +1,7 @@
 import * as React from "react"
 import { motion } from "framer-motion"
 import { ArrowUpRight, Plus } from "lucide-react"
+import { ARTICLES } from "@/lib/articles"
 import { indexLabel, moodPct, qualityLabel } from "@/lib/metrics"
 import { riseIn } from "@/lib/motion"
 import { dayMonth, greeting, hm, pluralRu, weekdayShort } from "@/lib/time"
@@ -9,7 +10,7 @@ import { useNow, useSummary } from "@/store/derived"
 import { useStore } from "@/store/store"
 import { DayPlan } from "@/screens/TodayExtras"
 import { TopBar } from "@/shell/TopBar"
-import { Card } from "@/ui/Card"
+import { Card, type CardTone } from "@/ui/Card"
 import { Hypnogram } from "@/ui/SleepStages"
 import { Button, Chip, IconButton, SectionHead } from "@/ui/controls"
 import { Dots } from "@/ui/Dots"
@@ -27,10 +28,12 @@ function Tile({
   label,
   icon,
   note,
+  tone,
   onClick,
   children,
 }: {
   title: string
+  tone?: CardTone
   label: string
   icon: React.ReactNode
   note: string
@@ -38,25 +41,26 @@ function Tile({
   children: React.ReactNode
 }) {
   return (
-    <Card role="button" tabIndex={0} aria-label={label} onClick={onClick} onKeyDown={onKey(onClick)} className="cursor-pointer">
-      <div className="flex h-[156px] flex-col p-5">
-        <div className="flex items-center justify-between text-ink-2">
-          <span className="text-[13px] font-medium">{title}</span>
-          <span className="[&_svg]:size-4">{icon}</span>
+    <Card tone={tone} role="button" tabIndex={0} aria-label={label} onClick={onClick} onKeyDown={onKey(onClick)} className="cursor-pointer">
+      <div className="flex h-[168px] flex-col p-5">
+        <div className="flex items-center justify-between">
+          <span className="text-[15px] font-medium">{title}</span>
+          <span className="grid size-8 place-items-center rounded-full bg-white/12 [&_svg]:size-4">{icon}</span>
         </div>
         <div className="mt-auto">{children}</div>
-        <div className="mt-3 truncate text-[12px] text-ink-2">{note}</div>
+        <div className="mt-3 truncate text-[12px] text-white/70">{note}</div>
       </div>
     </Card>
   )
 }
 
 export function TodayScreen() {
-  const { userName, widgets, setTab, openSheet, editing, setEditing } = useStore()
+  const { userName, widgets, readArticles, setTab, openSheet, editing, setEditing } = useStore()
   const sum = useSummary()
   const now = useNow(60_000)
   const last = sum.last
   const mood = sum.lastMood
+  const article = ARTICLES.find((a) => !readArticles.includes(a.id)) ?? ARTICLES[0]
   const shown = widgets.filter((w) => w.visible).length
 
   return (
@@ -78,9 +82,9 @@ export function TodayScreen() {
               <span className="text-[14px] font-medium text-white/80">Прошлая ночь</span>
               {last && <span className="rounded-full bg-white/16 px-3 py-1.5 text-[12px] font-medium">{qualityLabel(last.quality)}</span>}
             </div>
-            <div className="mt-7 flex items-end gap-2">
-              <span className="text-[68px] font-medium leading-[0.9] tracking-[-0.06em] tabular-nums">{last ? hm(last.durationMin) : "0:00"}</span>
-              <span className="pb-1 text-[17px] text-white/65">ч</span>
+            <div className="mt-8 flex items-end gap-3">
+              <Dots value={last ? hm(last.durationMin) : "0:00"} shape="square" className="text-[64px]" />
+              <span className="pb-0.5 text-[17px] text-white/65">ч</span>
             </div>
             {last ? (
               <>
@@ -116,6 +120,7 @@ export function TodayScreen() {
           label="Состояние. Сделать чек-ин"
           icon={<Plus />}
           note={mood ? getValenceLabel(mood.valence) : "Сделайте чек-ин"}
+          tone={!mood ? "ink" : mood.valence < -0.12 ? "dusk" : mood.valence < 0.3 ? "cobalt" : "moss"}
           onClick={() => openSheet("mood")}
         >
           <Dots value={mood ? `${moodPct(mood.valence)}%` : "--"} className="text-[34px]" />
@@ -125,6 +130,7 @@ export function TodayScreen() {
           label="Индекс недели. Открыть итоги"
           icon={<ArrowUpRight />}
           note={`${indexLabel(sum.index)}${sum.indexDelta ? ` · ${sum.indexDelta > 0 ? "+" : ""}${sum.indexDelta}` : ""}`}
+          tone="ember"
           onClick={() => openSheet("recap")}
         >
           <Dots value={sum.index} shape="square" className="text-[34px]" />
@@ -135,7 +141,24 @@ export function TodayScreen() {
         <DayPlan />
       </motion.div>
 
-      <motion.section {...riseIn(3)} className="mt-10" aria-label="Виджеты">
+      <motion.section {...riseIn(3)} className="mt-10" aria-label="Почитать">
+        <SectionHead title="Почитать" hint={`${article.tag} · ${article.min} мин`} />
+        <Card tone={article.tone} className="mt-4">
+          <button
+            type="button"
+            aria-label={`Читать: ${article.title}`}
+            onClick={() => openSheet("article", article.id)}
+            className="press flex min-h-[148px] w-full flex-col p-5 text-left"
+          >
+            <span className="grid size-9 place-items-center self-end rounded-full bg-white/16">
+              <ArrowUpRight className="size-4" />
+            </span>
+            <span className="mt-auto block pr-6 text-[21px] font-semibold leading-[1.1] tracking-[-0.04em]">{article.title}</span>
+          </button>
+        </Card>
+      </motion.section>
+
+      <motion.section {...riseIn(4)} className="mt-10" aria-label="Виджеты">
         <SectionHead title="Виджеты" hint={editing ? "Перетащите, смените размер или цвет" : undefined}>
           {(shown > 0 || editing) && (
             <Chip active={editing} onClick={() => setEditing(!editing)}>

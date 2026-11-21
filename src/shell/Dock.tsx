@@ -1,6 +1,6 @@
 import * as React from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { BedDouble, Brain, LayoutGrid, MoonStar, Plus, Smile, Wind } from "lucide-react"
+import { BedDouble, Brain, LayoutGrid, MoonStar, Plus, Leaf, Smile } from "lucide-react"
 import { cn } from "@/lib/cn"
 import { DUR, EASE_OUT, SPRING } from "@/lib/motion"
 import { useStore, type TabId } from "@/store/store"
@@ -9,7 +9,7 @@ const TABS: { id: TabId; label: string; icon: React.ComponentType<{ className?: 
   { id: "today", label: "Сегодня", icon: LayoutGrid },
   { id: "sleep", label: "Сон", icon: MoonStar },
   { id: "mind", label: "Состояние", icon: Brain },
-  { id: "practices", label: "Практики", icon: Wind },
+  { id: "practices", label: "Практики", icon: Leaf },
 ]
 
 export function Dock() {

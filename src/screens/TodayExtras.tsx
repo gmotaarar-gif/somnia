@@ -13,7 +13,6 @@ export function DayPlan() {
   const plan = dayPlan({
     nights: s.nights,
     moods: s.moods,
-    breathMin: s.breath.min,
     waterMl: s.water.ml,
     waterGoal: WATER_GOAL_ML,
     ritualDone: s.ritual.done.length,
