@@ -44,7 +44,7 @@ export function MotionProvider({ children }: { children: ReactNode }) {
     return () => { MotionGlobalConfig.skipAnimations = previous }
   }, [reduce])
   return (
-    <MotionConfig reducedMotion="never" transition={{ skipAnimations: reduce }}>
+    <MotionConfig reducedMotion="never">
       {children}
     </MotionConfig>
   )

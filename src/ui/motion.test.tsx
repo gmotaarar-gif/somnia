@@ -131,15 +131,15 @@ it("restarts a decorative loop when clearing reduced motion", async () => {
     return <motion.div key={String(reduce)} data-testid="pulse" animate={{ scale: reduce ? 1 : [1, 1.2, 1] }} transition={{ duration: 0.5, repeat: Infinity }} />
   }
   render(<MotionProvider><Pulse /></MotionProvider>)
-  act(() => {
-    reduced = true
-    listeners.forEach((notify) => notify())
-  })
+  const notifyPreference = (value: boolean) => {
+    reduced = value
+    // Native media callbacks can commit the child while the root still
+    // exposes its previous MotionConfig transition defaults.
+    for (const notify of [...listeners]) act(() => notify())
+  }
+  notifyPreference(true)
   await waitFor(() => expect(screen.getByTestId("pulse").style.transform).toBe("none"))
-  act(() => {
-    reduced = false
-    listeners.forEach((notify) => notify())
-  })
+  notifyPreference(false)
   await waitFor(() => expect(screen.getByTestId("pulse").style.transform).toMatch(/scale\(1\.\d+/))
 })
 
