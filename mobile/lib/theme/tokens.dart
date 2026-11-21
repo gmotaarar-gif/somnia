@@ -177,6 +177,14 @@ final cardTones = <String, CardTone>{
     y: .54,
     height: .54,
   ),
+  'nightfall': CardTone(
+    0xffc2409a,
+    0xff3b2cd2,
+    core: 0xff06041a,
+    y: .4,
+    height: .56,
+    width: 1.4,
+  ),
 };
 
 const toneSwatches = <String, List<Color>>{
