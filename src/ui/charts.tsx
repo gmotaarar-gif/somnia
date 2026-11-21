@@ -74,7 +74,7 @@ export function DotRow({
             style={{
               width: size,
               height: size,
-              background: on > 0 ? "var(--color-lime)" : "var(--color-hair)",
+              background: on > 0 ? "var(--color-accent)" : "var(--color-hair)",
               opacity: on > 0 ? 0.45 + on * 0.55 : 1,
               boxShadow: on > 0.6 ? "0 0 10px rgb(217 242 74 / 0.55)" : undefined,
             }}
@@ -133,7 +133,7 @@ export function Arc({
 /** Flowing line with a knob on the last point (calories card). */
 export function Wave({
   values,
-  color = "#d9f24a",
+  color = "var(--color-accent)",
   className,
   fill,
   knob = true,
@@ -215,7 +215,7 @@ export function Ring({
   value,
   size = 120,
   stroke = 3,
-  color = "#d9f24a",
+  color = "var(--color-accent)",
   children,
   className,
 }: {

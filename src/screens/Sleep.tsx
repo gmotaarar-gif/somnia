@@ -141,7 +141,7 @@ export function SleepScreen() {
       />
 
       <motion.div {...riseIn(0)}>
-        <Card r="lg" className="sleep-hero">
+        <Card r="lg" className="sleep-hero on-dark">
           <div className="flex min-h-[316px] flex-col p-6">
             <div className="flex items-center justify-between gap-3">
               <span className="text-[14px] font-medium text-white/80">Прошлая ночь</span>

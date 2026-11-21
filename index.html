@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#07070c" />
+    <meta name="theme-color" content="#0e1017" />
     <meta name="color-scheme" content="dark" />
     <meta name="description" content="Somna — трекер сна и психического состояния" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -16,7 +16,10 @@
       try {
         var m = (JSON.parse(localStorage.getItem("somna-state-v6") || "{}") || {}).theme
         var light = m === "light" || (m !== "dark" && matchMedia("(prefers-color-scheme: light)").matches)
-        document.documentElement.dataset.theme = light ? "light" : "dark"
+        var theme = light ? "light" : "dark"
+        document.documentElement.dataset.theme = theme
+        document.querySelector('meta[name="theme-color"]').content = light ? "#f5f4fa" : "#0e1017"
+        document.querySelector('meta[name="color-scheme"]').content = theme
       } catch (e) {}
     </script>
     <title>Somna — сон и состояние</title>
