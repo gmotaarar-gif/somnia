@@ -113,7 +113,7 @@ it("honors live reduced-motion changes without resetting the current view", () =
 
 it("waits for slow captures without running down the animation clock", async () => {
   let resolve!: () => void
-  wave.prepare.mockImplementation(() => new Promise<void>((done) => { resolve = done }))
+  wave.prepare.mockImplementationOnce(() => new Promise<void>((done) => { resolve = done }))
   const { rerender } = render(view("today"))
   rerender(view("sleep"))
   await ready()
