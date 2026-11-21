@@ -6,6 +6,7 @@ import { Splash } from "@/shell/Splash"
 import { PhoneFrame } from "@/shell/PhoneFrame"
 import { lazyWithRetry as lazy } from "@/shell/LazyChunk"
 import { StoreProvider, useStore } from "@/store/store"
+import { SubscriptionProvider } from "@/store/subscription"
 
 const Workspace = lazy(() => import("@/shell/Workspace"))
 const Onboarding = lazy(() => import("@/screens/Onboarding").then((module) => ({ default: module.Onboarding })))
@@ -44,7 +45,9 @@ export default function App() {
   return (
     <MotionConfig reducedMotion="user">
       <StoreProvider>
-        <Shell />
+        <SubscriptionProvider>
+          <Shell />
+        </SubscriptionProvider>
       </StoreProvider>
     </MotionConfig>
   )
