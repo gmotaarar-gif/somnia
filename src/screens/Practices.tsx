@@ -1,6 +1,6 @@
 import * as React from "react"
 import { motion, useReducedMotion } from "framer-motion"
-import { Check, Eye, NotebookPen, Pause, Play, RotateCcw, ScanLine, Volume2 } from "lucide-react"
+import { Check, Eye, LockKeyhole, NotebookPen, Pause, Play, RotateCcw, ScanLine, Volume2 } from "lucide-react"
 import { cn } from "@/lib/cn"
 import { pluralRu } from "@/lib/time"
 import { SLEEP_TIPS } from "@/lib/metrics"
@@ -13,6 +13,7 @@ import { Card, CardTitle, type CardTone } from "@/ui/Card"
 import { DotTrack } from "@/ui/charts"
 import { Chip, IconButton, SectionHead, Segmented, Slider } from "@/ui/controls"
 import { Dots } from "@/ui/Dots"
+import { useSubscription } from "@/store/subscription"
 
 interface Phase {
   label: string
@@ -72,6 +73,7 @@ function phaseAt(phases: Phase[], elapsed: number) {
 }
 
 export function PracticesScreen() {
+  const { isPlus } = useSubscription()
   const { ritual, toggleRitual, volume, patch, breath: today, sessions, worries, openSheet } = useStore()
   const totalMin = Math.round(sessions.reduce((a, x) => a + x.min, 0))
   const openWorries = worries.filter((w) => !w.done).length
@@ -251,15 +253,22 @@ export function PracticesScreen() {
               tone={x.tone}
               role="button"
               tabIndex={0}
-              aria-label={x.title}
+              aria-label={x.id === "bodyscan" && !isPlus ? `${x.title} · Plus` : x.title}
               onClick={() => openSheet(x.id)}
-              onKeyDown={(e) => e.key === "Enter" && openSheet(x.id)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter" && e.key !== " ") return
+                e.preventDefault()
+                openSheet(x.id)
+              }}
               className={cn("cursor-pointer", x.wide && "col-span-2")}
             >
               <div className={cn("flex p-5", x.wide ? "items-center gap-4" : "h-[150px] flex-col")}>
-                <span className="glass-inset grid size-10 shrink-0 place-items-center rounded-full">
-                  <x.icon className="size-[18px]" />
-                </span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="glass-inset grid size-10 shrink-0 place-items-center rounded-full">
+                    <x.icon className="size-[18px]" />
+                  </span>
+                  {x.id === "bodyscan" && <span className="flex items-center gap-1 rounded-full bg-white/12 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]">{!isPlus && <LockKeyhole className="size-3" />} Plus</span>}
+                </div>
                 <div className={cn("min-w-0", !x.wide && "mt-auto")}>
                   <div className="text-[16px] font-semibold tracking-[-0.01em]">{x.title}</div>
                   <div className="mt-1 truncate text-[12px] text-ink-2">{x.sub}</div>

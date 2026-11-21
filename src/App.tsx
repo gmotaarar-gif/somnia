@@ -12,6 +12,7 @@ import { MoodSheet } from "@/sheets/MoodSheet"
 import { ProfileSheet } from "@/sheets/ProfileSheet"
 import { RecapSheet } from "@/sheets/RecapSheet"
 import { SleepSheet } from "@/sheets/SleepSheet"
+import { SubscriptionSheet } from "@/sheets/SubscriptionSheet"
 import { Aurora } from "@/shell/Aurora"
 import { Dock } from "@/shell/Dock"
 import { Island } from "@/shell/Island"
@@ -19,6 +20,7 @@ import { NightMode } from "@/shell/NightMode"
 import { Splash } from "@/shell/Splash"
 import { PhoneFrame } from "@/shell/PhoneFrame"
 import { StoreProvider, useStore, type TabId } from "@/store/store"
+import { SubscriptionProvider } from "@/store/subscription"
 
 const SCREENS: Record<TabId, () => React.ReactNode> = {
   today: TodayScreen,
@@ -59,6 +61,7 @@ function Shell() {
           <GallerySheet />
           <RecapSheet />
           <ProfileSheet />
+          <SubscriptionSheet />
           <CyclesSheet />
           <WellbeingSheet />
           <NightSheet />
@@ -77,7 +80,9 @@ export default function App() {
   return (
     <MotionConfig reducedMotion="user">
       <StoreProvider>
-        <Shell />
+        <SubscriptionProvider>
+          <Shell />
+        </SubscriptionProvider>
       </StoreProvider>
     </MotionConfig>
   )

@@ -5,6 +5,7 @@ import { durationRu, spanMinutes } from "@/lib/time"
 import { useStore, type Chronotype } from "@/store/store"
 import { Button, Segmented, Slider, TimeField, Toggle } from "@/ui/controls"
 import { Field, Sheet } from "@/ui/Sheet"
+import { SubscriptionCard } from "@/ui/SubscriptionCard"
 
 export function ProfileSheet() {
   const s = useStore()
@@ -16,6 +17,7 @@ export function ProfileSheet() {
 
   return (
     <Sheet open={s.sheet === "profile"} onClose={close} title="Профиль" description="Данные хранятся только в этом браузере">
+      <SubscriptionCard className="mb-4" />
       <div className="grid grid-cols-3 gap-2.5">
         {[
           [s.nights.length, "ночей"],
