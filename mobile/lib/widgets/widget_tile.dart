@@ -135,7 +135,11 @@ class WidgetTile extends StatelessWidget {
         case 'custom':
           value = displayNumber(widget.value ?? 0);
           note = '/ ${displayNumber(widget.target ?? 1)} ${widget.unit ?? ''}';
-          chart = DotTrack(value: (widget.value ?? 0) / (widget.target ?? 1));
+          chart = DotTrack(
+            value:
+                (widget.value ?? 0) /
+                ((widget.target ?? 0) > 0 ? widget.target! : 1),
+          );
       }
     }
     void run() {

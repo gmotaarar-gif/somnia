@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../data/store.dart';
@@ -18,18 +19,31 @@ class TodayScreen extends StatefulWidget {
   @override
   State<TodayScreen> createState() => _TodayScreenState();
 }
+
 class _TodayScreenState extends State<TodayScreen> {
   Timer? clock;
   @override
-  void initState() { super.initState(); clock = Timer.periodic(const Duration(minutes: 1), (_) => setState(() {})); }
+  void initState() {
+    super.initState();
+    clock = Timer.periodic(const Duration(minutes: 1), (_) => setState(() {}));
+  }
+
   @override
-  void dispose() { clock?.cancel(); super.dispose(); }
+  void dispose() {
+    clock?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = SomnaScope.of(context), now = DateTime.now();
     final sum = summarize(s.nights, s.moods, s.bedGoal, s.wakeGoal);
     final last = sum.last, mood = sum.lastMood;
-    final article = todayArticles.where((a) => !s.readArticles.contains(a.$1)).firstOrNull ?? todayArticles.first;
+    final article =
+        todayArticles
+            .where((a) => !s.readArticles.contains(a.$1))
+            .firstOrNull ??
+        todayArticles.first;
     final plan = dayPlan(
       nights: s.nights,
       moods: s.moods,
@@ -92,8 +106,16 @@ class _TodayScreenState extends State<TodayScreen> {
               child: _tile(
                 'Состояние',
                 mood == null ? '—' : '${moodPct(mood.valence)}%',
-                mood == null ? 'Сделайте чек-ин' : getValenceLabel(mood.valence),
-                mood == null ? 'ink' : mood.valence < -.12 ? 'dusk' : mood.valence < .3 ? 'cobalt' : 'moss',
+                mood == null
+                    ? 'Сделайте чек-ин'
+                    : getValenceLabel(mood.valence),
+                mood == null
+                    ? 'ink'
+                    : mood.valence < -.12
+                    ? 'dusk'
+                    : mood.valence < .3
+                    ? 'cobalt'
+                    : 'moss',
                 () => s.openSheet('mood'),
               ),
             ),
@@ -102,7 +124,9 @@ class _TodayScreenState extends State<TodayScreen> {
               child: _tile(
                 'Неделя',
                 sum.week.isEmpty ? '—' : '${sum.index}',
-                sum.week.isEmpty ? 'Пока нет данных' : '${indexLabel(sum.index)}${sum.indexDelta == 0 ? '' : ' · ${sum.indexDelta > 0 ? '+' : ''}${sum.indexDelta}'}',
+                sum.week.isEmpty
+                    ? 'Пока нет данных'
+                    : '${indexLabel(sum.index)}${sum.indexDelta == 0 ? '' : ' · ${sum.indexDelta > 0 ? '+' : ''}${sum.indexDelta}'}',
                 'ember',
                 () => s.openSheet('recap'),
               ),
@@ -110,7 +134,12 @@ class _TodayScreenState extends State<TodayScreen> {
           ],
         ),
         const SizedBox(height: 36),
-        _heading('План дня', done == plan.length ? 'Всё выполнено' : '$done из ${plan.length} выполнено'),
+        _heading(
+          'План дня',
+          done == plan.length
+              ? 'Всё выполнено'
+              : '$done из ${plan.length} выполнено',
+        ),
         GlassSurface(
           radius: 30,
           padding: const EdgeInsets.all(20),
