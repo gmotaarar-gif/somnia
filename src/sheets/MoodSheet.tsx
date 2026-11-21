@@ -17,7 +17,7 @@ export const FACTORS = ["Сон", "Работа", "Отдых", "Прогулк�
 const rgb = (c: number[]) => `rgb(${c.join(" ")})`
 
 function MoodForm({ onDone }: { onDone: () => void }) {
-  const { addMood } = useStore()
+  const { addMood, notify } = useStore()
   const [valence, setValence] = React.useState(0.3)
   const [emotions, setEmotions] = React.useState<string[]>([])
   const [factors, setFactors] = React.useState<string[]>([])
@@ -106,6 +106,7 @@ function MoodForm({ onDone }: { onDone: () => void }) {
           className="w-full"
           onClick={() => {
             addMood({ valence, emotions, factors, note: note.trim() || undefined })
+            notify("Чек-ин сохранён")
             onDone()
           }}
         >

@@ -28,8 +28,52 @@ export type WidgetKind =
   | "energy"
   | "rhythm"
   | "debt"
+  | "cycle"
+  | "wellbeing"
+  | "plan"
   | "custom"
-export type SheetId = "mood" | "sleep" | "profile" | "gallery" | "recap" | null
+export type SheetId =
+  | "mood"
+  | "sleep"
+  | "profile"
+  | "gallery"
+  | "recap"
+  | "night"
+  | "cycles"
+  | "wellbeing"
+  | "grounding"
+  | "bodyscan"
+  | "worry"
+  | "awards"
+  | null
+export type PracticeKind = "breath" | "grounding" | "bodyscan" | "worry"
+
+export interface PracticeSession {
+  id: string
+  at: string
+  kind: PracticeKind
+  min: number
+}
+
+export interface Worry {
+  id: string
+  at: string
+  text: string
+  /** What the user decided to do about it */
+  plan: string
+  done: boolean
+}
+
+export interface WellbeingResult {
+  at: string
+  /** WHO-5 index, 0..100 */
+  score: number
+}
+
+export interface Toast {
+  id: number
+  text: string
+}
 export type Technique = "calm" | "478" | "box"
 
 export interface SleepNight {
@@ -141,6 +185,14 @@ function demoMoods(): MoodEntry[] {
   })
 }
 
+function demoSessions(): PracticeSession[] {
+  return [9, 6, 5, 3, 2, 1, 0].map((ago, i) => {
+    const d = daysAgo(ago)
+    d.setHours(22, 5, 0, 0)
+    return { id: `demo-s-${i}`, at: d.toISOString(), kind: i % 3 === 2 ? "grounding" : "breath", min: i % 3 === 2 ? 3 : 4 + (i % 2) * 2 }
+  })
+}
+
 const DEFAULT_SPECTRUM: SpectrumAxis[] = [
   { id: "calm", left: "Тревога", right: "Спокойствие", value: 0.74 },
   { id: "energy", left: "Усталость", right: "Бодрость", value: 0.82 },
@@ -159,6 +211,9 @@ export const DEFAULT_WIDGETS: Widget[] = [
   { id: "w-energy", kind: "energy", size: "1x1", tone: "ember", visible: true },
   { id: "w-rhythm", kind: "rhythm", size: "2x1", tone: "dusk", visible: true },
   { id: "w-debt", kind: "debt", size: "1x1", tone: "rose", visible: false },
+  { id: "w-plan", kind: "plan", size: "2x1", tone: "ink", visible: false },
+  { id: "w-cycle", kind: "cycle", size: "1x1", tone: "cobalt", visible: false },
+  { id: "w-wellbeing", kind: "wellbeing", size: "1x1", tone: "moss", visible: false },
 ]
 
 interface Persisted {
@@ -180,6 +235,11 @@ interface Persisted {
   spectrum: SpectrumAxis[]
   widgets: Widget[]
   weeklyGoal: { id: string; text: string } | null
+  sessions: PracticeSession[]
+  worries: Worry[]
+  wellbeing: WellbeingResult[]
+  /** Minutes after which night sounds fade out; 0 keeps them on */
+  soundTimer: number
 }
 
 const today = () => dateKey(new Date())
@@ -204,6 +264,10 @@ function defaults(): Persisted {
     spectrum: DEFAULT_SPECTRUM,
     widgets: DEFAULT_WIDGETS,
     weeklyGoal: null,
+    sessions: demoSessions(),
+    worries: [],
+    wellbeing: [{ at: daysAgo(6).toISOString(), score: 64 }],
+    soundTimer: 30,
   }
 }
 
@@ -222,6 +286,8 @@ function load(): Persisted {
     saved.widgets = saved.widgets.map((w) =>
       w.kind === "custom" && w.day !== day ? { ...w, value: 0, day } : w
     )
+    // widgets added in later versions appear in the gallery of existing installs
+    for (const w of DEFAULT_WIDGETS) if (!saved.widgets.some((x) => x.id === w.id)) saved.widgets.push({ ...w, visible: false })
     return saved
   } catch {
     return base
@@ -232,7 +298,18 @@ export interface Store extends Persisted {
   tab: TabId
   setTab: (t: TabId) => void
   sheet: SheetId
-  openSheet: (s: SheetId) => void
+  /** Id of the record the open sheet is about (e.g. a night) */
+  sheetArg: string | null
+  openSheet: (s: SheetId, arg?: string) => void
+  toast: Toast | null
+  notify: (text: string) => void
+  /** +1 when the user moved to a tab on the right, -1 to the left */
+  tabDir: number
+  addSession: (kind: PracticeKind, min: number) => void
+  addWorry: (text: string, plan: string) => void
+  toggleWorry: (id: string) => void
+  removeWorry: (id: string) => void
+  addWellbeing: (score: number) => void
   editing: boolean
   setEditing: (v: boolean) => void
   nightMode: boolean
@@ -260,6 +337,8 @@ export interface Store extends Persisted {
   resetAll: () => void
 }
 
+const TAB_ORDER: TabId[] = ["today", "sleep", "mind", "practices"]
+
 const StoreContext = React.createContext<Store | null>(null)
 const BreathContext = React.createContext<{
   breath: BreathState
@@ -268,8 +347,29 @@ const BreathContext = React.createContext<{
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = React.useState<Persisted>(load)
-  const [tab, setTab] = React.useState<TabId>("today")
-  const [sheet, openSheet] = React.useState<SheetId>(null)
+  const [tab, setTabRaw] = React.useState<TabId>("today")
+  const [tabDir, setTabDir] = React.useState(1)
+  const [sheet, setSheet] = React.useState<SheetId>(null)
+  const [sheetArg, setSheetArg] = React.useState<string | null>(null)
+  const [toast, setToast] = React.useState<Toast | null>(null)
+
+  const setTab = React.useCallback((t: TabId) => {
+    setTabRaw((prev) => {
+      setTabDir(TAB_ORDER.indexOf(t) >= TAB_ORDER.indexOf(prev) ? 1 : -1)
+      return t
+    })
+  }, [])
+  const openSheet = React.useCallback((s: SheetId, arg?: string) => {
+    setSheet(s)
+    if (s) setSheetArg(arg ?? null)
+  }, [])
+  const notify = React.useCallback((text: string) => setToast({ id: Date.now(), text }), [])
+
+  React.useEffect(() => {
+    if (!toast) return
+    const id = window.setTimeout(() => setToast(null), 2600)
+    return () => window.clearTimeout(id)
+  }, [toast])
   const [editing, setEditing] = React.useState(false)
   const [nightMode, setNightMode] = React.useState(false)
   const [nightStart, setNightStart] = React.useState<string | null>(null)
@@ -300,12 +400,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (!breathState.running || breathState.remainingSec > 0) return
+    const min = +(breathState.totalSec / 60).toFixed(1)
     setData((d) => ({
       ...d,
-      breath: { day: today(), min: +(d.breath.min + breathState.totalSec / 60).toFixed(1) },
+      breath: { day: today(), min: +(d.breath.min + min).toFixed(1) },
+      sessions: [...d.sessions, { id: uid(), at: new Date().toISOString(), kind: "breath" as const, min }].slice(-300),
     }))
+    notify("Дыхание завершено")
     setBreath((b) => ({ ...b, running: false, remainingSec: b.totalSec }))
-  }, [breathState.running, breathState.remainingSec, breathState.totalSec])
+  }, [breathState.running, breathState.remainingSec, breathState.totalSec, notify])
 
   React.useEffect(() => {
     const vol = Math.max(0, Math.min(1, data.volume / 100))
@@ -319,6 +422,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       stopSound()
     }
   }, [breathState.running, breathState.sound, nightMode, nightSound, data.volume])
+
+  React.useEffect(() => {
+    if (!nightMode || nightSound === "off" || !data.soundTimer) return
+    const id = window.setTimeout(() => setNightSound("off"), data.soundTimer * 60_000)
+    return () => window.clearTimeout(id)
+  }, [nightMode, nightSound, data.soundTimer])
 
   React.useEffect(() => () => stopSound(), [])
 
@@ -337,6 +446,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
             .slice(-90),
         })),
+      addSession: (kind: PracticeKind, min: number) =>
+        setData((d) => ({
+          ...d,
+          sessions: [...d.sessions, { id: uid(), at: new Date().toISOString(), kind, min }].slice(-300),
+        })),
+      addWorry: (text: string, plan: string) =>
+        setData((d) => ({
+          ...d,
+          worries: [{ id: uid(), at: new Date().toISOString(), text, plan, done: false }, ...d.worries].slice(0, 60),
+        })),
+      toggleWorry: (id: string) =>
+        setData((d) => ({ ...d, worries: d.worries.map((w) => (w.id === id ? { ...w, done: !w.done } : w)) })),
+      removeWorry: (id: string) => setData((d) => ({ ...d, worries: d.worries.filter((w) => w.id !== id) })),
+      addWellbeing: (score: number) =>
+        setData((d) => ({ ...d, wellbeing: [...d.wellbeing, { at: new Date().toISOString(), score }].slice(-52) })),
       removeNight: (id: string) => setData((d) => ({ ...d, nights: d.nights.filter((n) => n.id !== id) })),
       addMood: (m: Omit<MoodEntry, "id" | "at">) =>
         setData((d) => ({
@@ -381,8 +505,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       ...actions,
       tab,
       setTab,
+      tabDir,
       sheet,
+      sheetArg,
       openSheet,
+      toast,
+      notify,
       editing,
       setEditing,
       nightMode,
@@ -401,7 +529,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       nightSound,
       setNightSound,
     }),
-    [data, actions, tab, sheet, editing, nightMode, nightStart, nightSound]
+    [data, actions, tab, tabDir, setTab, sheet, sheetArg, openSheet, toast, notify, editing, nightMode, nightStart, nightSound]
   )
   const breathValue = React.useMemo(() => ({ breath: breathState, setBreath }), [breathState])
 

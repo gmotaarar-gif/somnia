@@ -4,6 +4,12 @@ import { clockOf } from "@/lib/time"
 import { useNow } from "@/store/derived"
 
 const ScreenContext = React.createContext<HTMLElement | null>(null)
+const FramedContext = React.createContext(false)
+
+/** True when the app is shown inside the phone mock-up rather than full-screen. */
+export function useIsFramed() {
+  return React.useContext(FramedContext)
+}
 
 /** Element of the phone screen: portals (sheets) mount into it so they stay inside the device. */
 export function useScreenEl() {
@@ -27,9 +33,6 @@ function StatusBar() {
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 z-[90] flex h-[52px] items-center justify-between px-9 pt-2 text-white" aria-hidden>
       <span className="w-14 text-[16px] font-semibold tracking-[-0.01em]">{clockOf(now.toISOString())}</span>
-      <span className="absolute left-1/2 top-[11px] h-[35px] w-[122px] -translate-x-1/2 rounded-full bg-black shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)]">
-        <span className="absolute right-[14px] top-1/2 size-[11px] -translate-y-1/2 rounded-full bg-[#0c0f1f] shadow-[inset_0_0_3px_1px_rgb(70_90_190/0.5)]" />
-      </span>
       <span className="flex w-[70px] items-center justify-end gap-[5px]">
         <Signal className="size-[16px]" strokeWidth={2.6} />
         <Wifi className="size-[16px]" strokeWidth={2.6} />
@@ -49,7 +52,9 @@ export function PhoneFrame({ tab, children }: { tab: string; children: React.Rea
 
   const screen = (
     <div ref={setEl} className="phone-screen" data-framed={framed ? "" : undefined}>
-      <ScreenContext.Provider value={el}>{children}</ScreenContext.Provider>
+      <FramedContext.Provider value={framed}>
+        <ScreenContext.Provider value={el}>{children}</ScreenContext.Provider>
+      </FramedContext.Provider>
       {framed && (
         <>
           <StatusBar />

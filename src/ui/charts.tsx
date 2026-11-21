@@ -1,4 +1,6 @@
 import * as React from "react"
+import { motion } from "framer-motion"
+import { EASE_OUT } from "@/lib/motion"
 import { cn } from "@/lib/cn"
 
 const clamp = (v: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v))
@@ -41,7 +43,8 @@ export function DotTrack({
         ) : (
           <span
             key={i}
-            className={cn("rounded-full", i < at ? "size-[5px] bg-white" : "size-[2.5px] bg-white/35")}
+            className={cn("track-dot rounded-full", i < at ? "size-[5px] bg-white" : "size-[2.5px] bg-white/35")}
+            style={{ animationDelay: `${i * 14}ms` }}
           />
         )
       )}
@@ -169,13 +172,35 @@ export function Wave({
           <stop offset="1" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
-      {fill && <path d={`${d} L${lx},${height} L${pts[0][0]},${height} Z`} fill={`url(#${id}f)`} />}
-      <path d={d} fill="none" stroke={`url(#${id})`} strokeWidth="4.5" strokeLinecap="round" />
+      {fill && (
+        <motion.path
+          d={`${d} L${lx},${height} L${pts[0][0]},${height} Z`}
+          fill={`url(#${id}f)`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.7 }}
+        />
+      )}
+      <motion.path
+        d={d}
+        fill="none"
+        stroke={`url(#${id})`}
+        strokeWidth="4.5"
+        strokeLinecap="round"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 1.1, ease: EASE_OUT, delay: 0.15 }}
+      />
       {knob && (
-        <>
+        <motion.g
+          initial={{ opacity: 0, scale: 0.4 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", stiffness: 380, damping: 20, delay: 0.95 }}
+          style={{ transformOrigin: `${lx}px ${ly}px` }}
+        >
           <rect x={lx - 8} y={ly - 3} width="16" height="30" rx="8" fill="rgb(255 255 255 / 0.1)" />
           <circle cx={lx} cy={ly} r="6.5" fill="#fff" />
-        </>
+        </motion.g>
       )}
     </svg>
   )
@@ -202,7 +227,7 @@ export function Ring({
     <div className={cn("relative grid place-items-center", className)} style={{ width: size, height: size }}>
       <svg viewBox="0 0 100 100" className="absolute inset-0 -rotate-90" aria-hidden>
         <circle cx="50" cy="50" r={r} fill="none" stroke="rgb(255 255 255 / 0.16)" strokeWidth={stroke * 0.5} />
-        <circle
+        <motion.circle
           cx="50"
           cy="50"
           r={r}
@@ -211,8 +236,9 @@ export function Ring({
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={c}
-          strokeDashoffset={c * (1 - clamp(value))}
-          style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(0.22,1,0.36,1)" }}
+          initial={{ strokeDashoffset: c }}
+          animate={{ strokeDashoffset: c * (1 - clamp(value)) }}
+          transition={{ duration: 1, ease: EASE_OUT, delay: 0.15 }}
         />
       </svg>
       <div className="relative">{children}</div>
@@ -251,13 +277,15 @@ export function Bars({
       {values.map((v, i) => (
         <div key={i} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
           <div className="relative flex w-full flex-1 items-end justify-center">
-            <div
+            <motion.div
               title={format ? format(v) : undefined}
               className={cn(
-                "w-full max-w-[26px] rounded-full transition-[height] duration-500 ease-out-smooth",
+                "w-full max-w-[26px] rounded-full",
                 i === hot ? "bg-lime shadow-[0_0_22px_-4px_rgb(217_242_74/0.8)]" : "bg-white/22"
               )}
-              style={{ height: `${Math.max(6, (v / top) * 100)}%` }}
+              initial={{ height: "4%" }}
+              animate={{ height: `${Math.max(6, (v / top) * 100)}%` }}
+              transition={{ duration: 0.7, ease: EASE_OUT, delay: 0.12 + i * 0.045 }}
             />
           </div>
           {labels && (

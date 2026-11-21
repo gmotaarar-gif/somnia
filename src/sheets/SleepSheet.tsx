@@ -27,7 +27,7 @@ const nowHHMM = () => {
 }
 
 function SleepForm({ onDone }: { onDone: () => void }) {
-  const { addNight, bedGoal, wakeGoal, nightStart, clearNightStart, nights } = useStore()
+  const { addNight, bedGoal, wakeGoal, nightStart, clearNightStart, nights, notify } = useStore()
   const days = React.useMemo(() => [0, 1, 2].map((n) => dateKey(daysAgo(n))), [])
   const [day, setDay] = React.useState(days[0])
   const [bedtime, setBedtime] = React.useState(nightStart ?? bedGoal)
@@ -45,6 +45,7 @@ function SleepForm({ onDone }: { onDone: () => void }) {
   const save = () => {
     addNight({ dateKey: day, bedtime, wakeTime, durationMin: duration, quality, awakenings, tags, note: note.trim() || undefined })
     clearNightStart()
+    notify("Ночь записана")
     onDone()
   }
 

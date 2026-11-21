@@ -70,3 +70,37 @@ export const Dots = React.memo(function Dots({ value, className, shape = "round"
     </svg>
   )
 })
+
+/** Counts up to `value` on mount and whenever it changes; `format` turns the number into glyphs. */
+export function DotsCount({
+  value,
+  format = (v) => String(Math.round(v)),
+  ...rest
+}: Omit<DotsProps, "value" | "still"> & { value: number; format?: (v: number) => string }) {
+  const [shown, setShown] = React.useState(0)
+  const from = React.useRef(0)
+  React.useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setShown(value)
+      from.current = value
+      return
+    }
+    const start = from.current
+    const t0 = performance.now()
+    const dur = 900
+    let raf = 0
+    const tick = (t: number) => {
+      const k = Math.min(1, (t - t0) / dur)
+      const eased = 1 - Math.pow(1 - k, 4)
+      setShown(start + (value - start) * eased)
+      if (k < 1) raf = requestAnimationFrame(tick)
+      else from.current = value
+    }
+    raf = requestAnimationFrame(tick)
+    return () => {
+      cancelAnimationFrame(raf)
+      from.current = value
+    }
+  }, [value])
+  return <Dots value={format(shown)} still {...rest} />
+}

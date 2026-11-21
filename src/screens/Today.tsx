@@ -12,7 +12,7 @@ import { TopBar } from "@/shell/TopBar"
 import { Card } from "@/ui/Card"
 import { Bars, Orbits, Wave } from "@/ui/charts"
 import { Chip, IconButton, SectionHead } from "@/ui/controls"
-import { Dots } from "@/ui/Dots"
+import { Dots, DotsCount } from "@/ui/Dots"
 import { WidgetGrid } from "@/widgets/WidgetGrid"
 
 function HeroShell({
@@ -86,7 +86,7 @@ export function TodayScreen() {
       node: (
         <HeroShell tone="violet" title="Прошлая ночь" icon={<Info />} label="Прошлая ночь. Открыть сон" onClick={() => setTab("sleep")}>
           <div className="mt-7 flex flex-col items-center">
-            <Dots value={last ? hm(last.durationMin) : "0:00"} className="text-[58px]" />
+            <DotsCount value={last?.durationMin ?? 0} format={(v) => hm(Math.round(v))} className="text-[58px]" />
             <span className="mt-3 text-[13px] text-ink-2">
               {last ? `часов сна · ${last.bedtime} → ${last.wakeTime}` : "добавьте первую запись"}
             </span>
@@ -100,7 +100,7 @@ export function TodayScreen() {
       node: (
         <HeroShell tone="night" title="Индекс недели" icon={<Sparkles />} label="Индекс недели. Открыть итоги" onClick={() => openSheet("recap")}>
           <div className="mt-7 flex flex-col items-center">
-            <Dots value={sum.index} shape="square" className="text-[58px]" />
+            <DotsCount value={sum.index} shape="square" className="text-[58px]" />
             <span className="mt-3 text-[13px] text-ink-2">
               {indexLabel(sum.index)}
               {sum.indexDelta !== 0 && ` · ${sum.indexDelta > 0 ? "+" : ""}${sum.indexDelta} к прошлой`}
@@ -122,7 +122,7 @@ export function TodayScreen() {
       node: (
         <HeroShell tone="mint" title="Состояние" icon={<Plus />} label="Состояние. Сделать чек-ин" onClick={() => openSheet("mood")}>
           <div className="mt-7 flex flex-col items-center">
-            <Dots value={sum.moodNow != null ? `${sum.moodNow}%` : "--"} className="text-[58px]" />
+            {sum.moodNow != null ? <DotsCount value={sum.moodNow} format={(v) => `${Math.round(v)}%`} className="text-[58px]" /> : <Dots value="--" className="text-[58px]" />}
             <span className="mt-3 text-[13px] text-ink-2">
               {sum.lastMood ? getValenceLabel(sum.lastMood.valence) : "сделайте первый чек-ин"}
             </span>

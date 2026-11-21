@@ -1,5 +1,6 @@
 import * as React from "react"
-import { ArrowUpRight, Flame, Plus, Sparkles, Wind, Zap } from "lucide-react"
+import { AlarmClock, ArrowUpRight, Flame, HeartPulse, ListChecks, Plus, Sparkles, Wind, Zap } from "lucide-react"
+import { dayPlan, wakeOptions, who5Label } from "@/lib/features"
 import { cn } from "@/lib/cn"
 import { bedtimeCountdown, moodPct, qualityLabel } from "@/lib/metrics"
 import { deviationMinutes, hm, pluralRu } from "@/lib/time"
@@ -71,6 +72,12 @@ function useWidgetAction(widget: Widget): { run: () => void; label: string } {
       return { run: () => s.setTab("practices"), label: "Открыть практики" }
     case "energy":
       return { run: () => s.openSheet("sleep"), label: "Записать сон" }
+    case "plan":
+      return { run: () => s.setTab("today"), label: "План дня" }
+    case "cycle":
+      return { run: () => s.openSheet("cycles"), label: "Открыть калькулятор циклов" }
+    case "wellbeing":
+      return { run: () => s.openSheet("wellbeing"), label: "Пройти тест благополучия" }
     case "custom":
       return { run: () => s.bumpWidget(widget.id), label: `Добавить ${widget.step ?? 1} ${widget.unit ?? ""}` }
     default:
@@ -258,6 +265,50 @@ function Body({ widget, wide }: BodyProps) {
           </div>
         </>
       )
+    case "plan": {
+      const plan = dayPlan({
+        nights,
+        moods: store.moods,
+        breathMin: store.breath.min,
+        waterMl: store.water.ml,
+        waterGoal: WATER_GOAL_ML,
+        ritualDone: store.ritual.done.length,
+      })
+      const done = plan.filter((p) => p.done).length
+      return (
+        <>
+          <Head title="План дня" sub={wide ? plan.find((p) => !p.done)?.label ?? "Всё выполнено" : undefined} right={<Badge><ListChecks /></Badge>} />
+          <div className="mt-auto">
+            <Figure value={`${done}/${plan.length}`} unit={wide ? "шагов сделано" : undefined} shape="square" className={wide ? "text-[44px]" : undefined} />
+            <DotRow values={plan.map((p) => p.done)} className="mt-4" size={wide ? 7 : 6} />
+          </div>
+        </>
+      )
+    }
+    case "cycle": {
+      const best = wakeOptions(bedGoal).find((o) => o.best)!
+      return (
+        <>
+          <Head title="Циклы сна" sub={wide ? `Если лечь в ${bedGoal}` : undefined} right={<Badge><AlarmClock /></Badge>} />
+          <div className="mt-auto">
+            <Figure value={best.time} unit={wide ? "лучший подъём" : undefined} className={wide ? "text-[44px]" : undefined} />
+            <div className="mt-2 text-[12px] text-ink-2">{best.cycles} циклов · {hm(best.sleepMin)} ч</div>
+          </div>
+        </>
+      )
+    }
+    case "wellbeing": {
+      const lastW = store.wellbeing[store.wellbeing.length - 1]
+      return (
+        <>
+          <Head title={wide ? "Благополучие" : "WHO-5"} sub={wide ? "Индекс WHO-5" : undefined} right={<Badge><HeartPulse /></Badge>} />
+          <div className="mt-auto">
+            <Figure value={lastW ? lastW.score : "--"} unit="/ 100" shape="square" className={wide ? "text-[44px]" : undefined} />
+            <div className="mt-2 text-[12px] text-ink-2">{lastW ? who5Label(lastW.score) : "пройдите тест"}</div>
+          </div>
+        </>
+      )
+    }
     case "custom": {
       const value = widget.value ?? 0
       const target = widget.target || 1

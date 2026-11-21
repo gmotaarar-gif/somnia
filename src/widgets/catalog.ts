@@ -16,6 +16,9 @@ export const WIDGET_META: Record<Exclude<WidgetKind, "custom">, WidgetMeta> = {
   energy: { title: "Бодрость", about: "Утренняя оценка по дням" },
   rhythm: { title: "Режим", about: "Насколько точно вы ложитесь по плану" },
   debt: { title: "Долг сна", about: "Недосып, накопленный за 7 ночей" },
+  plan: { title: "План дня", about: "Пять маленьких шагов на сегодня" },
+  cycle: { title: "Циклы сна", about: "Когда встать, если лечь по плану" },
+  wellbeing: { title: "Благополучие", about: "Индекс WHO-5 и его динамика" },
 }
 
 export const TONES: Tone[] = [

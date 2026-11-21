@@ -12,7 +12,9 @@ import { RecapSheet } from "@/sheets/RecapSheet"
 import { SleepSheet } from "@/sheets/SleepSheet"
 import { Aurora } from "@/shell/Aurora"
 import { Dock } from "@/shell/Dock"
+import { Island } from "@/shell/Island"
 import { NightMode } from "@/shell/NightMode"
+import { Splash } from "@/shell/Splash"
 import { PhoneFrame } from "@/shell/PhoneFrame"
 import { StoreProvider, useStore, type TabId } from "@/store/store"
 
@@ -24,7 +26,7 @@ const SCREENS: Record<TabId, () => React.ReactNode> = {
 }
 
 function Shell() {
-  const { onboarded, tab } = useStore()
+  const { onboarded, tab, tabDir } = useStore()
   const Screen = SCREENS[tab]
 
   const where = onboarded ? tab : "onboarding"
@@ -35,8 +37,8 @@ function Shell() {
       <div id="app-scroll" className="app-scroll">
         {onboarded ? (
           <div className="px-4 pb-[var(--dock-space)] pt-[max(var(--safe-top),14px)]">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.main key={tab} variants={screenVariants} initial="enter" animate="center" exit="exit">
+            <AnimatePresence mode="wait" initial={false} custom={tabDir}>
+              <motion.main key={tab} custom={tabDir} variants={screenVariants} initial="enter" animate="center" exit="exit">
                 <Screen />
               </motion.main>
             </AnimatePresence>
@@ -45,6 +47,8 @@ function Shell() {
           <Onboarding />
         )}
       </div>
+      <Island />
+      <Splash />
       {onboarded && (
         <>
           <Dock />

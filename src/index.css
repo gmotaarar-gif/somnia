@@ -517,3 +517,18 @@ button:disabled {
     display: block;
   }
 }
+
+.track-dot {
+  animation: track-in var(--duration-medium) var(--ease-out-smooth) both;
+}
+@keyframes track-in {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .track-dot {
+    animation: none;
+  }
+}
