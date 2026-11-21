@@ -22,13 +22,13 @@ export function buildWeeklyRecap(
   const previous = nights.filter((n) => n.dateKey >= previousStart && n.dateKey <= previousEnd)
   const weekMoods = moods.filter((m) => inWeek(m.at)).sort((a, b) => a.at.localeCompare(b.at))
   const weekSessions = sessions.filter((s) => inWeek(s.at))
-  const summary = summarize(week, weekMoods, bedGoal, wakeGoal)
+  const summary = summarize(week, weekMoods, bedGoal, wakeGoal, 7, now)
   summary.goalNights = week.filter((n) => n.durationMin >= summary.target).length
   // The shared summary uses the last seven check-ins; a recap includes every check-in in its window.
   summary.moodAvg = weekMoods.length
     ? Math.round(weekMoods.reduce((s, m) => s + moodPct(m.valence), 0) / weekMoods.length)
     : null
-  const previousSummary = summarize(previous, [], bedGoal, wakeGoal)
+  const previousSummary = summarize(previous, [], bedGoal, wakeGoal, 7, daysAgo(7, now))
   const days = keys.map((key) => {
     const entries = weekMoods.filter((m) => dateKey(new Date(m.at)) === key)
     return {

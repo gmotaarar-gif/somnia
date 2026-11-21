@@ -1,6 +1,23 @@
 import { describe, expect, it } from "vitest"
 import type { SleepNight } from "@/store/store"
-import { bedtimeCountdown, computeStreak } from "./metrics"
+import { bedtimeCountdown, computeStreak, summarize } from "./metrics"
+import { dateKey, daysAgo } from "./time"
+
+describe("summarize calendar windows", () => {
+  it.each([7, 14, 30])("uses the last %i calendar days and the preceding window", (span) => {
+    const night = (ago: number, durationMin: number): SleepNight => ({
+      id: `${ago}`, dateKey: dateKey(daysAgo(ago)), bedtime: "23:30", wakeTime: "07:30",
+      durationMin, quality: 80, awakenings: 0, tags: [],
+    })
+    const nights = [night(span * 2, 60), night(span * 2 - 1, 240), night(span, 240), night(span - 1, 480), night(0, 480), night(-1, 60)]
+    const summary = summarize(nights, [], "23:30", "07:30", span)
+    expect(summary.week.map((n) => n.dateKey)).toEqual([dateKey(daysAgo(span - 1)), dateKey(daysAgo(0))])
+    expect(summary.avgDuration).toBe(480)
+    expect(summary.indexDelta).toBe(20)
+    expect(summarize([], [], "23:30", "07:30", span)).toMatchObject({ week: [], avgDuration: 0, indexDelta: 0 })
+    expect(summarize([night(span, 240)], [], "23:30", "07:30", span)).toMatchObject({ week: [], indexDelta: 0 })
+  })
+})
 
 describe("bedtimeCountdown", () => {
   it("counts toward a bedtime after midnight", () => {
