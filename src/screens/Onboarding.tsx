@@ -1,4 +1,5 @@
 import * as React from "react"
+import { Capacitor } from "@capacitor/core"
 import { useLocalAccount } from "@/account/LocalAccountProvider"
 import { AnimatePresence, motion } from "framer-motion"
 import { ArrowLeft, ArrowRight, BatteryCharging, Brain, Check, Leaf, Moon, MoonStar, Smartphone, Sparkles, Sunrise, Zap } from "lucide-react"
@@ -35,7 +36,7 @@ const CHRONO: { value: Chronotype; label: string; bed: string; wake: string }[] 
 
 const TIRED = ["Редко", "Иногда", "Часто", "Почти всегда"]
 const STARTER: Widget["id"][] = ["w-streak", "w-evening", "w-water", "w-cycle", "w-rhythm", "w-debt", "w-wellbeing"]
-const BUILD = ["Считаем цель сна", "Подбираем окно отбоя", "Собираем главный экран", "Настраиваем напоминание"]
+const BUILD = ["Считаем цель сна", "Подбираем окно отбоя", "Собираем главный экран"]
 const STEPS = 9
 
 /* Intro: three cards fanned out, shuffling every few seconds */
@@ -165,24 +166,26 @@ function SleepDial({ bed, wake }: { bed: string; wake: string }) {
   )
 }
 
-function Building({ onDone }: { onDone: () => void }) {
+function Building({ onDone, remindersAvailable }: { onDone: () => void; remindersAvailable: boolean }) {
+  const labels = [...BUILD, remindersAvailable ? "Настраиваем напоминание" : "Завершаем настройку"]
+  const total = labels.length
   const [n, setN] = React.useState(0)
   React.useEffect(() => {
-    if (n >= BUILD.length) {
+    if (n >= total) {
       const id = window.setTimeout(onDone, 500)
       return () => window.clearTimeout(id)
     }
     const id = window.setTimeout(() => setN(n + 1), 620)
     return () => window.clearTimeout(id)
-  }, [n, onDone])
+  }, [n, onDone, total])
   return (
     <div className="flex flex-1 flex-col items-center justify-center text-center">
-      <Ring value={n / BUILD.length} size={170} stroke={4}>
-        <DotsCount value={Math.round((n / BUILD.length) * 100)} format={(v) => `${Math.round(v)}%`} className="text-[40px]" />
+      <Ring value={n / total} size={170} stroke={4}>
+        <DotsCount value={Math.round((n / total) * 100)} format={(v) => `${Math.round(v)}%`} className="text-[40px]" />
       </Ring>
       <h1 className="mt-9 text-[28px] font-semibold tracking-[-0.03em]">Собираем ваш план</h1>
       <ul className="mt-6 w-full max-w-[280px] space-y-3 text-left">
-        {BUILD.map((label, i) => (
+        {labels.map((label, i) => (
           <motion.li
             key={label}
             className="flex items-center gap-3 text-[15px]"
@@ -204,6 +207,7 @@ function Building({ onDone }: { onDone: () => void }) {
 export function Onboarding() {
   const reduce = usePrefersReducedMotion()
   const store = useStore()
+  const remindersAvailable = Capacitor.isNativePlatform()
   const { account, openRegistration } = useLocalAccount()
   const [step, setStep] = React.useState(0)
   const [dir, setDir] = React.useState(1)
@@ -472,7 +476,7 @@ export function Onboarding() {
             </>
           )}
 
-          {step === 7 && <Building onDone={() => { setDir(1); setStep(8) }} />}
+          {step === 7 && <Building remindersAvailable={remindersAvailable} onDone={() => { setDir(1); setStep(8) }} />}
 
           {step === 8 && (
             <>
@@ -487,11 +491,11 @@ export function Onboarding() {
                     <DotsCount value={target} format={(v) => hm(Math.round(v))} className="text-[56px]" />
                     <span className="pb-1 text-[13px] text-ink-2">ч</span>
                   </div>
-                  <div className="mt-5 grid grid-cols-3 gap-2 text-center">
+                  <div className={cn("mt-5 grid gap-2 text-center", remindersAvailable ? "grid-cols-3" : "grid-cols-2")}>
                     {[
                       ["Отбой", bedGoal],
                       ["Подъём", wakeGoal],
-                      ["Сигнал", reminder ? reminderTime : "выкл"],
+                      ...(remindersAvailable ? [["Сигнал", reminder ? reminderTime : "выкл"]] : []),
                     ].map(([k, v]) => (
                       <div key={k} className="glass-inset rounded-[18px] py-2.5">
                         <div className="text-[11px] text-ink-2">{k}</div>
@@ -501,13 +505,17 @@ export function Onboarding() {
                   </div>
                 </div>
               </Card>
-              <div className="glass mt-3 flex items-center justify-between gap-4 rounded-[26px] p-4">
-                <div>
-                  <div className="text-[15px] font-medium">Напоминать об отбое</div>
-                  <div className="mt-0.5 text-[12px] text-ink-3">Вечерний режим за час до сна</div>
+              {remindersAvailable ? (
+                <div className="glass mt-3 flex items-center justify-between gap-4 rounded-[26px] p-4">
+                  <div>
+                    <div className="text-[15px] font-medium">Напоминать об отбое</div>
+                    <div className="mt-0.5 text-[12px] text-ink-3">Вечерний режим за час до сна</div>
+                  </div>
+                  <Toggle checked={reminder} onChange={setReminder} label="Напоминать об отбое" />
                 </div>
-                <Toggle checked={reminder} onChange={setReminder} label="Напоминать об отбое" />
-              </div>
+              ) : (
+                <p className="glass mt-3 rounded-[26px] p-4 text-[14px] text-ink-2">Напоминания доступны только в мобильном приложении Somna.</p>
+              )}
               <ul className="mt-4 space-y-2.5 text-[14px] leading-snug text-ink-2">
                 {[
                   gain >= 20 ? `Вернём до ${durationRu(gain)} сна за ночь` : "Закрепим ваш текущий объём сна",

@@ -1,4 +1,5 @@
 import * as React from "react"
+import { Capacitor } from "@capacitor/core"
 import { AlarmClock, ArrowUpRight, Flame, HeartPulse, ListChecks, Plus, Sparkles, Zap } from "lucide-react"
 import { dayPlan, wakeOptions, who5Label } from "@/lib/features"
 import { cn } from "@/lib/cn"
@@ -89,11 +90,12 @@ function EveningBody({ wide }: { wide: boolean }) {
   const now = useNow()
   const c = bedtimeCountdown(bedGoal, wakeGoal, now)
   const on = store.eveningMode
+  const schedule = Capacitor.isNativePlatform() ? ` · напоминание ${store.reminderTime}` : ""
   return (
     <>
       <Head
         title={wide ? "Вечерний режим" : "Вечер"}
-        sub={wide ? `Отбой в ${bedGoal} · напоминание ${store.reminderTime}` : undefined}
+        sub={wide ? `Отбой в ${bedGoal}${schedule}` : undefined}
         right={<Toggle checked={on} onChange={(v) => store.patch({ eveningMode: v })} label="Вечерний режим" />}
       />
       <div className={cn("mt-auto transition-opacity duration-250", !on && "opacity-40")}>
