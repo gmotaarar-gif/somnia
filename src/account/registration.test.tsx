@@ -26,7 +26,7 @@ describe("local registration", () => {
     expect(validateRegistration({ name: "Мира", email }).email).toBeTruthy()
   })
 
-  it.each(["mira+sleep@example.com", "mira.ivanova@my-domain.example", " MIRA@Example.com "])("allows a standard email %s", (email) => {
+  it.each(["mira+sleep@example.com", "mira.ivanova@my-domain.example", " MIRA@Example.com ", "мира@example.com", "мира@почта.рф"])("allows a valid email %s", (email) => {
     expect(validateRegistration({ name: "Мира", email })).toEqual({})
   })
 

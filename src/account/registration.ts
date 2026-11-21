@@ -10,12 +10,12 @@ export interface RegistrationInput {
 }
 
 function validEmail(email: string) {
-  // Standard unquoted addresses, with dot-separated domain labels. No delivery claim.
+  // Unquoted addresses, including international mailbox/domain names. No delivery claim.
   const [local, domain, extra] = email.split("@")
   return extra === undefined && !!domain && local.length <= 64 &&
-    /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*$/i.test(local) &&
+    /^[\p{L}\p{N}\p{M}!#$%&'*+/=?^_`{|}~-]+(?:\.[\p{L}\p{N}\p{M}!#$%&'*+/=?^_`{|}~-]+)*$/u.test(local) &&
     domain.length <= 253 && domain.includes(".") && domain.split(".").every((label) =>
-      label.length <= 63 && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label)
+      label.length <= 63 && /^[\p{L}\p{N}](?:[\p{L}\p{N}\p{M}-]*[\p{L}\p{N}\p{M}])?$/u.test(label)
     )
 }
 
