@@ -118,6 +118,8 @@ function buildNightDateInfo(offsetDays: number) {
 }
 
 function SleepQualityStep({
+  dayOffset,
+  onDayOffsetChange,
   quality,
   label,
   accentColor,
@@ -126,6 +128,8 @@ function SleepQualityStep({
   dir,
   reduceMotion,
 }: {
+  dayOffset: DayOffsetId
+  onDayOffsetChange: (v: DayOffsetId) => void
   quality: number
   label: string
   accentColor: string
@@ -144,8 +148,16 @@ function SleepQualityStep({
       exit="exit"
       className="flex flex-1 flex-col items-center justify-between px-6 pt-2 pb-8 text-center"
     >
-      <div>
-        <h2 className="max-w-[290px] text-[20px] leading-snug font-bold tracking-tight text-white">
+      <div className="w-full">
+        <SlidingTabs
+          items={DAY_CHOICES}
+          value={dayOffset}
+          onValueChange={onDayOffsetChange}
+          ariaLabel="День записи сна"
+          size="xs"
+          fullWidth
+        />
+        <h2 className="mx-auto mt-3 max-w-[290px] text-[20px] leading-snug font-bold tracking-tight text-white">
           Как вы выспались этой ночью?
         </h2>
         <div className="mt-2.5 flex justify-center text-[23px] font-bold tracking-tight">
@@ -196,8 +208,6 @@ function SleepQualityStep({
 }
 
 function SleepScheduleStep({
-  dayOffset,
-  onDayOffsetChange,
   bedWheel,
   wakeWheel,
   onBedChange,
@@ -210,8 +220,6 @@ function SleepScheduleStep({
   dir,
   reduceMotion,
 }: {
-  dayOffset: DayOffsetId
-  onDayOffsetChange: (v: DayOffsetId) => void
   bedWheel: Record<string, string>
   wakeWheel: Record<string, string>
   onBedChange: (v: Record<string, string>) => void
@@ -256,15 +264,6 @@ function SleepScheduleStep({
             <span className="text-xs text-white/55">{deltaBadge}</span>
           </div>
         </div>
-
-        <SlidingTabs
-          items={DAY_CHOICES}
-          value={dayOffset}
-          onValueChange={onDayOffsetChange}
-          ariaLabel="День записи сна"
-          size="xs"
-          fullWidth
-        />
 
         <div className="grid grid-cols-2 gap-2.5">
           <div className="space-y-1.5">
@@ -463,6 +462,9 @@ export function SleepLogDrawer() {
   const [step, setStep] = React.useState(0) // 0: quality orb, 1: time wheels, 2: awakenings/tags/note, 3: Записано
   const [dir, setDir] = React.useState<1 | -1>(1)
   const [dayOffset, setDayOffset] = React.useState<DayOffsetId>("0")
+  const [targetDateKey, setTargetDateKey] = React.useState(() =>
+    toLocalDateKey(new Date())
+  )
   const [bedWheel, setBedWheel] = React.useState<Record<string, string>>(() =>
     splitTime(bedtimeGoal)
   )
@@ -490,7 +492,10 @@ export function SleepLogDrawer() {
   const loadFormForDay = React.useCallback(
     (offset: DayOffsetId) => {
       const { dateKey } = buildNightDateInfo(Number(offset))
-      const existing = sleepHistoryRef.current.find((n) => n.dateKey === dateKey)
+      const existing = [...sleepHistoryRef.current]
+        .reverse()
+        .find((n) => n.dateKey === dateKey)
+      setTargetDateKey(dateKey)
       const { tags, note: savedNote } = splitStoredNote(existing?.note)
       setBedWheel(splitTime(existing?.bedtime ?? bedtimeGoal))
       setWakeWheel(splitTime(existing?.wakeTime ?? wakeGoal))
@@ -544,7 +549,11 @@ export function SleepLogDrawer() {
     haptic(12)
     const bedtime = `${bedWheel.hour}:${bedWheel.minute}`
     const wakeTime = `${wakeWheel.hour}:${wakeWheel.minute}`
-    const { date, dayShort, dateKey } = buildNightDateInfo(Number(dayOffset))
+    const dateKey = targetDateKey
+    const { date, dayShort } = getNightDateLabels(dateKey) ?? {
+      date: "Сегодня",
+      dayShort: "Вс",
+    }
     const composedNote = [selectedTags.join(" · "), note.trim()]
       .filter(Boolean)
       .join(" — ")
@@ -623,6 +632,8 @@ export function SleepLogDrawer() {
         <AnimatePresence mode="wait" custom={{ dir, reduced: !!reduceMotion }}>
           {step === 0 && (
             <SleepQualityStep
+              dayOffset={dayOffset}
+              onDayOffsetChange={handleDayOffsetChange}
               quality={quality}
               label={label}
               accentColor={accentColor}
@@ -635,8 +646,6 @@ export function SleepLogDrawer() {
 
           {step === 1 && (
             <SleepScheduleStep
-              dayOffset={dayOffset}
-              onDayOffsetChange={handleDayOffsetChange}
               bedWheel={bedWheel}
               wakeWheel={wakeWheel}
               onBedChange={setBedWheel}
