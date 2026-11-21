@@ -1,5 +1,6 @@
 import * as React from "react"
-import { motion, useReducedMotion } from "framer-motion"
+import { motion } from "framer-motion"
+import { usePrefersReducedMotion } from "./MotionProvider"
 import { DUR, EASE_OUT } from "@/lib/motion"
 import { sampleValencePalette } from "@/lib/valence"
 
@@ -43,7 +44,7 @@ function orbPath(valence: number) {
 /** Decorative mood feedback; the adjacent percentage and label carry the meaning. */
 export function MoodOrb({ valence }: { valence: number }) {
   const id = React.useId()
-  const reducedMotion = useReducedMotion()
+  const reducedMotion = usePrefersReducedMotion()
   const palette = sampleValencePalette(valence)
   const d = orbPath(valence)
   const transition = { duration: reducedMotion ? 0 : DUR.medium, ease: EASE_OUT }

@@ -12,6 +12,7 @@ import { Card, type CardTone } from "@/ui/Card"
 import { Bars, Orbits, Ring, Wave } from "@/ui/charts"
 import { Button, IconButton, Segmented, Slider, TimeField, Toggle } from "@/ui/controls"
 import { Dots, DotsCount } from "@/ui/Dots"
+import { usePrefersReducedMotion } from "@/ui/MotionProvider"
 import { WIDGET_META } from "@/widgets/catalog"
 import { WidgetTile } from "@/widgets/Widget"
 
@@ -199,6 +200,7 @@ function Building({ onDone }: { onDone: () => void }) {
 }
 
 export function Onboarding() {
+  const reduce = usePrefersReducedMotion()
   const store = useStore()
   const [step, setStep] = React.useState(0)
   const [dir, setDir] = React.useState(1)
@@ -404,8 +406,9 @@ export function Onboarding() {
               <Title title="Как вы сейчас?" text="Первый чек-ин: дальше будем сравнивать с ним." />
               <div className="mt-6 flex flex-1 flex-col items-center justify-center">
                 <motion.div
+                  key={String(reduce)}
                   className="size-[190px] rounded-full"
-                  animate={{ scale: [1, 1.06, 1] }}
+                  animate={{ scale: reduce ? 1 : [1, 1.06, 1] }}
                   transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
                   style={{
                     background: `radial-gradient(circle at 35% 28%, rgb(255 255 255 / 0.85), rgb(${r} ${g} ${b}) 42%, rgb(${r} ${g} ${b} / 0.5) 100%)`,

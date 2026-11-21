@@ -1,5 +1,6 @@
 import * as React from "react"
-import { motion, useReducedMotion } from "framer-motion"
+import { motion } from "framer-motion"
+import { usePrefersReducedMotion } from "@/ui/MotionProvider"
 import { Check, Eye, NotebookPen, Pause, Play, RotateCcw, ScanLine, Volume2 } from "lucide-react"
 import { cn } from "@/lib/cn"
 import { pluralRu } from "@/lib/time"
@@ -76,7 +77,7 @@ export function PracticesScreen() {
   const totalMin = Math.round(sessions.reduce((a, x) => a + x.min, 0))
   const openWorries = worries.filter((w) => !w.done).length
   const { breath, setBreath } = useBreath()
-  const reduce = useReducedMotion()
+  const reduce = usePrefersReducedMotion()
   const tech = TECHNIQUES[breath.technique]
   const elapsed = breath.totalSec - breath.remainingSec
   const { index, left } = phaseAt(tech.phases, elapsed)

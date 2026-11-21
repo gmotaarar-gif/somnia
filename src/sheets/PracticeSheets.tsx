@@ -8,6 +8,7 @@ import { useStore } from "@/store/store"
 import { Button, IconButton } from "@/ui/controls"
 import { Dots } from "@/ui/Dots"
 import { Field, Sheet } from "@/ui/Sheet"
+import { usePrefersReducedMotion } from "@/ui/MotionProvider"
 
 function CloseButton({ onClose }: { onClose: () => void }) {
   return (
@@ -112,6 +113,7 @@ const BODY = [
 const STEP_SEC = 36
 
 function BodyScan({ onDone }: { onDone: () => void }) {
+  const reduce = usePrefersReducedMotion()
   const { addSession, notify } = useStore()
   const [sec, setSec] = React.useState(0)
   const [running, setRunning] = React.useState(false)
@@ -147,9 +149,10 @@ function BodyScan({ onDone }: { onDone: () => void }) {
           </g>
         </svg>
         <motion.span
+          key={String(reduce)}
           className="absolute left-1/2 size-[130px] -translate-x-1/2 -translate-y-1/2 rounded-full"
           style={{ background: "radial-gradient(circle, rgb(217 242 74 / 0.75), rgb(217 242 74 / 0) 68%)" }}
-          animate={{ top: `${BODY[step].y}%`, scale: running ? [1, 1.18, 1] : 1 }}
+          animate={{ top: `${BODY[step].y}%`, scale: running && !reduce ? [1, 1.18, 1] : 1 }}
           transition={{ top: { duration: 1.2, ease: EASE_OUT }, scale: { duration: 5, repeat: Infinity, ease: "easeInOut" } }}
         />
       </div>

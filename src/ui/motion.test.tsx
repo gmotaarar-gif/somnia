@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
-import { MotionConfig, MotionConfigContext, motion } from "framer-motion"
-import { useContext, useState } from "react"
+import { MotionConfig, motion } from "framer-motion"
+import { useState } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { Island } from "@/shell/Island"
 import { MotionProvider } from "./MotionProvider"
@@ -85,21 +85,33 @@ it("settles animations without waiting for explicit delays when reduced motion i
   })
 })
 
-it("follows live preference changes without reloading or remounting application state", () => {
+it("applies live preference changes to mounted animations without losing application state", async () => {
   function Content() {
-    const { skipAnimations } = useContext(MotionConfigContext)
     const [count, setCount] = useState(0)
-    return <button onClick={() => setCount(count + 1)}>{String(skipAnimations)}:{count}</button>
+    return <>
+      <button onClick={() => setCount(count + 1)}>{count}</button>
+      <motion.div data-testid="mounted" initial={false} animate={{ opacity: count % 2 }} transition={{ duration: 0.15, delay: 0.2 }} />
+    </>
   }
   render(<MotionProvider><Content /></MotionProvider>)
   const button = screen.getByRole("button")
-  act(() => button.click())
   act(() => {
     reduced = true
     listeners.forEach((notify) => notify())
   })
+  act(() => button.click())
   expect(screen.getByRole("button")).toBe(button)
-  expect(button.textContent).toBe("true:1")
+  expect(button.textContent).toBe("1")
+  await waitFor(() => expect(screen.getByTestId("mounted").style.opacity).toBe("1"), { timeout: 150 })
+
+  act(() => {
+    reduced = false
+    listeners.forEach((notify) => notify())
+  })
+  act(() => button.click())
+  expect(button.textContent).toBe("2")
+  expect(screen.getByTestId("mounted").style.opacity).toBe("1")
+  await waitFor(() => expect(screen.getByTestId("mounted").style.opacity).toBe("0"))
 })
 
 it("retains the mobile toast during its exit rather than unmounting it abruptly", async () => {

@@ -1,5 +1,5 @@
-import { MotionConfig } from "framer-motion"
-import { useSyncExternalStore, type ReactNode } from "react"
+import { MotionConfig, MotionGlobalConfig } from "framer-motion"
+import { useLayoutEffect, useSyncExternalStore, type ReactNode } from "react"
 
 const QUERY = "(prefers-reduced-motion: reduce)"
 const snapshot = () => window.matchMedia(QUERY).matches
@@ -18,8 +18,15 @@ export function usePrefersReducedMotion() {
 /** MotionConfig's reducedMotion flag alone still animates opacity, SVGs and delays. */
 export function MotionProvider({ children }: { children: ReactNode }) {
   const reduce = usePrefersReducedMotion()
+  useLayoutEffect(() => {
+    // This is the sole app root. Unlike per-element MotionConfig flags, the
+    // public global switch is read on every animation, including mounted nodes.
+    const previous = MotionGlobalConfig.skipAnimations
+    MotionGlobalConfig.skipAnimations = reduce
+    return () => { MotionGlobalConfig.skipAnimations = previous }
+  }, [reduce])
   return (
-    <MotionConfig reducedMotion="user" skipAnimations={!!reduce}>
+    <MotionConfig reducedMotion="never">
       {children}
     </MotionConfig>
   )
