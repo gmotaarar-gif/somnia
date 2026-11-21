@@ -33,19 +33,19 @@ it.each([null, 45, 10])("shows no-data dynamics for an empty period (night age: 
   }] }))
   render(<StoreProvider><SleepScreen /></StoreProvider>)
   const dynamics = within(screen.getByText("Динамика").closest("section")!)
-  expect(dynamics.getByText("Нет записей за этот период")).toBeTruthy()
-  expect(dynamics.getByRole("img", { name: "--" })).toBeTruthy()
+  expect(dynamics.getByText("Пока нет данных. Запишите первую ночь.")).toBeTruthy()
+  expect(dynamics.getAllByText("—")).toHaveLength(4)
   expect(dynamics.queryByText("в норме")).toBeNull()
   expect(dynamics.queryByText("без изменений")).toBeNull()
 
   fireEvent.click(dynamics.getByRole("radio", { name: "14 дн" }))
   if (age === 10) {
-    expect(dynamics.queryByText("Нет записей за этот период")).toBeNull()
+    expect(dynamics.queryByText("Пока нет данных. Запишите первую ночь.")).toBeNull()
     expect(dynamics.getByRole("img", { name: "8:00" })).toBeTruthy()
     expect(screen.getAllByRole("listitem")).toHaveLength(1)
     fireEvent.click(dynamics.getByRole("radio", { name: "7 дн" }))
   }
-  expect(dynamics.getByText("Нет записей за этот период")).toBeTruthy()
+  expect(dynamics.getByText("Пока нет данных. Запишите первую ночь.")).toBeTruthy()
 })
 
 it("shows all retained nights when expanded and only three when collapsed", () => {

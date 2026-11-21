@@ -6,6 +6,7 @@ import { Dock } from "@/shell/Dock"
 import { SheetHost } from "@/shell/SheetHost"
 import { loadWithRetry } from "@/shell/LazyChunk"
 import { useStore, type TabId } from "@/store/store"
+import { useResolvedTheme } from "@/lib/theme"
 
 const SCREENS: Record<TabId, () => Promise<ComponentType>> = {
   today: () => Promise.resolve(TodayScreen),
@@ -15,7 +16,8 @@ const SCREENS: Record<TabId, () => Promise<ComponentType>> = {
 }
 
 export default function Workspace() {
-  const { tab, tabDir, setTab, notify } = useStore()
+  const { tab, tabDir, setTab, notify, theme: themeMode } = useStore()
+  const theme = useResolvedTheme(themeMode)
   const [visible, setVisible] = useState({ tab: "today" as TabId, tabDir, Screen: TodayScreen as ComponentType })
   useEffect(() => {
     if (tab === visible.tab) return
@@ -35,7 +37,7 @@ export default function Workspace() {
   return (
     <>
       <ScreenTransition screenKey={visible.tab} direction={visible.tabDir} overlay={<Dock />}>
-        <Aurora tab={visible.tab} snapshot />
+        <Aurora tab={visible.tab} theme={theme} snapshot />
         <div className="app-scroll">
           <div className="px-5 pb-[var(--dock-space)] pt-[max(var(--safe-top),14px)]">
             <Screen />

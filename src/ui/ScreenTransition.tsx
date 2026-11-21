@@ -1,7 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type SyntheticEvent } from "react"
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type SyntheticEvent } from "react"
 import { AnimatePresence } from "framer-motion"
 import { DistortionWave, type DistortionWaveHandle, type WaveStyleInput, type WaveType } from "distortion-waves"
 import { usePrefersReducedMotion } from "./MotionProvider"
+import { createWaveCapture } from "./waveCapture"
 
 // A short section change, not a full-screen celebration on every tap.
 const WAVE: WaveStyleInput = {
@@ -65,6 +66,7 @@ export function ScreenTransition({ screenKey, children, overlay }: {
 
   useLayoutEffect(() => { latest.current = { key: screenKey, content: children } })
 
+  const pictures = useMemo(() => createWaveCapture(), [views.key])
   const crossfade = reduce || captureTooSlow
   useEffect(() => {
     const destination = views.active
@@ -88,6 +90,12 @@ export function ScreenTransition({ screenKey, children, overlay }: {
       if (cancelled) return
       await wave.current?.prepare()
       if (cancelled) return
+      // prepare() may reuse a previously fresh slot. Seed both scene pictures
+      // so even a later invalidation at go() is a cheap cached upload.
+      await pictures.prepare()
+      if (cancelled) return
+      await wave.current?.prepare()
+      if (cancelled) return
       // A synchronous DOM readback can starve setTimeout. Enforce the same
       // budget even when the timer hasn't had an event-loop turn yet.
       if (performance.now() - started >= CAPTURE_BUDGET) {
@@ -98,7 +106,7 @@ export function ScreenTransition({ screenKey, children, overlay }: {
       setShown(destination)
     }).catch(fallback)
     return () => { cancelled = true; window.clearTimeout(timer) }
-  }, [views.key, views.active, shown, crossfade])
+  }, [views.key, views.active, shown, crossfade, pictures])
 
   // Keep the real control even if its lazy-loaded screen takes time to arrive.
   const rememberSource = (event: SyntheticEvent) => {
@@ -140,6 +148,7 @@ export function ScreenTransition({ screenKey, children, overlay }: {
       palette="colorful"
       waveStyle={WAVE}
       resolution={1}
+      capture={pictures.capture}
       prewarm={false}
       live={false}
       reducedMotion={crossfade ? "always" : "system"}

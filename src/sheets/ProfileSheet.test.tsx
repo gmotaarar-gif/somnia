@@ -110,6 +110,8 @@ describe("ProfileSheet", () => {
     openProfile()
     const startReset = () => fireEvent.click(screen.getByRole("button", { name: /Сбросить журнал/ }))
     startReset()
+    expect(screen.queryByText(/демо-данн/)).toBeNull()
+    expect(screen.getByText(/Все записи будут удалены, а настройки сброшены/)).toBeTruthy()
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Отмена" }))
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).nights).toEqual([savedNight])
     fireEvent.click(screen.getByRole("button", { name: "Отмена" }))

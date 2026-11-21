@@ -32,7 +32,9 @@ function Shell() {
 
   return (
     <PhoneFrame tab={where}>
-      <Aurora tab={where} theme={theme} />
+      {/* Workspace owns the backdrop captured by its wave. A second animated
+          mesh here competes for GPU time while hidden behind the opaque views. */}
+      {!onboarded && <Aurora tab="onboarding" theme={theme} />}
       <Suspense fallback={null}>
         <InitialContent onReady={markReady}>
           {onboarded ? <Workspace onLoadError={markReady} /> : (

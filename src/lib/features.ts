@@ -49,31 +49,8 @@ export const STAGE_META: Record<Stage, { label: string; color: string; level: nu
   deep: { label: "Глубокий сон", color: "#b5a0ff", level: 3 },
 }
 
-/**
- * Estimated sleep architecture. There is no sensor, so this models a typical night
- * (deep sleep early, REM growing towards morning) and adjusts it by the user's
- * morning rating and number of awakenings.
- */
-export function hypnogram(n: SleepNight): StageSegment[] {
-  const total = Math.max(60, spanMinutes(n.bedtime, n.wakeTime))
-  const cycles = Math.max(1, Math.round(total / CYCLE_MIN))
-  const per = total / cycles
-  const q = n.quality / 100
-  const out: StageSegment[] = [{ stage: "awake", min: Math.round(FALL_ASLEEP_MIN * (1.5 - q)) }]
-  const wakeAt = new Set(Array.from({ length: n.awakenings }, (_, i) => Math.round(((i + 1) * cycles) / (n.awakenings + 1))))
-  for (let c = 0; c < cycles; c++) {
-    const late = c / Math.max(1, cycles - 1)
-    const deep = per * (0.34 - 0.26 * late) * (0.6 + 0.6 * q)
-    const rem = per * (0.12 + 0.2 * late)
-    const light = Math.max(8, per - deep - rem)
-    out.push({ stage: "light", min: light * 0.55 })
-    if (deep > 4) out.push({ stage: "deep", min: deep })
-    out.push({ stage: "light", min: light * 0.45 })
-    out.push({ stage: "rem", min: rem })
-    if (wakeAt.has(c + 1) && c < cycles - 1) out.push({ stage: "awake", min: 8 })
-  }
-  const sum = out.reduce((a, s) => a + s.min, 0)
-  return out.map((s) => ({ stage: s.stage, min: (s.min / sum) * total }))
+export function hypnogram(_night: SleepNight): StageSegment[] {
+  return []
 }
 
 export function stageTotals(segs: StageSegment[]): Record<Stage, number> {

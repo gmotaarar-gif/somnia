@@ -86,10 +86,11 @@ it("keeps the shell visible while loading onboarding for empty storage", async (
 })
 
 it("loads the workspace directly for returning users", async () => {
-  localStorage.setItem("somna-state-v6", JSON.stringify({ onboarded: true }))
+  localStorage.setItem("somna-state-v6", JSON.stringify({ onboarded: true, theme: "light" }))
   render(<App />)
 
   expect(await screen.findByText("Workspace")).toBeTruthy()
+  expect(screen.queryByTestId("aurora")).toBeNull()
   expect(screen.queryByText("Finish onboarding")).toBeNull()
 })
 

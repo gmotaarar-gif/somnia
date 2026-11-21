@@ -45,8 +45,9 @@ it.each([false, true])("shows no weekly index when the week has no nights (older
   renderToday()
 
   const week = screen.getByRole("button", { name: "Индекс недели. Открыть итоги" })
-  expect(week.querySelector('[role="img"]')?.getAttribute("aria-label")).toBe("--")
-  expect(week.textContent).toContain("Нет записей за неделю")
+  expect(week.querySelector('[role="img"]')).toBeNull()
+  expect(week.textContent).toContain("—")
+  expect(week.textContent).toContain("Пока нет данных")
   expect(week.textContent).not.toContain("Режим сбит")
   fireEvent.click(week)
   expect(screen.getByTestId("where").textContent).toBe("today:recap")
@@ -75,4 +76,14 @@ it("keeps the Done button after the last widget is removed in edit mode", () => 
   expect(screen.queryAllByRole("button", { name: "Убрать виджет" })).toHaveLength(0)
   fireEvent.click(screen.getByRole("button", { name: "Готово" }))
   expect(screen.queryByRole("button", { name: "Готово" })).toBeNull()
+})
+
+it("does not label an empty journal as a disrupted sleep rhythm", () => {
+  renderToday()
+  expect(screen.getByText("Пока нет данных")).toBeTruthy()
+  expect(screen.queryByText("Режим сбит")).toBeNull()
+  expect(screen.queryByText("0:00")).toBeNull()
+  expect(screen.queryByRole("img", { name: "--" })).toBeNull()
+  expect(screen.queryByText("ч", { exact: true })).toBeNull()
+  expect(screen.getAllByText("—", { exact: true })).toHaveLength(3)
 })

@@ -148,8 +148,8 @@ export function SleepScreen() {
               {last && <span className="rounded-full bg-white/16 px-3 py-1.5 text-[12px] font-medium">{qualityLabel(last.quality)}</span>}
             </div>
             <div className="mt-8 flex items-end gap-3">
-              <Dots value={last ? hm(last.durationMin) : "0:00"} shape="square" className="text-[64px]" />
-              <span className="pb-0.5 text-[17px] text-white/65">ч</span>
+              {last ? <Dots value={hm(last.durationMin)} shape="square" className="text-[64px]" /> : <span className="text-[64px] leading-none">—</span>}
+              {last && <span className="pb-0.5 text-[17px] text-white/65">ч</span>}
             </div>
             {last ? (
               <>
@@ -276,11 +276,10 @@ export function SleepScreen() {
 
         <Card className="mt-4">
           <div className="p-5">
-            {shown.length ? <>
             <div className="flex items-end justify-between gap-3">
               <div>
                 <div className="flex items-end gap-1.5">
-                  <Dots value={chart === "hours" ? hm(sum.avgDuration) : `${sum.accuracy}%`} className="text-[28px]" />
+                  {shown.length ? <Dots value={chart === "hours" ? hm(sum.avgDuration) : `${sum.accuracy}%`} className="text-[28px]" /> : <span className="text-[28px] leading-none">—</span>}
                 </div>
                 <div className="mt-2.5 text-[12px] text-ink-2">
                   {chart === "hours" ? `в среднем · цель ${durationRu(sum.target)}` : "ночей в пределах ±30 мин"}
@@ -292,7 +291,7 @@ export function SleepScreen() {
               </div>
             </div>
             <div className="mt-6 h-[160px]">
-              {chart === "hours" ? (
+              {!shown.length ? <p className="text-[14px] text-ink-2">Пока нет данных. Запишите первую ночь.</p> : chart === "hours" ? (
                 <Bars
                   values={shown.map((n) => n.durationMin)}
                   labels={shown.map((n, i) => ((shown.length - 1 - i) % labelEvery === 0 ? weekdayShort(parseKey(n.dateKey)) : ""))}
@@ -305,14 +304,10 @@ export function SleepScreen() {
               )}
             </div>
             <div className="mt-6 grid grid-cols-3 gap-4 border-t border-white/8 pt-5">
-              <Stat label="Индекс" value={sum.index} note={sum.indexDelta ? `${sum.indexDelta > 0 ? "+" : ""}${sum.indexDelta} к прошлому` : "без изменений"} />
-              <Stat label="Долг сна" value={hm(sum.debt)} note={sum.debt > 90 ? "лягте раньше" : "в норме"} />
-              <Stat label="Спокойных" value={`${sum.calmNights}/${shown.length}`} note="без пробуждений" />
+              <Stat label="Индекс" value={shown.length ? sum.index : "—"} note={!shown.length ? "Пока нет данных" : sum.indexDelta ? `${sum.indexDelta > 0 ? "+" : ""}${sum.indexDelta} к прошлому` : "без изменений"} />
+              <Stat label="Долг сна" value={shown.length ? hm(sum.debt) : "—"} note={!shown.length ? "Пока нет данных" : sum.debt > 90 ? "лягте раньше" : "в норме"} />
+              <Stat label="Спокойных" value={shown.length ? `${sum.calmNights}/${shown.length}` : "—"} note="без пробуждений" />
             </div>
-            </> : <>
-              <Dots value="--" className="text-[28px]" />
-              <p className="mt-2.5 text-[12px] text-ink-2">Нет записей за этот период</p>
-            </>}
           </div>
         </Card>
       </motion.section>
@@ -320,6 +315,7 @@ export function SleepScreen() {
       <motion.section {...riseIn(4)} className="mt-10">
         <SectionHead title="История" hint="Чем ярче день, тем выше оценка ночи" />
         <MonthGrid />
+        {!nights.length && <p className="mt-3 text-[14px] text-ink-2">Здесь появятся ваши записи сна.</p>}
         <ul className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-2">
           {journal.map((n) => (
             <li key={n.id}>
