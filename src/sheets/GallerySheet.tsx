@@ -247,7 +247,7 @@ export function GallerySheet() {
                   aria-pressed={tone === t}
                   onClick={() => setTone(t)}
                   className={cn(
-                    "press grid size-11 place-items-center rounded-full ring-offset-2 ring-offset-[#0d0d13] transition-shadow duration-150",
+                    "press grid size-11 place-items-center rounded-full ring-offset-2 ring-offset-sheet transition-shadow duration-150",
                     tone === t ? "ring-2 ring-white" : "ring-1 ring-white/15"
                   )}
                   style={{ background: TONE_SWATCH[t] }}

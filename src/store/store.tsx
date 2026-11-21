@@ -1,6 +1,7 @@
 import * as React from "react"
 import { normalizeEmail, normalizeLocalAccount, validateRegistration, type LocalAccount, type RegistrationInput } from "@/account/registration"
 import { setSoundVolume, startSound, stopSound, type SoundMode } from "@/lib/audio"
+import { isThemeMode, type ThemeMode } from "@/lib/theme"
 import { dateKey, daysAgo, spanMinutes } from "@/lib/time"
 
 export type TabId = "today" | "sleep" | "mind" | "practices"
@@ -217,6 +218,8 @@ interface Persisted {
   userName: string
   localAccount: LocalAccount | null
   chronotype: Chronotype
+  /** "system" follows the device setting */
+  theme: ThemeMode
   bedGoal: string
   wakeGoal: string
   reminder: boolean
@@ -250,6 +253,7 @@ function defaults(): Persisted {
     userName: "",
     localAccount: null,
     chronotype: "balanced",
+    theme: "system",
     bedGoal: "23:30",
     wakeGoal: "07:30",
     reminder: true,
@@ -306,6 +310,7 @@ function load(): Persisted {
     const saved = rollDay({ ...base, ...parsed }, today())
     saved.localAccount = normalizeLocalAccount(saved.localAccount)
     saved.nights = normalizeNights(saved.nights)
+    if (!isThemeMode(saved.theme)) saved.theme = base.theme
     // Breathing practices were removed: drop their counter, widget and ritual step.
     // Finished sessions stay, so earned practice minutes and awards are not lost.
     delete (saved as { breath?: unknown }).breath

@@ -21,7 +21,7 @@ export function Splash({ ready = true }: { ready?: boolean }) {
     <AnimatePresence>
       {show && (
         <motion.div
-          className="absolute inset-0 z-[94] grid place-items-center bg-[#07070c]"
+          className="absolute inset-0 z-[94] grid place-items-center bg-bg"
           exit={{ opacity: 0, scale: 1.06, transition: { duration: 0.5, ease: EASE_OUT } }}
           aria-hidden
         >
@@ -43,7 +43,7 @@ export function Splash({ ready = true }: { ready?: boolean }) {
                 transition={{ type: "spring", stiffness: 240, damping: 18 }}
               />
               <motion.span
-                className="absolute inset-0 rounded-full bg-[#07070c]"
+                className="absolute inset-0 rounded-full bg-bg"
                 initial={{ x: 92, y: -40 }}
                 animate={{ x: 26, y: -18 }}
                 transition={{ duration: 0.9, ease: EASE_OUT, delay: 0.25 }}

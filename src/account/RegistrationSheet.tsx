@@ -88,7 +88,7 @@ export function RegistrationForm() {
           className="h-14 min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-ink-3"
         />
       </div>
-      {errors.name && <p id={`${prefix}-name-error`} className="mt-2 text-[12px] text-[#ff8f8f]">{errors.name}</p>}
+      {errors.name && <p id={`${prefix}-name-error`} className="mt-2 text-[12px] text-danger">{errors.name}</p>}
 
       <label htmlFor={`${prefix}-email`} className="mb-2 mt-5 block text-[13px] font-medium text-ink-2">Почта</label>
       <div className={cn("glass flex items-center gap-3 rounded-[20px] px-4 focus-within:ring-2 focus-within:ring-lime", errors.email && "ring-1 ring-[#ff8f8f]")}>
@@ -112,8 +112,8 @@ export function RegistrationForm() {
           className="h-14 min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-ink-3"
         />
       </div>
-      {errors.email && <p id={`${prefix}-email-error`} className="mt-2 text-[12px] text-[#ff8f8f]">{errors.email}</p>}
-      {storageError && <p role="alert" className="mt-4 text-[13px] leading-relaxed text-[#ff8f8f]">Не удалось сохранить профиль. Разрешите хранение данных в браузере или освободите место и попробуйте ещё раз.</p>}
+      {errors.email && <p id={`${prefix}-email-error`} className="mt-2 text-[12px] text-danger">{errors.email}</p>}
+      {storageError && <p role="alert" className="mt-4 text-[13px] leading-relaxed text-danger">Не удалось сохранить профиль. Разрешите хранение данных в браузере или освободите место и попробуйте ещё раз.</p>}
 
       <Button type="submit" className="mt-7 h-14 w-full">{account ? "Сохранить изменения" : "Создать локальный профиль"} <ArrowRight /></Button>
       <Button variant="ghost" className="mt-2 w-full" onClick={closeRegistration}>{account ? "Отмена" : "Пока без регистрации"}</Button>

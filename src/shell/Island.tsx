@@ -34,7 +34,7 @@ export function Island() {
         initial={false}
         animate={size}
         transition={SPRING}
-        className="pointer-events-auto relative overflow-hidden rounded-[24px] bg-black shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08),0_10px_30px_-10px_rgb(0_0_0/0.8)]"
+        className="pointer-events-auto on-dark relative overflow-hidden rounded-[24px] bg-black shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08),0_10px_30px_-10px_rgb(0_0_0/0.8)]"
       >
         <AnimatePresence mode="popLayout" initial={false}>
           {mode === "toast" && toast && (

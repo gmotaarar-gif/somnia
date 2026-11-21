@@ -1,4 +1,5 @@
 import { Suspense, useCallback, useLayoutEffect, useState, type ReactNode } from "react"
+import { applyTheme, useResolvedTheme } from "@/lib/theme"
 import { MotionProvider } from "@/ui/MotionProvider"
 import { LocalAccountProvider, useLocalAccount } from "@/account/LocalAccountProvider"
 import { Aurora } from "@/shell/Aurora"
@@ -20,7 +21,9 @@ function InitialContent({ onReady, children }: { onReady: () => void; children: 
 }
 
 function Shell() {
-  const { onboarded, tab } = useStore()
+  const { onboarded, tab, theme: themeMode } = useStore()
+  const theme = useResolvedTheme(themeMode)
+  useLayoutEffect(() => applyTheme(theme), [theme])
   const { registrationOpen } = useLocalAccount()
   const [ready, setReady] = useState(false)
   const markReady = useCallback(() => setReady(true), [])
@@ -29,7 +32,7 @@ function Shell() {
 
   return (
     <PhoneFrame tab={where}>
-      <Aurora tab={where} />
+      <Aurora tab={where} theme={theme} />
       <Suspense fallback={null}>
         <InitialContent onReady={markReady}>
           {onboarded ? <Workspace onLoadError={markReady} /> : (

@@ -23,7 +23,7 @@ export function NightMode() {
           role="dialog"
           aria-modal="true"
           aria-label="Ночной режим"
-          className="fixed inset-0 z-[70] flex flex-col items-center bg-black px-6 pb-[max(var(--safe-bottom),28px)] pt-[max(var(--safe-top),28px)]"
+          className="on-dark fixed inset-0 z-[70] flex flex-col items-center bg-black px-6 pb-[max(var(--safe-bottom),28px)] pt-[max(var(--safe-top),28px)]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1, transition: { duration: DUR.verySlow, ease: EASE_OUT } }}
           exit={{ opacity: 0, transition: { duration: DUR.fast } }}

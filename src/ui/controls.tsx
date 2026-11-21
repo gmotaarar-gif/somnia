@@ -45,7 +45,7 @@ export function Button({
         variant === "primary" && "bg-lime text-lime-ink shadow-[0_14px_36px_-14px_rgb(217_242_74/0.8)]",
         variant === "glass" && "glass text-ink",
         variant === "ghost" && "text-ink-2 hover:text-ink",
-        variant === "danger" && "bg-[#ff5d5d]/14 text-[#ff8f8f] ring-1 ring-inset ring-[#ff5d5d]/25",
+        variant === "danger" && "bg-[#ff5d5d]/14 text-danger ring-1 ring-inset ring-[#ff5d5d]/25",
         className
       )}
       {...rest}

@@ -5,7 +5,7 @@ import { useScreenEl } from "@/shell/PhoneFrame"
 function RecoveryPanel({ children }: { children: ReactNode }) {
   const screen = useScreenEl()
   return createPortal(
-    <div role="alert" className="absolute inset-x-4 top-20 z-[100] isolate rounded-[24px] bg-[#0d0d13] p-4 text-center text-[14px]">
+    <div role="alert" className="absolute inset-x-4 top-20 z-[100] isolate rounded-[24px] bg-sheet p-4 text-center text-[14px]">
       {children}
     </div>,
     screen ?? document.body

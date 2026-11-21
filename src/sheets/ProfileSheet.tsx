@@ -4,6 +4,7 @@ import { Directory, Encoding, Filesystem } from "@capacitor/filesystem"
 import { Share } from "@capacitor/share"
 import { Award as AwardIcon, ChevronRight, Download, LayoutGrid, RotateCcw, Sparkles, Trash2 } from "lucide-react"
 import { cn } from "@/lib/cn"
+import type { ThemeMode } from "@/lib/theme"
 import { durationRu, pluralRu, spanMinutes } from "@/lib/time"
 import { useStore, type Chronotype } from "@/store/store"
 import { Button, Segmented, Slider, TimeField, Toggle } from "@/ui/controls"
@@ -27,7 +28,7 @@ function Row({
   buttonRef?: React.Ref<HTMLButtonElement>
 }) {
   return (
-    <button ref={buttonRef} type="button" onClick={onClick} className={cn("press flex w-full items-center gap-3.5 px-4 py-3.5 text-left hover:bg-white/5", danger && "text-[#ff8f8f]")}>
+    <button ref={buttonRef} type="button" onClick={onClick} className={cn("press flex w-full items-center gap-3.5 px-4 py-3.5 text-left hover:bg-white/5", danger && "text-danger")}>
       <span className="shrink-0 opacity-70 [&_svg]:size-[18px]">{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-[15px]">{title}</span>
@@ -90,7 +91,7 @@ export function ProfileSheet() {
 
   return (
     <Sheet open={open} onClose={close} title="Профиль" description="Данные хранятся только в этом браузере">
-      <div className="profile-hero rounded-[28px] p-5">
+      <div className="profile-hero on-dark rounded-[28px] p-5">
         <div className="flex items-center gap-4">
           <span className="grid size-14 shrink-0 place-items-center rounded-full bg-[#c9b9ef]/15 text-[24px] font-medium text-[#ded1fa]" aria-hidden>{(s.userName.trim()[0] ?? "S").toUpperCase()}</span>
           <input
@@ -155,6 +156,21 @@ export function ProfileSheet() {
             { value: "early", label: "Жаворонок" },
             { value: "balanced", label: "Голубь" },
             { value: "night", label: "Сова" },
+          ]}
+        />
+      </Field>
+
+      <Field label="Оформление">
+        <Segmented<ThemeMode>
+          label="Оформление"
+          id="profile-theme"
+          className="flex w-full"
+          value={s.theme}
+          onChange={(theme) => s.patch({ theme })}
+          options={[
+            { value: "system", label: "Как в системе" },
+            { value: "light", label: "Светлое" },
+            { value: "dark", label: "Тёмное" },
           ]}
         />
       </Field>

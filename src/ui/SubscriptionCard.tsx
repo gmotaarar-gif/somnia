@@ -11,7 +11,7 @@ export function SubscriptionCard({ className }: { className?: string }) {
     <button
       type="button"
       onClick={() => openSheet("subscription", "profile")}
-      className={cn("press relative flex w-full items-center gap-3 overflow-hidden rounded-[26px] border border-[#c4a3ff]/25 bg-gradient-to-br from-[#352b4d] via-[#211c31] to-[#16151f] p-4 text-left", className)}
+      className={cn("on-dark press relative flex w-full items-center gap-3 overflow-hidden rounded-[26px] border border-[#c4a3ff]/25 bg-gradient-to-br from-[#352b4d] via-[#211c31] to-[#16151f] p-4 text-left", className)}
     >
       <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#c4a3ff]/15 text-[#dbc5ff]">
         <Sparkles className="size-5" />

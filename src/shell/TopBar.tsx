@@ -21,7 +21,7 @@ export function TopBar({
       </div>
       <div className="flex shrink-0 items-center gap-2 pt-1">
         {action}
-        <IconButton label="Профиль" onClick={() => openSheet("profile")} className="text-[14px] font-medium text-[#d4c9f4]">
+        <IconButton label="Профиль" onClick={() => openSheet("profile")} className="text-[14px] font-medium">
           {initial}
         </IconButton>
       </div>

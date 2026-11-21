@@ -41,7 +41,7 @@ function SubscriptionContent({ fromPractice, onClose }: { fromPractice: boolean;
   return (
     <>
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-5">
-        <div className="relative isolate overflow-hidden rounded-[30px] border border-white/10 bg-[#1d1929] px-5 pb-6 pt-7 text-center">
+        <div className="on-dark relative isolate overflow-hidden rounded-[30px] border border-white/10 bg-[#1d1929] px-5 pb-6 pt-7 text-center">
           <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_0%,#7552ab80,transparent_75%)]" />
           <span className="mx-auto grid size-16 place-items-center rounded-[23px] border border-[#e1cfff]/30 bg-[#c4a3ff]/15 text-[#e1cfff] shadow-[0_0_45px_-8px_#b28ae870]">
             {isPlus ? <CircleCheck className="size-8" strokeWidth={1.5} /> : <Sparkles className="size-8" strokeWidth={1.5} />}
@@ -122,7 +122,7 @@ function SubscriptionContent({ fromPractice, onClose }: { fromPractice: boolean;
         )}
         {error && <p role="alert" className="mt-4 rounded-[18px] bg-[#ff5d5d]/10 p-3 text-[12px] leading-relaxed text-[#ffabab]">{error}</p>}
       </div>
-      <footer className="shrink-0 border-t border-hair bg-[#0d0d13] px-6 pb-[max(var(--safe-bottom),20px)] pt-4">
+      <footer className="shrink-0 border-t border-hair bg-sheet px-6 pb-[max(var(--safe-bottom),20px)] pt-4">
         <Button className="w-full" onClick={isPlus ? onClose : enable}>{isPlus ? "Готово" : <>Включить Plus бесплатно <ArrowRight /></>}</Button>
         <p className="mt-2.5 text-center text-[11px] leading-relaxed text-ink-3">{isPlus ? "Демодоступ · без оплаты и автопродления" : "Это демо: деньги не списываются, карта не нужна. Цены выше — пример, не платёж."}</p>
         {!isPlus && <button type="button" onClick={onClose} className="press mt-2 min-h-9 w-full text-[12px] text-ink-2">Продолжить бесплатно</button>}
