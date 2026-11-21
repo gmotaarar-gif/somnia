@@ -371,7 +371,9 @@ void main() {
     () async {
       final p = MemoryPersistence();
       final s = create(p);
-      s.patch({'userName': 'Original'});
+      await s.registerLocalProfile(
+        const RegistrationInput(name: 'Original', email: 'mira@example.com'),
+      );
       await s.flush();
       await s.registerLocalProfile(
         const RegistrationInput(name: 'Мира', email: 'mira@example.com'),
