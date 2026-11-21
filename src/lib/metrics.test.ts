@@ -1,7 +1,24 @@
 import { describe, expect, it } from "vitest"
 import type { SleepNight } from "@/store/store"
-import { bedtimeCountdown, computeStreak, summarize } from "./metrics"
+import { bedtimeCountdown, buildInsights, computeStreak, summarize } from "./metrics"
 import { dateKey, daysAgo } from "./time"
+
+describe("buildInsights bedtime sample", () => {
+  it("requires two nights in the current window before describing bedtime stability", () => {
+    const night = (ago: number, bedtime = "23:30"): SleepNight => ({
+      id: `${ago}`, dateKey: dateKey(daysAgo(ago)), bedtime, wakeTime: "07:30",
+      durationMin: 480, quality: 80, awakenings: 0, tags: [],
+    })
+    const bedtimeInsights = (nights: SleepNight[]) => buildInsights(nights, [], "23:30", "07:30")
+      .filter((insight) => insight.id === "steady" || insight.id === "variance")
+
+    expect(bedtimeInsights([])).toEqual([])
+    expect(bedtimeInsights([night(20), night(19)])).toEqual([])
+    expect(bedtimeInsights([night(20), night(0)])).toEqual([])
+    expect(bedtimeInsights([night(1), night(0)]).map((insight) => insight.id)).toEqual(["steady"])
+    expect(bedtimeInsights([night(1, "21:30"), night(0)]).map((insight) => insight.id)).toEqual(["variance"])
+  })
+})
 
 describe("summarize calendar windows", () => {
   it.each([7, 14, 30])("uses the last %i calendar days and the preceding window", (span) => {

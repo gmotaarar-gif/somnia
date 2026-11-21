@@ -191,7 +191,7 @@ export function buildInsights(
       title: "Сон поднимает настроение",
       body: `После ночей от 7 часов баланс состояния выше в среднем на ${link} ${pluralRu(link, ["пункт", "пункта", "пунктов"])} из 100.`,
     })
-  if (nights.length >= 2)
+  if (s.week.length >= 2)
     out.push(
       s.bedSd > 30
         ? {
