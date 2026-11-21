@@ -3,11 +3,28 @@ import 'dart:ui' as ui;
 import 'package:material_ui/material_ui.dart';
 
 import '../data/store.dart';
+import '../sheets/article_sheet.dart';
+import '../sheets/practice_sheets.dart';
 import '../theme/tokens.dart';
 
 typedef SomnaSheetBuilder = Widget Function(BuildContext context, String? arg);
 
 class SheetRegistry extends ChangeNotifier {
+  SheetRegistry() {
+    register('article', (context, arg) => ArticleSheet(id: arg));
+    register('grounding', (context, arg) => const GroundingSheet());
+    register('worry', (context, arg) => const WorrySheet());
+    // Without Plus the body scan hands over to the Plus sheet once that is
+    // registered (web: SubscriptionSheet opens for a locked practice).
+    register(
+      'bodyscan',
+      (context, arg) => BodyScanSheet(
+        locked: (context) => contains('subscription')
+            ? build(context, 'subscription', arg)
+            : const PlusGate(),
+      ),
+    );
+  }
   final Map<String, SomnaSheetBuilder> _builders = {};
   void register(String id, SomnaSheetBuilder builder) {
     _builders[id] = builder;
@@ -31,7 +48,6 @@ class SheetRegistry extends ChangeNotifier {
             Text(switch (id) {
               'sleep' => 'Записать сон',
               'mood' => 'Чек-ин состояния',
-              'bodyscan' => 'Сканирование тела',
               _ => 'Скоро здесь',
             }, style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 16),
