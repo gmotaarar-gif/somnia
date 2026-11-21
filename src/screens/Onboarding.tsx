@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useLocalAccount } from "@/account/LocalAccountProvider"
 import { AnimatePresence, motion } from "framer-motion"
 import { ArrowLeft, ArrowRight, BatteryCharging, Brain, Check, Moon, MoonStar, Smartphone, Sparkles, Sunrise, Wind, Zap } from "lucide-react"
 import { cn } from "@/lib/cn"
@@ -201,6 +202,7 @@ function Building({ onDone }: { onDone: () => void }) {
 
 export function Onboarding() {
   const store = useStore()
+  const { account, openRegistration } = useLocalAccount()
   const [step, setStep] = React.useState(0)
   const [dir, setDir] = React.useState(1)
   const [name, setName] = React.useState(store.userName)
@@ -516,10 +518,19 @@ export function Onboarding() {
       </AnimatePresence>
 
       {!building && (
-        <Button className="mt-7 h-14 w-full shrink-0 text-[16px]" disabled={!canNext} onClick={() => (step === STEPS - 1 ? finish() : go(1))}>
-          {step === 0 ? "Начать" : step === STEPS - 1 ? "Открыть Somna" : "Далее"}
-          <ArrowRight />
-        </Button>
+        <>
+          <Button className="mt-7 h-14 w-full shrink-0 text-[16px]" disabled={!canNext} onClick={() => {
+            if (step !== STEPS - 1) return go(1)
+            finish()
+            if (!account) openRegistration()
+          }}>
+            {step === 0 ? "Начать" : step === STEPS - 1 ? account ? "Открыть Somna" : "Создать профиль" : "Далее"}
+            <ArrowRight />
+          </Button>
+          {step === STEPS - 1 && !account && (
+            <Button variant="ghost" className="mt-2 w-full shrink-0" onClick={finish}>Продолжить без регистрации</Button>
+          )}
+        </>
       )}
     </div>
   )
