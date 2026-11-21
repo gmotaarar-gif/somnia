@@ -60,7 +60,7 @@ it("confirms starter-layout restore and preserves custom habits and progress", (
   fireEvent.click(screen.getByRole("button", { name: "Отмена" }))
   expect(savedWidgets().at(-1)).toEqual(custom)
   fireEvent.click(screen.getByRole("button", { name: "Вернуть стандартный набор" }))
-  fireEvent.click(screen.getByRole("button", { name: "Восстановить", exact: true }))
+  fireEvent.click(screen.getByRole("button", { name: "Восстановить" }))
   expect(savedWidgets()).toEqual([custom, ...DEFAULT_WIDGETS])
 })
 
@@ -74,7 +74,7 @@ it("only creates a named habit with positive settings and persists its chosen de
   fireEvent.change(screen.getByRole("spinbutton", { name: "Цель в день" }), { target: { value: "" } })
   expect(add.disabled).toBe(true)
   fireEvent.change(screen.getByRole("spinbutton", { name: "Цель в день" }), { target: { value: "30" } })
-  fireEvent.click(screen.getByRole("button", { name: "стр", exact: true }))
+  fireEvent.click(screen.getByRole("button", { name: "стр" }))
   fireEvent.click(screen.getByRole("button", { name: "Цвет: Роза" }))
   fireEvent.click(screen.getByRole("radio", { name: "Широкий" }))
   fireEvent.click(add)
