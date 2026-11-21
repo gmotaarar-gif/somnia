@@ -3,19 +3,41 @@ import 'dart:ui' as ui;
 import 'package:material_ui/material_ui.dart';
 
 import '../data/store.dart';
+import '../mind/mood_sheet.dart';
+import '../mind/wellbeing_sheet.dart';
+import '../theme/theme.dart';
 import '../theme/tokens.dart';
 
 typedef SomnaSheetBuilder = Widget Function(BuildContext context, String? arg);
 
 class SheetRegistry extends ChangeNotifier {
+  SheetRegistry() {
+    register(
+      'mood',
+      (context, arg) => const MoodSheet(),
+      darkSurface: moodSheetSurface,
+    );
+    register('wellbeing', (context, arg) => const WellbeingSheet());
+  }
   final Map<String, SomnaSheetBuilder> _builders = {};
-  void register(String id, SomnaSheetBuilder builder) {
+  final Map<String, Color> _darkSurfaces = {};
+
+  /// [darkSurface] keeps the sheet dark in both themes, on that colour.
+  void register(String id, SomnaSheetBuilder builder, {Color? darkSurface}) {
     _builders[id] = builder;
+    if (darkSurface == null) {
+      _darkSurfaces.remove(id);
+    } else {
+      _darkSurfaces[id] = darkSurface;
+    }
     notifyListeners();
   }
 
+  Color? darkSurfaceOf(String id) => _darkSurfaces[id];
+
   void unregister(String id) {
     _builders.remove(id);
+    _darkSurfaces.remove(id);
     notifyListeners();
   }
 
@@ -52,46 +74,59 @@ Future<T?> showSomnaSheet<T>(
 
 ModalBottomSheetRoute<T> _sheetRoute<T>(
   BuildContext context,
-  WidgetBuilder builder,
-) => _BlurSheetRoute<T>(
-  builder: (context) => ClipRRect(
-    borderRadius: const BorderRadius.vertical(
-      top: Radius.circular(SomnaRadii.sheet),
-    ),
-    child: Material(
-      color: SomnaColors.of(context).sheet,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.viewInsetsOf(context).bottom,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: SomnaColors.of(context).ink3.withValues(alpha: .3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Flexible(
-                child: SingleChildScrollView(child: Builder(builder: builder)),
-              ),
-            ],
+  WidgetBuilder builder, {
+  Color? darkSurface,
+}) => _BlurSheetRoute<T>(
+  builder: (context) => darkSurface == null
+      ? _sheetBody(context, builder, SomnaColors.of(context).sheet)
+      : Theme(
+          data: somnaTheme(Brightness.dark),
+          child: Builder(
+            builder: (context) => _sheetBody(context, builder, darkSurface),
           ),
         ),
-      ),
-    ),
-  ),
   constraints: BoxConstraints(
     maxHeight: MediaQuery.sizeOf(context).height * .93,
   ),
 );
+
+Widget _sheetBody(BuildContext context, WidgetBuilder builder, Color color) =>
+    ClipRRect(
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(SomnaRadii.sheet),
+      ),
+      child: Material(
+        color: color,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(context).bottom,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: SomnaColors.of(context).ink3.withValues(alpha: .3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Builder(builder: builder),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
 
 class _BlurSheetRoute<T> extends ModalBottomSheetRoute<T> {
   _BlurSheetRoute({required super.builder, required super.constraints})
@@ -184,6 +219,7 @@ class _SheetHostState extends State<SheetHost> {
         listenable: widget.registry,
         builder: (context, _) => widget.registry.build(context, id, arg),
       ),
+      darkSurface: widget.registry.darkSurfaceOf(id),
     );
     _route = route;
     Navigator.of(context).push(route).then((_) {
