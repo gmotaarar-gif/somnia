@@ -4,6 +4,7 @@ import { Directory, Encoding, Filesystem } from "@capacitor/filesystem"
 import { Share } from "@capacitor/share"
 import { Award as AwardIcon, ChevronRight, Download, LayoutGrid, RotateCcw, Sparkles, Trash2 } from "lucide-react"
 import { cn } from "@/lib/cn"
+import { requestReminderPermission } from "@/lib/notifications"
 import type { ThemeMode } from "@/lib/theme"
 import { durationRu, pluralRu, spanMinutes } from "@/lib/time"
 import { useStore, type Chronotype } from "@/store/store"
@@ -47,6 +48,16 @@ export function ProfileSheet() {
   const widgetActionRef = React.useRef<HTMLButtonElement>(null)
   const journalActionRef = React.useRef<HTMLButtonElement>(null)
   const open = s.sheet === "profile"
+  const [requesting, setRequesting] = React.useState(false)
+  const toggleReminder = async (key: "reminder" | "morningReminder", enabled: boolean) => {
+    if (requesting) return
+    if (!enabled) { s.patch({ [key]: false }); return }
+    setRequesting(true)
+    const granted = await requestReminderPermission()
+    s.patch({ [key]: granted })
+    if (!granted) s.notify("Разрешите уведомления для Somna в настройках телефона")
+    setRequesting(false)
+  }
 
   React.useEffect(() => {
     if (!open) setConfirm(null)
@@ -136,13 +147,18 @@ export function ProfileSheet() {
         </div>
         <div className="glass mt-3 flex items-center justify-between gap-4 rounded-[22px] px-4 py-3">
           <span className="text-[15px]">Напоминать об отбое</span>
-          <Toggle checked={s.reminder} onChange={(reminder) => s.patch({ reminder })} label="Напоминать об отбое" />
+          <Toggle checked={s.reminder} onChange={(enabled) => { void toggleReminder("reminder", enabled) }} label="Напоминать об отбое" />
         </div>
         {s.reminder && (
           <div className="mt-3 flex">
             <TimeField label="Время" value={s.reminderTime} onChange={(reminderTime) => s.patch({ reminderTime })} />
           </div>
         )}
+        <div className="glass mt-3 flex items-center justify-between gap-4 rounded-[22px] px-4 py-3">
+          <span className="text-[15px]">Утренний чек-ин</span>
+          <Toggle checked={s.morningReminder} onChange={(enabled) => { void toggleReminder("morningReminder", enabled) }} label="Утренний чек-ин" />
+        </div>
+        {s.morningReminder && <div className="mt-3 flex"><TimeField label="Время чек-ина" value={s.morningReminderTime} onChange={(morningReminderTime) => s.patch({ morningReminderTime })} /></div>}
       </Field>
 
       <Field label="Хронотип">

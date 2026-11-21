@@ -2,6 +2,7 @@ import * as React from "react"
 import { normalizeEmail, normalizeLocalAccount, validateRegistration, type LocalAccount, type RegistrationInput } from "@/account/registration"
 import { setSoundVolume, startSound, stopSound, type SoundMode } from "@/lib/audio"
 import { isThemeMode, type ThemeMode } from "@/lib/theme"
+import { listenForReminders, syncReminders } from "@/lib/notifications"
 import { dateKey, daysAgo, spanMinutes } from "@/lib/time"
 
 export type TabId = "today" | "sleep" | "mind" | "practices"
@@ -224,6 +225,8 @@ interface Persisted {
   wakeGoal: string
   reminder: boolean
   reminderTime: string
+  morningReminder: boolean
+  morningReminderTime: string
   focus: string[]
   ritual: { day: string; done: string[] }
   water: { day: string; ml: number }
@@ -258,6 +261,8 @@ function defaults(): Persisted {
     wakeGoal: "07:30",
     reminder: true,
     reminderTime: "22:30",
+    morningReminder: false,
+    morningReminderTime: "07:30",
     focus: ["Стабильный подъём", "Снять вечерний стресс"],
     ritual: { day: today(), done: ["dim"] },
     water: { day: today(), ml: 1250 },
@@ -308,6 +313,7 @@ function load(): Persisted {
     if (!raw) return base
     const parsed = JSON.parse(raw) as Partial<Persisted>
     const saved = rollDay({ ...base, ...parsed }, today())
+    saved.morningReminderTime = parsed.morningReminderTime ?? saved.wakeGoal ?? "08:00"
     saved.localAccount = normalizeLocalAccount(saved.localAccount)
     saved.nights = normalizeNights(saved.nights)
     if (!isThemeMode(saved.theme)) saved.theme = base.theme
@@ -400,6 +406,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (s) setSheetArg(arg ?? null)
   }, [])
   const notify = React.useCallback((text: string) => setToast({ id: Date.now(), text }), [])
+
+  React.useEffect(() => listenForReminders(openSheet), [openSheet])
+  React.useEffect(() => {
+    void syncReminders(data).catch(() => notify("Не удалось обновить напоминания. Попробуйте ещё раз."))
+  }, [data.reminder, data.reminderTime, data.morningReminder, data.morningReminderTime, notify])
 
   React.useEffect(() => {
     if (!toast) return
