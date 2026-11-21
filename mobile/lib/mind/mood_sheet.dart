@@ -688,7 +688,8 @@ class _GlowPainter extends CustomPainter {
 
     canvas.clipRect(Offset.zero & size);
     glow(.5, .46, .7, .34, .24);
-    glow(.5, 0, 1.2, .4, .14);
+    // The sheet's handle strip sits above this box: fade out before its edge.
+    glow(.5, .2, 1.2, .2, .12);
   }
 
   @override
