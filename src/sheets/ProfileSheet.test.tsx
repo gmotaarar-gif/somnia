@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { StoreProvider, useStore } from "@/store/store"
 import { SubscriptionProvider } from "@/store/subscription"
+import { LocalAccountProvider, useLocalAccount } from "@/account/LocalAccountProvider"
 import { ProfileSheet } from "./ProfileSheet"
 
 // Exercise profile/store behavior without the shared sheet's animation/portal lifecycle.
@@ -20,11 +21,12 @@ const savedNight = { id: "own-night", dateKey: "2030-01-02", bedtime: "00:00", w
 
 function Harness() {
   const { openSheet, sheet } = useStore()
-  return <><button onClick={() => openSheet("profile")}>Открыть профиль</button><output data-testid="active-sheet">{sheet}</output><ProfileSheet /></>
+  const { registrationOpen } = useLocalAccount()
+  return <><button onClick={() => openSheet("profile")}>Открыть профиль</button><output data-testid="active-sheet">{sheet}</output><output data-testid="registration-open">{String(registrationOpen)}</output><ProfileSheet /></>
 }
 
 function openProfile() {
-  const result = render(<StoreProvider><SubscriptionProvider><Harness /></SubscriptionProvider></StoreProvider>)
+  const result = render(<StoreProvider><SubscriptionProvider><LocalAccountProvider><Harness /></LocalAccountProvider></SubscriptionProvider></StoreProvider>)
   fireEvent.click(screen.getByText("Открыть профиль"))
   return result
 }
@@ -37,6 +39,15 @@ afterEach(() => {
 })
 
 describe("ProfileSheet", () => {
+  it("opens local registration from the profile without discarding personal settings", () => {
+    openProfile()
+    fireEvent.change(screen.getByLabelText("Как к вам обращаться"), { target: { value: "Мира" } })
+    fireEvent.click(screen.getByRole("button", { name: "Создать локальный профиль" }))
+    expect(screen.getByTestId("registration-open").textContent).toBe("true")
+    expect(screen.queryByRole("dialog")).toBeNull()
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).userName).toBe("Мира")
+  })
+
   it("opens the subscription from the profile without losing personal settings", () => {
     openProfile()
     fireEvent.change(screen.getByLabelText("Как к вам обращаться"), { target: { value: "Мира" } })
