@@ -11,7 +11,7 @@ const UNITS = ["мин", "раз", "стр", "шагов", "мл", "ч"]
 const GROUPS = [
   { id: "all", label: "Все" },
   { id: "sleep", label: "Сон", kinds: ["streak", "sleep", "evening", "week", "energy", "rhythm", "debt", "cycle"] },
-  { id: "mind", label: "Состояние", kinds: ["mood", "wellbeing", "breath"] },
+  { id: "mind", label: "Состояние", kinds: ["mood", "wellbeing"] },
   { id: "habits", label: "Привычки", kinds: ["water", "plan", "custom"] },
 ] as const
 

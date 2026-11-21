@@ -1,19 +1,19 @@
 import * as React from "react"
-import { motion } from "framer-motion"
-import { AlarmClock, ChevronRight, Lightbulb, MoonStar, Plus } from "lucide-react"
+import { AnimatePresence, motion } from "framer-motion"
+import { AlarmClock, ChevronDown, ChevronRight, MoonStar, Plus } from "lucide-react"
 import { wakeOptions } from "@/lib/features"
 import { Hypnogram, StageLegend } from "@/ui/SleepStages"
 import { cn } from "@/lib/cn"
 import type { SoundMode } from "@/lib/audio"
-import { SLEEP_TIPS, nightScore, qualityLabel } from "@/lib/metrics"
-import { riseIn } from "@/lib/motion"
+import { nightScore, qualityLabel } from "@/lib/metrics"
+import { DUR, EASE_OUT, riseIn } from "@/lib/motion"
 import { dateKey, dayMonthShort, daysAgo, durationRu, hm, parseKey, pluralRu, relativeDay, timeToMinutes, weekdayShort } from "@/lib/time"
 import { useSummary } from "@/store/derived"
 import { useStore, type SleepNight } from "@/store/store"
 import { TopBar } from "@/shell/TopBar"
-import { Card, CardTitle } from "@/ui/Card"
+import { Card } from "@/ui/Card"
 import { Bars } from "@/ui/charts"
-import { Button, Chip, IconButton, SectionHead, Segmented } from "@/ui/controls"
+import { Button, Chip, SectionHead, Segmented } from "@/ui/controls"
 import { Dots } from "@/ui/Dots"
 
 export const SOUNDS: { id: SoundMode; label: string }[] = [
@@ -60,16 +60,13 @@ function SleepWindows({ nights, bedGoal, wakeGoal }: { nights: SleepNight[]; bed
   )
 }
 
-function Stat({ label, value, unit, note }: { label: string; value: string | number; unit?: string; note: string }) {
+function Stat({ label, value, note }: { label: string; value: string | number; note: string }) {
   return (
-    <Card r="sm" className="p-4">
+    <div className="min-w-0">
       <div className="text-[12px] text-ink-3">{label}</div>
-      <div className="mt-4 flex items-end gap-1.5">
-        <Dots value={value} shape="square" className="text-[26px]" />
-        {unit && <span className="text-[11px] leading-none text-ink-2">{unit}</span>}
-      </div>
-      <div className="mt-2.5 truncate text-[12px] text-ink-2">{note}</div>
-    </Card>
+      <div className="mt-2 text-[22px] font-semibold leading-none tracking-[-0.03em] tabular-nums">{value}</div>
+      <div className="mt-1.5 truncate text-[11px] text-ink-3">{note}</div>
+    </div>
   )
 }
 
@@ -81,7 +78,7 @@ function MonthGrid() {
   const offset = (today.getDay() + 6) % 7
   const days = Array.from({ length: 35 }, (_, i) => daysAgo(34 - i - (6 - offset)))
   return (
-    <div className="glass mt-4 rounded-[30px] p-4">
+    <div className="glass mt-4 rounded-[30px] p-5">
       <div className="grid grid-cols-7 gap-1.5 text-center text-[10px] text-ink-3">
         {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((d) => (
           <span key={d}>{d}</span>
@@ -122,128 +119,146 @@ function MonthGrid() {
 
 export function SleepScreen() {
   const { nights, bedGoal, wakeGoal, openSheet, nightSound, setNightSound, startNight, soundTimer, patch } = useStore()
-  const cycles = wakeOptions(bedGoal)
+  const best = wakeOptions(bedGoal).find((o) => o.best)
   const [period, setPeriod] = React.useState<"7" | "14" | "30">("7")
+  const [chart, setChart] = React.useState<"hours" | "window">("hours")
+  const [tune, setTune] = React.useState(false)
+  const [allNights, setAllNights] = React.useState(false)
   const sum = useSummary(Number(period))
   const last = sum.last
   const shown = sum.week
-  const tip = SLEEP_TIPS[new Date().getDate() % SLEEP_TIPS.length]
   const labelEvery = shown.length > 14 ? 5 : shown.length > 7 ? 2 : 1
+  const journal = [...nights].reverse().slice(0, allNights ? 14 : 3)
+  const soundLabel = SOUNDS.find((s) => s.id === nightSound)?.label ?? "Тишина"
 
   return (
     <>
       <TopBar
         title="Сон"
         sub={`Цель ${bedGoal} → ${wakeGoal} · ${durationRu(sum.target)}`}
-        action={
-          <IconButton label="Записать сон" onClick={() => openSheet("sleep")}>
-            <Plus />
-          </IconButton>
-        }
       />
 
-      <div className="grid gap-3">
-        <motion.div {...riseIn(0)} className="">
-          <Card r="lg" className="sleep-hero h-full min-h-[340px]">
-            <div className="flex h-full flex-col p-6">
-              <div className="flex items-start justify-between">
-                <CardTitle sub={last ? relativeDay(last.dateKey) : "Нет записей"}>Прошлая ночь</CardTitle>
-                {last && <span className="rounded-full bg-white/18 px-3 py-2 text-[11px] font-semibold">{qualityLabel(last.quality)} · {last.quality}</span>}
-              </div>
-              <div className="mt-6 flex items-end gap-3">
-                <span className="text-[56px] font-medium leading-none tracking-[-0.06em] tabular-nums">{last ? hm(last.durationMin) : "0:00"}</span>
-                <span className="pb-1 text-[14px] text-white/65">ч</span>
-              </div>
-              {last ? (
-                <>
-                  <p className="mt-3 text-[11px] leading-relaxed text-white/65">
-                    {last.awakenings ? `${last.awakenings} ${pluralRu(last.awakenings, ["пробуждение", "пробуждения", "пробуждений"])}` : "Без пробуждений"}
-                    {last.tags.length > 0 && ` · ${last.tags.join(" · ")}`}
-                  </p>
-                  <div className="mt-auto pt-4">
-                    <button
-                      type="button"
-                      aria-label="Подробности ночи"
-                      onClick={() => openSheet("night", last.id)}
-                      className="press -mx-1 block w-[calc(100%+8px)] rounded-[16px] p-1 text-left"
-                    >
-                      <Hypnogram night={last} />
-                    </button>
-                  </div>
-                  <div className="mt-4"><StageLegend night={last} /></div>
-                  <p className="mt-4 text-[10px] leading-relaxed text-white/55">Фазы оценены по записи, а не измерены датчиком</p>
-                </>
-              ) : (
+      <motion.div {...riseIn(0)}>
+        <Card r="lg" className="sleep-hero">
+          <div className="flex min-h-[316px] flex-col p-6">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[14px] font-medium text-white/80">Прошлая ночь</span>
+              {last && <span className="rounded-full bg-white/16 px-3 py-1.5 text-[12px] font-medium">{qualityLabel(last.quality)}</span>}
+            </div>
+            <div className="mt-8 flex items-end gap-3">
+              <Dots value={last ? hm(last.durationMin) : "0:00"} shape="square" className="text-[64px]" />
+              <span className="pb-0.5 text-[17px] text-white/65">ч</span>
+            </div>
+            {last ? (
+              <>
+                <p className="mt-4 text-[13px] text-white/70">
+                  {last.bedtime} → {last.wakeTime} ·{" "}
+                  {last.awakenings ? `${last.awakenings} ${pluralRu(last.awakenings, ["пробуждение", "пробуждения", "пробуждений"])}` : "без пробуждений"}
+                </p>
+                <div className="mt-auto pt-6">
+                  <button
+                    type="button"
+                    aria-label="Подробности ночи"
+                    onClick={() => openSheet("night", last.id)}
+                    className="press -mx-1 block w-[calc(100%+8px)] rounded-[16px] p-1 text-left"
+                  >
+                    <Hypnogram night={last} />
+                  </button>
+                </div>
+                <div className="mt-4"><StageLegend night={last} /></div>
+              </>
+            ) : (
+              <>
+                <p className="mt-4 text-[13px] text-white/70">Запишите первую ночь: это займёт минуту.</p>
                 <Button className="mt-auto self-start" onClick={() => openSheet("sleep")}>
                   <Plus /> Записать сон
                 </Button>
-              )}
-            </div>
-          </Card>
-        </motion.div>
-
-        <motion.div {...riseIn(1)} className="">
-          <Card className="h-full">
-            <div className="flex h-full flex-col p-6">
-              <CardTitle sub={`Тёмный экран, шум и подъём в ${wakeGoal}`}>Ночной режим</CardTitle>
-              <div className="mt-6 flex flex-wrap gap-2">
-                {SOUNDS.map((s) => (
-                  <Chip key={s.id} active={nightSound === s.id} onClick={() => setNightSound(s.id)}>
-                    {s.label}
-                  </Chip>
-                ))}
-              </div>
-              <div className="mt-5 flex items-center justify-between gap-3">
-                <span className="text-[13px] text-ink-2">Таймер звука</span>
-                <Segmented
-                  id="sound-timer"
-                  label="Таймер звука"
-                  value={String(soundTimer)}
-                  onChange={(v) => patch({ soundTimer: Number(v) })}
-                  options={[
-                    { value: "15", label: "15" },
-                    { value: "30", label: "30" },
-                    { value: "60", label: "60" },
-                    { value: "0", label: "∞" },
-                  ]}
-                />
-              </div>
-              <p className="mb-6 mt-4 text-[13px] leading-relaxed text-ink-2">
-                Утром нажмите «Я проснулся»: время отбоя и подъёма подставится в запись автоматически.
-              </p>
-              <Button className="mt-auto w-full" onClick={startNight}>
-                <MoonStar /> Начать ночь
-              </Button>
-            </div>
-          </Card>
-        </motion.div>
-      </div>
-
-      <motion.div {...riseIn(2)} className="mt-3">
-        <Card role="button" tabIndex={0} aria-label="Калькулятор циклов сна" className="cursor-pointer" onClick={() => openSheet("cycles")} onKeyDown={(e) => e.key === "Enter" && openSheet("cycles")}>
-          <div className="p-6">
-            <div className="flex items-start justify-between">
-              <CardTitle sub={`Если лечь в ${bedGoal}`}>Циклы сна</CardTitle>
-              <span className="glass-inset grid size-9 place-items-center rounded-full">
-                <AlarmClock className="size-4" />
-              </span>
-            </div>
-            <div className="mt-6 grid grid-cols-3 gap-2">
-              {cycles.map((o) => (
-                <div key={o.cycles} className={cn("rounded-[22px] px-3 py-3.5", o.best ? "bg-lime text-lime-ink" : "glass-inset")}>
-                  <Dots value={o.time} still className="text-[19px]" />
-                  <div className={cn("mt-2.5 text-[11px]", o.best ? "text-lime-ink/70" : "text-ink-2")}>
-                    {o.cycles} {pluralRu(o.cycles, ["цикл", "цикла", "циклов"])}
-                  </div>
-                </div>
-              ))}
-            </div>
+              </>
+            )}
           </div>
         </Card>
       </motion.div>
 
-      <motion.section {...riseIn(2)} className="mt-8">
-        <SectionHead title="Динамика" hint={`${shown.length} ${pluralRu(shown.length, ["ночь", "ночи", "ночей"])}`}>
+      <motion.div {...riseIn(1)} className="mt-3">
+        <Card>
+          <div className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="text-[17px] font-semibold leading-tight tracking-[-0.025em]">Ночной режим</div>
+                <button
+                  type="button"
+                  aria-expanded={tune}
+                  onClick={() => setTune((v) => !v)}
+                  className="mt-1.5 flex max-w-full items-center gap-1 text-left text-[13px] text-ink-2 hover:text-ink"
+                >
+                  <span className="truncate">{soundLabel} · {soundTimer ? `${soundTimer} мин` : "без таймера"}</span>
+                  <ChevronDown className={cn("size-4 shrink-0 transition-transform duration-250", tune && "rotate-180")} />
+                </button>
+              </div>
+              <Button className="shrink-0 px-5" onClick={startNight}>
+                <MoonStar /> Начать
+              </Button>
+            </div>
+            <AnimatePresence initial={false}>
+              {tune && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: DUR.fast, ease: EASE_OUT }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex flex-wrap gap-2 pt-5">
+                    {SOUNDS.map((s) => (
+                      <Chip key={s.id} active={nightSound === s.id} onClick={() => setNightSound(s.id)}>
+                        {s.label}
+                      </Chip>
+                    ))}
+                  </div>
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <span className="text-[13px] text-ink-2">Таймер звука, мин</span>
+                    <Segmented
+                      id="sound-timer"
+                      label="Таймер звука"
+                      value={String(soundTimer)}
+                      onChange={(v) => patch({ soundTimer: Number(v) })}
+                      options={[
+                        { value: "15", label: "15" },
+                        { value: "30", label: "30" },
+                        { value: "60", label: "60" },
+                        { value: "0", label: "∞" },
+                      ]}
+                    />
+                  </div>
+                  <p className="mt-4 text-[13px] leading-relaxed text-ink-3">Утром нажмите «Я проснулся»: отбой и подъём подставятся в запись сами.</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </Card>
+      </motion.div>
+
+      {best && (
+        <motion.button
+          {...riseIn(2)}
+          type="button"
+          aria-label="Калькулятор циклов сна"
+          onClick={() => openSheet("cycles")}
+          className="press glass mt-3 flex w-full items-center gap-4 rounded-[30px] p-3 pr-4 text-left"
+        >
+          <span className="glass-inset grid size-11 shrink-0 place-items-center rounded-full">
+            <AlarmClock className="size-[18px]" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-medium">Циклы сна</span>
+            <span className="mt-0.5 block truncate text-[13px] text-ink-2">Лучший подъём в {best.time}, если лечь в {bedGoal}</span>
+          </span>
+          <ChevronRight className="size-5 shrink-0 text-ink-3" />
+        </motion.button>
+      )}
+
+      <motion.section {...riseIn(3)} className="mt-10">
+        <SectionHead title="Динамика">
           <Segmented
             id="sleep-period"
             label="Период динамики сна"
@@ -257,17 +272,24 @@ export function SleepScreen() {
           />
         </SectionHead>
 
-        <div className="mt-4 grid gap-3">
-          <Card>
-            <div className="p-5">
-              <div className="flex items-start justify-between gap-3">
-                <CardTitle sub={`Пунктир: цель ${durationRu(sum.target)}`}>Длительность</CardTitle>
+        <Card className="mt-4">
+          <div className="p-5">
+            <div className="flex items-end justify-between gap-3">
+              <div>
                 <div className="flex items-end gap-1.5">
-                  <Dots value={hm(sum.avgDuration)} className="text-[24px]" />
-                  <span className="text-[11px] leading-none text-ink-2">в среднем</span>
+                  <Dots value={chart === "hours" ? hm(sum.avgDuration) : `${sum.accuracy}%`} className="text-[28px]" />
+                </div>
+                <div className="mt-2.5 text-[12px] text-ink-2">
+                  {chart === "hours" ? `в среднем · цель ${durationRu(sum.target)}` : "ночей в пределах ±30 мин"}
                 </div>
               </div>
-              <div className="mt-6 h-[170px]">
+              <div className="flex gap-1.5">
+                <Chip active={chart === "hours"} onClick={() => setChart("hours")}>Часы</Chip>
+                <Chip active={chart === "window"} onClick={() => setChart("window")}>Режим</Chip>
+              </div>
+            </div>
+            <div className="mt-6 h-[160px]">
+              {chart === "hours" ? (
                 <Bars
                   values={shown.map((n) => n.durationMin)}
                   labels={shown.map((n, i) => ((shown.length - 1 - i) % labelEvery === 0 ? weekdayShort(parseKey(n.dateKey)) : ""))}
@@ -275,79 +297,48 @@ export function SleepScreen() {
                   max={Math.max(sum.target * 1.15, ...shown.map((n) => n.durationMin))}
                   format={durationRu}
                 />
-              </div>
-            </div>
-          </Card>
-
-          <Card>
-            <div className="p-5">
-              <CardTitle sub={`${sum.accuracy}% ночей в пределах ±30 мин`}>Окно сна</CardTitle>
-              <div className="mt-6 h-[170px]">
+              ) : (
                 <SleepWindows nights={shown} bedGoal={bedGoal} wakeGoal={wakeGoal} />
-              </div>
+              )}
             </div>
-          </Card>
-        </div>
-
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <Stat label="Индекс сна" value={sum.index} unit="/ 100" note={sum.indexDelta ? `${sum.indexDelta > 0 ? "+" : ""}${sum.indexDelta} к прошлому периоду` : "без изменений"} />
-          <Stat label="Точность отбоя" value={`${sum.accuracy}%`} note={`разброс ±${sum.bedSd} мин`} />
-          <Stat label="Долг сна" value={hm(sum.debt)} unit="ч" note={sum.debt > 90 ? "ложитесь на 20 мин раньше" : "в пределах нормы"} />
-          <Stat label="Спокойные ночи" value={`${sum.calmNights}/${shown.length}`} note="без пробуждений" />
-        </div>
-      </motion.section>
-
-      <motion.div {...riseIn(3)} className="mt-3">
-        <Card>
-          <div className="flex gap-4 p-5">
-            <span className="glass-inset grid size-11 shrink-0 place-items-center rounded-full">
-              <Lightbulb className="size-[18px]" />
-            </span>
-            <div className="min-w-0">
-              <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-ink-2">{tip.tag}</div>
-              <div className="mt-1.5 text-[17px] font-semibold tracking-[-0.01em]">{tip.title}</div>
-              <p className="mt-1.5 max-w-[62ch] text-[14px] leading-relaxed text-ink-2">{tip.body}</p>
+            <div className="mt-6 grid grid-cols-3 gap-4 border-t border-white/8 pt-5">
+              <Stat label="Индекс" value={sum.index} note={sum.indexDelta ? `${sum.indexDelta > 0 ? "+" : ""}${sum.indexDelta} к прошлому` : "без изменений"} />
+              <Stat label="Долг сна" value={hm(sum.debt)} note={sum.debt > 90 ? "лягте раньше" : "в норме"} />
+              <Stat label="Спокойных" value={`${sum.calmNights}/${shown.length}`} note="без пробуждений" />
             </div>
           </div>
         </Card>
-      </motion.div>
-
-      <motion.section {...riseIn(4)} className="mt-8">
-        <SectionHead title="Месяц" hint="Цвет показывает оценку ночи" />
-        <MonthGrid />
       </motion.section>
 
-      <motion.section {...riseIn(4)} className="mt-8">
-        <SectionHead title="Журнал">
-          <Chip onClick={() => openSheet("sleep")}>
-            <Plus className="size-4" /> Запись
-          </Chip>
-        </SectionHead>
-        <ul className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-2">
-          {[...nights]
-            .reverse()
-            .slice(0, 14)
-            .map((n) => (
-              <li key={n.id}>
-                <button type="button" onClick={() => openSheet("night", n.id)} className="press glass flex w-full items-center gap-4 rounded-[26px] p-3 pl-4 text-left">
-                  <span className="grid size-12 shrink-0 place-items-center rounded-full bg-black/40">
-                    <Dots value={nightScore(n, bedGoal, wakeGoal)} still className="text-[15px]" />
+      <motion.section {...riseIn(4)} className="mt-10">
+        <SectionHead title="История" hint="Чем ярче день, тем выше оценка ночи" />
+        <MonthGrid />
+        <ul className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-2">
+          {journal.map((n) => (
+            <li key={n.id}>
+              <button type="button" onClick={() => openSheet("night", n.id)} className="press glass flex w-full items-center gap-4 rounded-[26px] p-3 pl-4 text-left">
+                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-black/40">
+                  <Dots value={nightScore(n, bedGoal, wakeGoal)} still className="text-[14px]" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-baseline gap-2">
+                    <span className="text-[15px] font-medium">{relativeDay(n.dateKey)}</span>
+                    {n.dateKey >= dateKey(daysAgo(1)) && <span className="truncate text-[12px] text-ink-3">{dayMonthShort(parseKey(n.dateKey))}</span>}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-baseline gap-2">
-                      <span className="text-[15px] font-medium">{relativeDay(n.dateKey)}</span>
-                      <span className="truncate text-[12px] text-ink-3">{dayMonthShort(parseKey(n.dateKey))}</span>
-                    </span>
-                    <span className="mt-0.5 block truncate text-[13px] text-ink-2">
-                      {n.bedtime} → {n.wakeTime} · {durationRu(n.durationMin)}
-                      {n.note ? ` · ${n.note}` : ""}
-                    </span>
+                  <span className="mt-0.5 block truncate text-[13px] text-ink-2">
+                    {n.bedtime} → {n.wakeTime} · {durationRu(n.durationMin)}
                   </span>
-                  <ChevronRight className="mr-1 size-5 shrink-0 text-ink-3" />
-                </button>
-              </li>
-            ))}
+                </span>
+                <ChevronRight className="mr-1 size-5 shrink-0 text-ink-3" />
+              </button>
+            </li>
+          ))}
         </ul>
+        {nights.length > 3 && (
+          <Button variant="ghost" className="mt-2 w-full" aria-expanded={allNights} onClick={() => setAllNights((v) => !v)}>
+            {allNights ? "Свернуть" : "Показать все ночи"}
+          </Button>
+        )}
       </motion.section>
     </>
   )

@@ -14,14 +14,14 @@ export function TopBar({
   const { userName, openSheet } = useStore()
   const initial = (userName.trim()[0] ?? "S").toUpperCase()
   return (
-    <header className="flex items-center justify-between gap-3 px-1 pb-6 pt-3">
+    <header className="flex items-start justify-between gap-4 px-1 pb-7 pt-4">
       <div className="min-w-0 flex-1">
-        <h1 className="text-[27px] font-semibold leading-[1.12] tracking-[-0.045em] [overflow-wrap:anywhere]">{title}</h1>
-        {sub && <p className="mt-2 text-[12px] leading-snug text-ink-2">{sub}</p>}
+        {sub && <p className="text-[13px] leading-snug text-ink-3">{sub}</p>}
+        <h1 className="mt-1.5 text-[30px] font-semibold leading-[1.08] tracking-[-0.045em] [overflow-wrap:anywhere]">{title}</h1>
       </div>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2 pt-1">
         {action}
-        <IconButton label="Профиль" onClick={() => openSheet("profile")} className="size-10 text-[14px] font-medium text-[#d4c9f4]">
+        <IconButton label="Профиль" onClick={() => openSheet("profile")} className="text-[14px] font-medium text-[#d4c9f4]">
           {initial}
         </IconButton>
       </div>

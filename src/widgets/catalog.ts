@@ -10,7 +10,6 @@ export const WIDGET_META: Record<Exclude<WidgetKind, "custom">, WidgetMeta> = {
   sleep: { title: "Сон", about: "Прошлая ночь и динамика за неделю" },
   evening: { title: "Вечерний режим", about: "Обратный отсчёт до отбоя" },
   water: { title: "Вода", about: "Дневной баланс, +250 мл по нажатию" },
-  breath: { title: "Дыхание", about: "Минуты практики за сегодня" },
   week: { title: "Неделя сна", about: "Среднее и ночи, когда цель выполнена" },
   mood: { title: "Состояние", about: "Последний чек-ин настроения" },
   energy: { title: "Бодрость", about: "Утренняя оценка по дням" },
