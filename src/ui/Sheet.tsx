@@ -3,7 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog"
 import { AnimatePresence, motion, useDragControls } from "framer-motion"
 import { X } from "lucide-react"
 import { cn } from "@/lib/cn"
-import { DUR, EASE_OUT, SPRING_SOFT } from "@/lib/motion"
+import { DUR, EASE_OUT } from "@/lib/motion"
 import { useScreenEl } from "@/shell/PhoneFrame"
 import { IconButton } from "@/ui/controls"
 
@@ -35,7 +35,7 @@ export function Sheet({ open, onClose, title, description, children, footer, bar
                 className="fixed inset-0 z-40 bg-black/60 backdrop-blur-md"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                exit={{ opacity: 0, transition: { duration: DUR.fast, ease: EASE_OUT } }}
                 transition={{ duration: DUR.fast, ease: EASE_OUT }}
               />
             </Dialog.Overlay>
@@ -48,11 +48,12 @@ export function Sheet({ open, onClose, title, description, children, footer, bar
                   bare && "h-[93%]",
                   className
                 )}
-                initial={{ y: "100%", opacity: 0.6 }}
+                initial={{ y: "100%", opacity: 1 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: "100%", opacity: 0, transition: { duration: DUR.fast, ease: EASE_OUT } }}
-                transition={SPRING_SOFT}
+                transition={{ duration: DUR.slow, ease: EASE_OUT }}
                 drag="y"
+                dragMomentum={false}
                 dragControls={drag}
                 dragListener={false}
                 dragConstraints={{ top: 0, bottom: 0 }}

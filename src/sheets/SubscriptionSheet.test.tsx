@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { StoreProvider, useStore } from "@/store/store"
 import { SUBSCRIPTION_KEY, SubscriptionProvider } from "@/store/subscription"
 import { SubscriptionCard } from "@/ui/SubscriptionCard"
@@ -16,9 +16,14 @@ vi.mock("@/ui/Sheet", () => ({
   Field: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
 
+beforeEach(() => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addListener() {}, addEventListener() {}, removeEventListener() {} }))
+})
+
 afterEach(() => {
   cleanup()
   localStorage.clear()
+  vi.unstubAllGlobals()
 })
 
 function Triggers() {

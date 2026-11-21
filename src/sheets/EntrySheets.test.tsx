@@ -30,12 +30,19 @@ const mount = (open: "mood" | "sleep") => {
 }
 
 beforeEach(() => {
+  vi.stubGlobal("matchMedia", () => ({
+    matches: true,
+    addListener() {},
+    addEventListener() {},
+    removeEventListener() {},
+  }))
   localStorage.setItem("somna-state-v6", JSON.stringify({ layout: 2, moods: [], bedGoal: "23:00", wakeGoal: "07:00" }))
 })
 
 afterEach(() => {
   cleanup()
   localStorage.clear()
+  vi.unstubAllGlobals()
 })
 
 it("saves a mood check-in straight from the first step", () => {

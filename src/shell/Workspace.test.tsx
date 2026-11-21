@@ -24,9 +24,8 @@ vi.mock("@/shell/Dock", async () => {
     },
   }
 })
-vi.mock("framer-motion", () => ({
-  AnimatePresence: ({ children }: { children: ReactNode }) => children,
-  motion: { main: ({ children }: { children: ReactNode }) => <main>{children}</main> },
+vi.mock("@/ui/ScreenTransition", () => ({
+  ScreenTransition: ({ children }: { children: ReactNode }) => <main>{children}</main>,
 }))
 
 afterEach(() => {

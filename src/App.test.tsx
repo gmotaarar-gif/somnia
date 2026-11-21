@@ -20,6 +20,7 @@ vi.mock("@/shell/PhoneFrame", () => ({
 vi.mock("@/shell/Aurora", () => ({ Aurora: () => <div data-testid="aurora" /> }))
 vi.mock("@/shell/Island", () => ({ Island: () => <div data-testid="island" /> }))
 vi.mock("@/shell/Splash", () => ({ Splash: () => <div data-testid="splash" /> }))
+vi.mock("@/ui/MotionProvider", () => ({ MotionProvider: ({ children }: { children: ReactNode }) => children }))
 vi.mock("@/screens/Onboarding", async () => {
   const { useStore } = await import("@/store/store")
   const { useLocalAccount } = await import("@/account/LocalAccountProvider")

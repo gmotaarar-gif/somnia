@@ -3,7 +3,8 @@ import { motion } from "framer-motion"
 import { ArrowUpRight, Check, ChevronRight, Eye, LockKeyhole, NotebookPen, ScanLine } from "lucide-react"
 import { ARTICLES, TOPICS, type Article, type ArticleTopic } from "@/lib/articles"
 import { cn } from "@/lib/cn"
-import { DUR, EASE_OUT, riseIn } from "@/lib/motion"
+import { DUR, EASE_OUT } from "@/lib/motion"
+import { useRiseIn } from "@/ui/MotionProvider"
 import { pluralRu } from "@/lib/time"
 import { useStore } from "@/store/store"
 import { useSubscription } from "@/store/subscription"
@@ -48,6 +49,7 @@ function ArticleRow({ article, read, onOpen }: { article: Article; read: boolean
 }
 
 export function PracticesScreen() {
+  const riseIn = useRiseIn()
   const { isPlus } = useSubscription()
   const { ritual, toggleRitual, sessions, worries, readArticles, openSheet } = useStore()
   const [topic, setTopic] = React.useState<ArticleTopic | "all">("all")
@@ -196,8 +198,10 @@ export function PracticesScreen() {
                     >
                       <Check className="size-3.5" strokeWidth={3.5} />
                     </span>
-                    <span className={cn("min-w-0 flex-1 truncate text-[15px] transition-opacity duration-250", done && "text-ink-3 line-through decoration-white/25")}>{r.label}</span>
-                    <span className="shrink-0 text-[12px] text-ink-3">{r.hint}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className={cn("block text-[15px] leading-snug transition-colors duration-250", done && "text-ink-3 line-through decoration-white/25")}>{r.label}</span>
+                      <span className="mt-0.5 block text-[12px] text-ink-3">{r.hint}</span>
+                    </span>
                   </button>
                 </li>
               )
