@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, renderHook } from "@testing-library/react"
+import { Capacitor } from "@capacitor/core"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { DEFAULT_WIDGETS, StoreProvider, useStore, type Widget } from "@/store/store"
 import { onboardingWidgets } from "./onboarding"
@@ -16,6 +17,7 @@ afterEach(() => {
   cleanup()
   localStorage.clear()
   vi.clearAllMocks()
+  vi.restoreAllMocks()
 })
 
 const custom: Widget = {
@@ -54,12 +56,14 @@ describe("onboardingWidgets", () => {
 
 describe("redoing onboarding", () => {
   it("schedules unchanged default reminders after onboarding grants permission", async () => {
+    vi.spyOn(Capacitor, "isNativePlatform").mockReturnValue(true)
     const { result } = renderHook(useStore, { wrapper: StoreProvider })
     vi.mocked(syncReminders).mockClear()
     await act(async () => { await result.current.finishOnboarding({ reminder: true, reminderTime: result.current.reminderTime }) })
     expect(syncReminders).toHaveBeenCalledWith(expect.objectContaining({ reminder: true, reminderTime: "22:30", onboarded: true }))
   })
   it.each([true, false])("requests permission before saving an enabled bedtime reminder (granted: %s)", async (granted) => {
+    vi.spyOn(Capacitor, "isNativePlatform").mockReturnValue(true)
     vi.mocked(requestReminderPermission).mockResolvedValueOnce(granted)
     const { result } = renderHook(useStore, { wrapper: StoreProvider })
     await act(async () => { await result.current.finishOnboarding({ reminder: true }) })
@@ -71,10 +75,24 @@ describe("redoing onboarding", () => {
   })
 
   it("does not request permission for a disabled bedtime reminder", async () => {
+    vi.spyOn(Capacitor, "isNativePlatform").mockReturnValue(true)
     const { result } = renderHook(useStore, { wrapper: StoreProvider })
     await act(async () => { await result.current.finishOnboarding({ reminder: false }) })
     expect(requestReminderPermission).not.toHaveBeenCalled()
     expect(result.current.reminder).toBe(false)
+  })
+  it("finishes browser onboarding without enabling unsupported reminders or requesting permission", async () => {
+    vi.spyOn(Capacitor, "isNativePlatform").mockReturnValue(false)
+    const { result } = renderHook(useStore, { wrapper: StoreProvider })
+    expect(result.current).toMatchObject({ reminder: false, morningReminder: false })
+    await act(async () => {
+      expect(await result.current.finishOnboarding({ reminder: true, morningReminder: true })).toBe(true)
+    })
+    expect(requestReminderPermission).not.toHaveBeenCalled()
+    expect(result.current.toast).toBeNull()
+    expect(JSON.parse(localStorage.getItem("somna-state-v6")!)).toMatchObject({
+      onboarded: true, reminder: false, morningReminder: false,
+    })
   })
   it("does not drop custom habits or their progress", async () => {
     const { result } = renderHook(useStore, { wrapper: StoreProvider })

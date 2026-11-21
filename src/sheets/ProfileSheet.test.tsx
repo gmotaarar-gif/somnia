@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react"
 import { Blob as NodeBlob } from "node:buffer"
+import { Capacitor } from "@capacitor/core"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { StoreProvider, useStore } from "@/store/store"
@@ -43,12 +44,30 @@ function openProfile() {
 afterEach(() => {
   cleanup()
   localStorage.clear()
+  vi.clearAllMocks()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
 
 describe("ProfileSheet", () => {
+  it("explains that reminders are app-only and clears previously enabled browser reminders", () => {
+    vi.spyOn(Capacitor, "isNativePlatform").mockReturnValue(false)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ reminder: true, morningReminder: true }))
+    openProfile()
+
+    expect(screen.getByText("Напоминания доступны только в мобильном приложении Somna.")).toBeTruthy()
+    expect(screen.queryByRole("switch", { name: "Напоминать об отбое" })).toBeNull()
+    expect(screen.queryByRole("switch", { name: "Утренний чек-ин" })).toBeNull()
+    expect(screen.queryByLabelText("Время")).toBeNull()
+    expect(screen.queryByLabelText("Время чек-ина")).toBeNull()
+    expect(screen.getByLabelText("Отбой")).toBeTruthy()
+    expect(screen.getByLabelText("Подъём")).toBeTruthy()
+    expect(requestReminderPermission).not.toHaveBeenCalled()
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).toMatchObject({ reminder: false, morningReminder: false })
+  })
+
   it("requests permission and persists the morning reminder", async () => {
+    vi.spyOn(Capacitor, "isNativePlatform").mockReturnValue(true)
     openProfile()
     fireEvent.click(screen.getByRole("switch", { name: "Утренний чек-ин" }))
     await waitFor(() => expect(screen.getByLabelText("Время чек-ина")).toBeTruthy())
@@ -60,6 +79,7 @@ describe("ProfileSheet", () => {
   })
 
   it.each(["Напоминать об отбое", "Утренний чек-ин"])("keeps %s off when permission is denied", async (name) => {
+    vi.spyOn(Capacitor, "isNativePlatform").mockReturnValue(true)
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ reminder: false }))
     vi.mocked(requestReminderPermission).mockResolvedValueOnce(false)
     openProfile()
@@ -88,6 +108,7 @@ describe("ProfileSheet", () => {
   })
 
   it("persists personal settings and updates the sleep duration across midnight", () => {
+    vi.spyOn(Capacitor, "isNativePlatform").mockReturnValue(true)
     const first = openProfile()
     fireEvent.change(screen.getByLabelText("Имя"), { target: { value: "Мира" } })
     fireEvent.click(screen.getByRole("radio", { name: /Сова/ }))
