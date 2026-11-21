@@ -129,9 +129,9 @@ function SleepDial({ bed, wake }: { bed: string; wake: string }) {
       <svg viewBox="0 0 200 200" className="size-full" aria-hidden>
         {Array.from({ length: 48 }, (_, i) => {
           const p = pos(i / 48, 97)
-          return <circle key={i} cx={p.x} cy={p.y} r={i % 12 === 0 ? 1.8 : 0.9} fill={`rgb(255 255 255 / ${i % 12 === 0 ? 0.7 : 0.3})`} />
+          return <circle key={i} cx={p.x} cy={p.y} r={i % 12 === 0 ? 1.8 : 0.9} fill="currentColor" fillOpacity={i % 12 === 0 ? 0.7 : 0.3} />
         })}
-        <circle cx="100" cy="100" r={r} fill="none" stroke="rgb(255 255 255 / 0.1)" strokeWidth="13" />
+        <circle cx="100" cy="100" r={r} fill="none" stroke="currentColor" strokeOpacity="0.1" strokeWidth="13" />
         <motion.circle
           cx="100"
           cy="100"
@@ -152,7 +152,7 @@ function SleepDial({ bed, wake }: { bed: string; wake: string }) {
             <stop offset="1" stopColor="#d9f24a" />
           </linearGradient>
         </defs>
-        <motion.circle r="8" fill="#fff" initial={false} animate={{ cx: b.x, cy: b.y }} transition={{ type: "spring", stiffness: 90, damping: 18 }} />
+        <motion.circle r="8" fill="currentColor" initial={false} animate={{ cx: b.x, cy: b.y }} transition={{ type: "spring", stiffness: 90, damping: 18 }} />
         <motion.circle r="8" fill="#d9f24a" initial={false} animate={{ cx: w.x, cy: w.y }} transition={{ type: "spring", stiffness: 90, damping: 18 }} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">

@@ -61,7 +61,7 @@ function RecapStories({ onClose }: { onClose: () => void }) {
     <React.Fragment key="index">
       <div className="relative mx-auto my-6 grid size-[212px] shrink-0 place-items-center">
         <svg viewBox="0 0 212 212" className="absolute inset-0 size-full -rotate-90" aria-hidden>
-          <circle cx="106" cy="106" r="98" fill="none" stroke="white" strokeOpacity="0.1" strokeWidth="3" />
+          <circle cx="106" cy="106" r="98" fill="none" stroke="currentColor" strokeOpacity="0.1" strokeWidth="3" />
           {hasSleep && <circle cx="106" cy="106" r="98" fill="none" stroke="#d9f24a" strokeWidth="4" strokeLinecap="round" pathLength="100" strokeDasharray={`${sum.index} 100`} />}
         </svg>
         <div className="flex flex-col items-center">

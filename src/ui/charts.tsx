@@ -74,7 +74,7 @@ export function DotRow({
             style={{
               width: size,
               height: size,
-              background: on > 0 ? "var(--color-lime)" : "rgb(255 255 255 / 0.2)",
+              background: on > 0 ? "var(--color-lime)" : "var(--color-hair)",
               opacity: on > 0 ? 0.45 + on * 0.55 : 1,
               boxShadow: on > 0.6 ? "0 0 10px rgb(217 242 74 / 0.55)" : undefined,
             }}
@@ -121,10 +121,10 @@ export function Arc({
           <stop offset="1" stopColor={color} />
         </linearGradient>
       </defs>
-      <path d={arc(1)} fill="none" stroke="rgb(255 255 255 / 0.14)" strokeWidth="5" strokeLinecap="round" />
+      <path d={arc(1)} fill="none" stroke="currentColor" strokeOpacity="0.14" strokeWidth="5" strokeLinecap="round" />
       {v > 0.01 && <path d={arc(v)} fill="none" stroke={`url(#${id})`} strokeWidth="5" strokeLinecap="round" />}
-      <rect x={kx - 9} y={ky - 4} width="18" height="30" rx="9" fill="rgb(255 255 255 / 0.1)" />
-      <circle cx={kx} cy={ky} r="8" fill="#fff" />
+      <rect x={kx - 9} y={ky - 4} width="18" height="30" rx="9" fill="currentColor" fillOpacity="0.1" />
+      <circle cx={kx} cy={ky} r="8" fill="currentColor" />
       <circle cx={kx} cy={ky} r="8" fill="none" stroke="rgb(0 0 0 / 0.18)" />
     </svg>
   )
@@ -203,8 +203,8 @@ export function Wave({
           transition={{ type: "spring", stiffness: 380, damping: 20, delay: 0.95 }}
           style={{ transformOrigin: `${lx}px ${ly}px` }}
         >
-          <rect x={lx - 8} y={ly - 3} width="16" height="30" rx="8" fill="rgb(255 255 255 / 0.1)" />
-          <circle cx={lx} cy={ly} r="6.5" fill="#fff" />
+          <rect x={lx - 8} y={ly - 3} width="16" height="30" rx="8" fill="currentColor" fillOpacity="0.1" />
+          <circle cx={lx} cy={ly} r="6.5" fill="currentColor" />
         </motion.g>
       )}
     </svg>
@@ -232,7 +232,7 @@ export function Ring({
   return (
     <div className={cn("relative grid place-items-center", className)} style={{ width: size, height: size }}>
       <svg viewBox="0 0 100 100" className="absolute inset-0 -rotate-90" aria-hidden>
-        <circle cx="50" cy="50" r={r} fill="none" stroke="rgb(255 255 255 / 0.16)" strokeWidth={stroke * 0.5} />
+        <circle cx="50" cy="50" r={r} fill="none" stroke="currentColor" strokeOpacity="0.16" strokeWidth={stroke * 0.5} />
         <motion.circle
           key={String(reduce)}
           cx="50"
@@ -321,7 +321,7 @@ export function Orbits({ points = [0.18, 0.52, 0.8], className }: { points?: num
           rx="62"
           ry="58"
           fill="none"
-          stroke="rgb(255 255 255 / 0.32)"
+          stroke="currentColor" strokeOpacity="0.32"
           strokeWidth="1"
           strokeDasharray="0.1 4.2"
           strokeLinecap="round"
@@ -330,7 +330,7 @@ export function Orbits({ points = [0.18, 0.52, 0.8], className }: { points?: num
       {points.map((p, i) => {
         const cx = 60 + ((i * 2) % 5) * 30
         const a = Math.PI + p * Math.PI
-        return <circle key={i} cx={cx + Math.cos(a) * 62} cy={110 + Math.sin(a) * 58} r="3.2" fill="#fff" />
+        return <circle key={i} cx={cx + Math.cos(a) * 62} cy={110 + Math.sin(a) * 58} r="3.2" fill="currentColor" />
       })}
     </svg>
   )
