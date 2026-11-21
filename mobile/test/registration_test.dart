@@ -176,27 +176,22 @@ void main() {
     expect(p.json['userName'], 'Мира');
     expect(p.json['localAccount']['email'], 'new@example.com');
   });
-  test(
-    'reset to empty journal preserves registration and onboarding',
-    () async {
-      final s = create(MemoryPersistence());
-      await s.finishOnboarding({});
-      await s.registerLocalProfile(
-        const RegistrationInput(name: 'Мира', email: 'mira@example.com'),
-      );
-      final identity = s.localAccount?.toJson();
-      s.patch({'theme': 'dark'});
-      s.addMood(const MoodEntry(valence: .4));
-      expect(s.moods.length, 1);
-      s.resetAll();
-      expect(s.localAccount?.toJson(), identity);
-      expect(s.userName, 'Мира');
-      expect(s.onboarded, true);
-      expect(s.nights, isEmpty);
-      expect(s.moods, isEmpty);
-      expect(s.theme, 'system');
-    },
-  );
+  test('reset to demo journal preserves registration and onboarding', () async {
+    final s = create(MemoryPersistence());
+    await s.finishOnboarding({});
+    await s.registerLocalProfile(
+      const RegistrationInput(name: 'Мира', email: 'mira@example.com'),
+    );
+    final identity = s.localAccount?.toJson();
+    s.patch({'nights': [], 'moods': [], 'theme': 'dark'});
+    s.resetAll();
+    expect(s.localAccount?.toJson(), identity);
+    expect(s.userName, 'Мира');
+    expect(s.onboarded, true);
+    expect(s.nights.length, 14);
+    expect(s.moods.length, 10);
+    expect(s.theme, 'system');
+  });
   test(
     'older instance imports registration before next journal save',
     () async {

@@ -104,23 +104,11 @@ SomnaState loadState(String? raw, {DateTime? now}) {
         .where((id) => id != 'breath')
         .toList();
     merged['ritual'] = ritual;
-    // Entries seeded by earlier builds are not the user's records.
-    bool seeded(Object? e, String prefix) =>
-        e is Map &&
-        e['id'] is String &&
-        RegExp('^demo-$prefix-\\d+\$').hasMatch(e['id'] as String);
-    merged['moods'] = (merged['moods'] as List)
-        .where((m) => !seeded(m, 'm'))
-        .toList();
-    merged['sessions'] = (merged['sessions'] as List)
-        .where((s) => !seeded(s, 's'))
-        .toList();
     merged['nights'] = normalizeNights(
       (merged['nights'] as List)
           .where(
             (n) =>
                 n is Map &&
-                !seeded(n, 'n') &&
                 n['dateKey'] is String &&
                 (n['dateKey'] as String).isNotEmpty,
           )

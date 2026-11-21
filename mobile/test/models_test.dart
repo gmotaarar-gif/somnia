@@ -46,38 +46,6 @@ void main() {
           },
         ],
         'readArticles': ['article-1'],
-        'nights': [
-          {
-            'id': 'n',
-            'dateKey': '2030-01-02',
-            'bedtime': '23:30',
-            'wakeTime': '07:30',
-            'durationMin': 480,
-            'quality': 80,
-            'awakenings': 0,
-            'tags': ['Чтение'],
-          },
-        ],
-        'moods': [
-          {
-            'id': 'm',
-            'at': '2030-01-02T07:00:00.000Z',
-            'valence': 0.4,
-            'emotions': ['Спокойствие'],
-            'factors': ['Сон'],
-          },
-        ],
-        'sessions': [
-          {
-            'id': 's',
-            'at': '2030-01-02T19:00:00.000Z',
-            'kind': 'grounding',
-            'min': 5,
-          },
-        ],
-        'wellbeing': [
-          {'at': '2030-01-01T07:00:00.000Z', 'score': 64},
-        ],
         'morningReminder': true,
         'morningReminderTime': '08:00',
         'soundTimer': 45,
