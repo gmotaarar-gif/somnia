@@ -62,7 +62,7 @@ export function Dock() {
                     document.getElementById("app-scroll")?.scrollTo({ top: 0 })
                   }}
                   className={cn(
-                    "relative flex h-[52px] items-center justify-center gap-2 rounded-full px-[15px] transition-colors duration-250",
+                    "relative flex h-[52px] items-center justify-center gap-2 rounded-full px-3 transition-colors duration-250",
                     active ? "text-lime-ink" : "text-ink-2 hover:text-ink"
                   )}
                 >
@@ -78,7 +78,7 @@ export function Dock() {
                     {active && (
                       <motion.span
                         key="label"
-                        className="relative overflow-hidden whitespace-nowrap text-[14px] font-semibold tracking-[-0.01em] max-[380px]:hidden"
+                        className="dock-label relative overflow-hidden whitespace-nowrap text-[14px] font-semibold tracking-[-0.01em] max-[380px]:hidden"
                         initial={{ width: 0, opacity: 0 }}
                         animate={{ width: "auto", opacity: 1 }}
                         exit={{ width: 0, opacity: 0 }}

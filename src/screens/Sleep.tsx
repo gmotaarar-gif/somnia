@@ -2,7 +2,7 @@ import * as React from "react"
 import { motion } from "framer-motion"
 import { AlarmClock, ChevronRight, Lightbulb, MoonStar, Plus } from "lucide-react"
 import { wakeOptions } from "@/lib/features"
-import { Hypnogram } from "@/sheets/Extras"
+import { Hypnogram, StageLegend } from "@/ui/SleepStages"
 import { cn } from "@/lib/cn"
 import type { SoundMode } from "@/lib/audio"
 import { SLEEP_TIPS, nightScore, qualityLabel } from "@/lib/metrics"
@@ -144,45 +144,34 @@ export function SleepScreen() {
 
       <div className="grid gap-3">
         <motion.div {...riseIn(0)} className="">
-          <Card tone="night" r="lg" className="h-full min-h-[340px]">
+          <Card r="lg" className="sleep-hero h-full min-h-[340px]">
             <div className="flex h-full flex-col p-6">
               <div className="flex items-start justify-between">
                 <CardTitle sub={last ? relativeDay(last.dateKey) : "Нет записей"}>Прошлая ночь</CardTitle>
-                <span className="glass-inset grid size-9 place-items-center rounded-full">
-                  <MoonStar className="size-4" />
-                </span>
+                {last && <span className="rounded-full bg-white/18 px-3 py-2 text-[11px] font-semibold">{qualityLabel(last.quality)} · {last.quality}</span>}
               </div>
-              <div className="mt-8 flex items-end gap-3">
-                <Dots value={last ? hm(last.durationMin) : "0:00"} shape="square" className="text-[64px]" />
-                <span className="pb-1 text-[14px] text-ink-2">ч</span>
+              <div className="mt-6 flex items-end gap-3">
+                <span className="text-[56px] font-medium leading-none tracking-[-0.06em] tabular-nums">{last ? hm(last.durationMin) : "0:00"}</span>
+                <span className="pb-1 text-[14px] text-white/65">ч</span>
               </div>
               {last ? (
                 <>
-                  <div className="mt-auto pt-8">
-                    <div className="flex justify-between text-[12px] text-ink-2">
-                      <span>Отбой {last.bedtime}</span>
-                      <span>Подъём {last.wakeTime}</span>
-                    </div>
+                  <p className="mt-3 text-[11px] leading-relaxed text-white/65">
+                    {last.awakenings ? `${last.awakenings} ${pluralRu(last.awakenings, ["пробуждение", "пробуждения", "пробуждений"])}` : "Без пробуждений"}
+                    {last.tags.length > 0 && ` · ${last.tags.join(" · ")}`}
+                  </p>
+                  <div className="mt-auto pt-4">
                     <button
                       type="button"
                       aria-label="Подробности ночи"
                       onClick={() => openSheet("night", last.id)}
-                      className="press mt-3 block w-full rounded-[20px] bg-black/25 p-3"
+                      className="press -mx-1 block w-[calc(100%+8px)] rounded-[16px] p-1 text-left"
                     >
                       <Hypnogram night={last} />
                     </button>
                   </div>
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    <span className="glass-inset rounded-full px-3 py-1.5 text-[12px]">{qualityLabel(last.quality)} · {last.quality}</span>
-                    <span className="glass-inset rounded-full px-3 py-1.5 text-[12px]">
-                      {last.awakenings
-                        ? `${last.awakenings} ${pluralRu(last.awakenings, ["пробуждение", "пробуждения", "пробуждений"])}`
-                        : "Без пробуждений"}
-                    </span>
-                    {last.tags.map((t) => (
-                      <span key={t} className="glass-inset rounded-full px-3 py-1.5 text-[12px] text-ink-2">{t}</span>
-                    ))}
-                  </div>
+                  <div className="mt-4"><StageLegend night={last} /></div>
+                  <p className="mt-4 text-[10px] leading-relaxed text-white/55">Фазы оценены по записи, а не измерены датчиком</p>
                 </>
               ) : (
                 <Button className="mt-auto self-start" onClick={() => openSheet("sleep")}>
@@ -194,7 +183,7 @@ export function SleepScreen() {
         </motion.div>
 
         <motion.div {...riseIn(1)} className="">
-          <Card tone="cobalt" r="lg" className="h-full">
+          <Card className="h-full">
             <div className="flex h-full flex-col p-6">
               <CardTitle sub={`Тёмный экран, шум и подъём в ${wakeGoal}`}>Ночной режим</CardTitle>
               <div className="mt-6 flex flex-wrap gap-2">
@@ -231,7 +220,7 @@ export function SleepScreen() {
       </div>
 
       <motion.div {...riseIn(2)} className="mt-3">
-        <Card tone="plum" r="lg" role="button" tabIndex={0} aria-label="Калькулятор циклов сна" className="cursor-pointer" onClick={() => openSheet("cycles")} onKeyDown={(e) => e.key === "Enter" && openSheet("cycles")}>
+        <Card role="button" tabIndex={0} aria-label="Калькулятор циклов сна" className="cursor-pointer" onClick={() => openSheet("cycles")} onKeyDown={(e) => e.key === "Enter" && openSheet("cycles")}>
           <div className="p-6">
             <div className="flex items-start justify-between">
               <CardTitle sub={`Если лечь в ${bedGoal}`}>Циклы сна</CardTitle>
@@ -269,7 +258,7 @@ export function SleepScreen() {
         </SectionHead>
 
         <div className="mt-4 grid gap-3">
-          <Card tone="forest" className="">
+          <Card>
             <div className="p-5">
               <div className="flex items-start justify-between gap-3">
                 <CardTitle sub={`Пунктир: цель ${durationRu(sum.target)}`}>Длительность</CardTitle>
@@ -290,7 +279,7 @@ export function SleepScreen() {
             </div>
           </Card>
 
-          <Card tone="dusk" className="">
+          <Card>
             <div className="p-5">
               <CardTitle sub={`${sum.accuracy}% ночей в пределах ±30 мин`}>Окно сна</CardTitle>
               <div className="mt-6 h-[170px]">
@@ -309,7 +298,7 @@ export function SleepScreen() {
       </motion.section>
 
       <motion.div {...riseIn(3)} className="mt-3">
-        <Card tone="ember">
+        <Card>
           <div className="flex gap-4 p-5">
             <span className="glass-inset grid size-11 shrink-0 place-items-center rounded-full">
               <Lightbulb className="size-[18px]" />

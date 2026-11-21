@@ -9,7 +9,7 @@ import { hm } from "@/lib/time"
 import { useBreath, useStore, type Technique } from "@/store/store"
 import { SOUNDS } from "@/screens/Sleep"
 import { TopBar } from "@/shell/TopBar"
-import { Card, CardTitle, type CardTone } from "@/ui/Card"
+import { Card, CardTitle } from "@/ui/Card"
 import { DotTrack } from "@/ui/charts"
 import { Chip, IconButton, SectionHead, Segmented, Slider } from "@/ui/controls"
 import { Dots } from "@/ui/Dots"
@@ -59,8 +59,6 @@ export const RITUAL = [
   { id: "notes", label: "Выгрузить мысли", hint: "три строки на бумаге" },
 ]
 
-const TIP_TONES: CardTone[] = ["plum", "forest", "cobalt", "ember", "dusk", "moss"]
-
 function phaseAt(phases: Phase[], elapsed: number) {
   const cycle = phases.reduce((s, p) => s + p.sec, 0)
   let t = elapsed % cycle
@@ -90,7 +88,7 @@ export function PracticesScreen() {
 
       <div className="grid gap-3">
         <motion.div {...riseIn(0)} className="">
-          <Card tone="sunset" r="lg" className="h-full">
+          <Card r="lg" className="practice-hero h-full">
             <div className="flex h-full flex-col items-center p-6">
               <div className="flex w-full items-start justify-between gap-3">
                 <CardTitle sub={tech.about}>Дыхание</CardTitle>
@@ -174,7 +172,7 @@ export function PracticesScreen() {
 
         <div className="grid content-start gap-3">
           <motion.div {...riseIn(1)}>
-            <Card tone="cobalt">
+            <Card>
               <div className="p-5">
                 <div className="flex items-start justify-between gap-3">
                   <CardTitle sub="Отмечайте шаги перед сном">Вечерний ритуал</CardTitle>
@@ -216,7 +214,7 @@ export function PracticesScreen() {
           </motion.div>
 
           <motion.div {...riseIn(2)}>
-            <Card tone="ink">
+            <Card>
               <div className="p-5">
                 <CardTitle sub="Играет во время дыхания">Звук</CardTitle>
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -257,13 +255,13 @@ export function PracticesScreen() {
               onKeyDown={(e) => e.key === "Enter" && openSheet(x.id)}
               className={cn("cursor-pointer", x.wide && "col-span-2")}
             >
-              <div className={cn("flex p-5", x.wide ? "items-center gap-4" : "h-[150px] flex-col")}>
-                <span className="glass-inset grid size-10 shrink-0 place-items-center rounded-full">
+              <div className={cn("flex p-5", x.wide ? "items-center gap-4" : "min-h-[180px] flex-col")}>
+                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white/12">
                   <x.icon className="size-[18px]" />
                 </span>
                 <div className={cn("min-w-0", !x.wide && "mt-auto")}>
                   <div className="text-[16px] font-semibold tracking-[-0.01em]">{x.title}</div>
-                  <div className="mt-1 truncate text-[12px] text-ink-2">{x.sub}</div>
+                  <div className="mt-1.5 text-[12px] leading-snug text-ink-2">{x.sub}</div>
                 </div>
               </div>
             </Card>
@@ -275,12 +273,13 @@ export function PracticesScreen() {
         <SectionHead title="Гигиена сна" hint="Короткие правила КПТ-Б, которые работают" />
         <div className="mt-4 grid gap-3">
           {SLEEP_TIPS.map((t, i) => (
-            <Card key={t.id} tone={TIP_TONES[i % TIP_TONES.length]}>
-              <div className="flex min-h-[190px] flex-col p-5">
-                <Dots value={String(i + 1).padStart(2, "0")} shape="square" className="text-[24px]" />
-                <div className="mt-auto pt-6 text-[11px] font-medium uppercase tracking-[0.08em] text-ink-2">{t.tag}</div>
-                <div className="mt-1.5 text-[17px] font-semibold tracking-[-0.01em]">{t.title}</div>
-                <p className="mt-1.5 text-[13px] leading-relaxed text-ink-2">{t.body}</p>
+            <Card key={t.id} className={i === 0 ? "reading-card" : undefined}>
+              <div className="flex flex-col p-6">
+                <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.1em] opacity-60">
+                  <span>{t.tag}</span><span>{String(i + 1).padStart(2, "0")}</span>
+                </div>
+                <h3 className={cn("mt-5 font-semibold leading-[1.1] tracking-[-0.04em]", i === 0 ? "text-[28px]" : "text-[22px]")}>{t.title}</h3>
+                <p className="mt-3 text-[14px] leading-relaxed opacity-70">{t.body}</p>
               </div>
             </Card>
           ))}
