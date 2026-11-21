@@ -82,6 +82,7 @@ class _WidgetGridState extends State<WidgetGrid>
                     children: [
                       if (editing)
                         LongPressDraggable<String>(
+                          hitTestBehavior: HitTestBehavior.opaque,
                           data: w.id,
                           delay: const Duration(milliseconds: 140),
                           feedback: Material(

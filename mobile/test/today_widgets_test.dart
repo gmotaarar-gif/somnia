@@ -9,6 +9,7 @@ import 'package:somna/widgets/widget_tile.dart';
 import 'package:somna/widgets/widget_grid.dart';
 import 'package:somna/widgets/gallery_sheet.dart';
 import 'package:somna/widgets/recap_sheet.dart';
+import 'package:somna/widgets/catalog.dart';
 
 void main() {
   late SomnaStore store;
@@ -40,7 +41,7 @@ void main() {
         ),
       ),
     );
-    await t.pumpAndSettle();
+    await t.pump(const Duration(seconds: 2));
   }
 
   testWidgets('Today empty and populated distinguish missing records', (
@@ -122,18 +123,13 @@ void main() {
   ) async {
     await boot(t, const SingleChildScrollView(child: GallerySheet()));
     final before = store.widgets.first.visible;
-    await t.tap(
-      find.byType(ListTile).first,
-    ); // Catalog body has no toggle action.
-    await t.tap(
-      find.descendant(
-        of: find.byType(ListTile).first,
-        matching: find.byType(IconButton),
-      ),
-    );
+    final firstTile = find.byKey(ValueKey('gallery-${store.widgets.first.id}'));
+    await t.ensureVisible(firstTile);
+    await t.tap(firstTile);
     await t.pumpAndSettle();
     expect(store.widgets.first.visible, !before);
-    await t.tap(find.text('Свой счётчик'));
+    await t.ensureVisible(find.text('Свой виджет'));
+    await t.tap(find.text('Свой виджет'));
     await t.pumpAndSettle();
     await t.enterText(find.byType(TextField).first, '');
     await t.pumpAndSettle();
@@ -169,4 +165,66 @@ void main() {
     expect(store.weeklyGoal, isNotNull);
     await t.pump(const Duration(seconds: 3));
   });
+  testWidgets('drag reorders widgets without dropping hidden entries', (
+    t,
+  ) async {
+    store.setWidgets([
+      const SomnaWidget(
+        id: 'a',
+        kind: 'streak',
+        size: '1x1',
+        tone: 'ink',
+        visible: true,
+      ),
+      const SomnaWidget(
+        id: 'hidden',
+        kind: 'mood',
+        size: '1x1',
+        tone: 'moss',
+        visible: false,
+      ),
+      const SomnaWidget(
+        id: 'b',
+        kind: 'water',
+        size: '1x1',
+        tone: 'lime',
+        visible: true,
+      ),
+    ]);
+    store.setEditing(true);
+    await boot(t, const WidgetGrid());
+    final tiles = find.byType(WidgetTile);
+    final gesture = await t.startGesture(t.getCenter(tiles.first));
+    await t.pump(const Duration(milliseconds: 200));
+    await gesture.moveTo(t.getCenter(tiles.last));
+    await t.pump(const Duration(milliseconds: 200));
+    await gesture.up();
+    await t.pump();
+    expect(store.widgets.map((w) => w.id), ['hidden', 'b', 'a']);
+    await t.pumpWidget(const SizedBox());
+  });
+  for (final kind in [...widgetMeta.keys, 'custom']) {
+    testWidgets('$kind supports absent and zero records', (t) async {
+      for (final size in ['1x1', '2x1']) {
+        await boot(
+          t,
+          SizedBox(
+            width: size == '1x1' ? 178 : 360,
+            height: 178,
+            child: WidgetTile(
+              widget: SomnaWidget(
+                id: kind,
+                kind: kind,
+                size: size,
+                tone: 'plum',
+                visible: true,
+                target: 0,
+              ),
+            ),
+          ),
+        );
+        expect(t.takeException(), isNull);
+      }
+    });
+  }
 }
