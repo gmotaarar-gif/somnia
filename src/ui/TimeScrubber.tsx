@@ -129,10 +129,13 @@ export function TimeScrubber({
   knobs.current = { step, momentum, onChange, value };
   const ruler = useRef<HTMLDivElement>(null);
   const reported = useRef(value);
+  /* true while the ruler is following a value set from outside */
+  const following = useRef(false);
 
   /* report every step crossed, so whatever reads the time moves
      with the ruler rather than after it */
   const hear = (x: number) => {
+    if (following.current) return;
     const s = knobs.current.step;
     const next = toStr(Math.round(x / s) * s);
     if (next === reported.current) return;
@@ -183,6 +186,7 @@ export function TimeScrubber({
   useEffect(() => {
     if (value === reported.current) return;
     reported.current = value;
+    following.current = true;
     const from = p.current.to;
     const d = ((toMin(value) - wrap(from) + DAY * 1.5) % DAY) - DAY / 2;
     goTo(from + d, 0);
@@ -196,6 +200,7 @@ export function TimeScrubber({
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* a scripted pointer */ }
     cancelAnimationFrame(raf.current);
     raf.current = 0;
+    following.current = false;
     const k = e.currentTarget.getBoundingClientRect().width / e.currentTarget.offsetWidth || 1;
     drag.current = { x: e.clientX, t: performance.now(), v: 0, k };
     p.current.v = 0;
@@ -240,6 +245,7 @@ export function TimeScrubber({
     const wheel = (e: WheelEvent) => {
       if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
       e.preventDefault();
+      following.current = false;
       cancelAnimationFrame(raf.current);
       raf.current = 0;
       set(p.current.x + e.deltaX / PX);
@@ -295,6 +301,7 @@ export function TimeScrubber({
           const d = e.key === "ArrowRight" || e.key === "ArrowUp" ? s : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -s : 0;
           if (!d) return;
           e.preventDefault();
+          following.current = false;
           goTo(Math.round(p.current.to / s) * s + d, 0);
         }}
       >
