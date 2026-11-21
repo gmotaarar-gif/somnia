@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
-import { MotionConfig, motion } from "framer-motion"
+import { MotionConfig, MotionGlobalConfig, motion } from "framer-motion"
 import { useState } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { Island } from "@/shell/Island"
@@ -140,4 +140,27 @@ it("restarts a decorative loop when clearing reduced motion", async () => {
     listeners.forEach((notify) => notify())
   })
   await waitFor(() => expect(screen.getByTestId("pulse").style.transform).toMatch(/scale\(1\.\d+/))
+})
+
+it("synchronizes global motion before an individual preference consumer updates", () => {
+  function Consumer() {
+    const reduce = usePrefersReducedMotion()
+    return <span>{reduce ? "reduced" : "normal"}</span>
+  }
+  render(<MotionProvider><Consumer /></MotionProvider>)
+  // Native listeners need not be batched: the child can commit before the
+  // provider's own subscription is notified (notably in production React).
+  const notifyChild = [...listeners][0]
+  act(() => {
+    reduced = true
+    notifyChild()
+  })
+  expect(screen.getByText("reduced")).toBeTruthy()
+  expect(MotionGlobalConfig.skipAnimations).toBe(true)
+  act(() => {
+    reduced = false
+    notifyChild()
+  })
+  expect(screen.getByText("normal")).toBeTruthy()
+  expect(MotionGlobalConfig.skipAnimations).toBe(false)
 })

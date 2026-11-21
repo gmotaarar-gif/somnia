@@ -6,8 +6,14 @@ const snapshot = () => window.matchMedia(QUERY).matches
 const serverSnapshot = () => false
 const subscribe = (notify: () => void) => {
   const query = window.matchMedia(QUERY)
-  query.addEventListener("change", notify)
-  return () => query.removeEventListener("change", notify)
+  const onChange = () => {
+    // A consumer can commit before the root's subscription is notified.
+    // Update Motion before *any* consumer can restart a decorative loop.
+    MotionGlobalConfig.skipAnimations = query.matches
+    notify()
+  }
+  query.addEventListener("change", onChange)
+  return () => query.removeEventListener("change", onChange)
 }
 
 /** Unlike Motion's hook, this also follows preference changes without a reload. */
