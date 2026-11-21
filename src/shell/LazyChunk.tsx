@@ -1,4 +1,16 @@
 import { Component, lazy, useState, type ComponentType, type ReactNode } from "react"
+import { createPortal } from "react-dom"
+import { useScreenEl } from "@/shell/PhoneFrame"
+
+function RecoveryPanel({ children }: { children: ReactNode }) {
+  const screen = useScreenEl()
+  return createPortal(
+    <div role="alert" className="absolute inset-x-4 top-20 z-[100] isolate rounded-[24px] bg-[#0d0d13] p-4 text-center text-[14px]">
+      {children}
+    </div>,
+    screen ?? document.body
+  )
+}
 
 export async function loadWithRetry<T>(load: () => Promise<T>): Promise<T> {
   try {
@@ -26,13 +38,13 @@ class ChunkBoundary extends Component<{
   render() {
     if (!this.state.failed) return this.props.children
     return (
-      <div role="alert" className="glass absolute inset-x-4 top-20 z-[96] rounded-[24px] p-4 text-center text-[14px]">
+      <RecoveryPanel>
         <p>Не удалось загрузить. Проверьте подключение.</p>
         <div className="mt-3 flex justify-center gap-3">
           <button type="button" className="press glass rounded-full px-4 py-2" onClick={this.props.onRetry}>Повторить</button>
           <button type="button" className="press glass rounded-full px-4 py-2" onClick={() => window.location.reload()}>Обновить</button>
         </div>
-      </div>
+      </RecoveryPanel>
     )
   }
 }

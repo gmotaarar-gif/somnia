@@ -28,6 +28,10 @@ it("keeps the shell mounted after repeated failure and retries with a fresh lazy
   render(<><header>App shell</header><Suspense fallback={null}><Content onLoadError={onLoadError} /></Suspense></>)
 
   expect(await screen.findByRole("alert")).toBeTruthy()
+  expect(screen.getByRole("alert").parentElement).toBe(document.body)
+  expect(screen.getByRole("alert").classList.contains("bg-[#0d0d13]")).toBe(true)
+  expect(screen.getByRole("alert").classList.contains("z-[100]")).toBe(true)
+  expect(screen.getByRole("alert").classList.contains("glass")).toBe(false)
   expect(screen.getByText("App shell")).toBeTruthy()
   expect(onLoadError).toHaveBeenCalledTimes(1)
   expect(load).toHaveBeenCalledTimes(2)
