@@ -471,7 +471,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return {
       patch,
       setWidgets,
-      finishOnboarding: (p: Partial<Persisted>) => setData((d) => ({ ...d, ...p, onboarded: true })),
+      finishOnboarding: (p: Partial<Persisted>) => React.startTransition(() => setData((d) => ({ ...d, ...p, onboarded: true }))),
       addNight: (n: Omit<SleepNight, "id">) =>
         setData((d) => ({
           ...d,

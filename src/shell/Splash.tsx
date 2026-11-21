@@ -5,15 +5,17 @@ import { EASE_OUT } from "@/lib/motion"
 const LETTERS = "Somna".split("")
 
 /** Launch animation: a moon eclipses into the wordmark, then the app fades in underneath. */
-export function Splash() {
-  const [show, setShow] = React.useState(
+export function Splash({ ready = true }: { ready?: boolean }) {
+  const [enabled] = React.useState(
     () => !window.matchMedia("(prefers-reduced-motion: reduce)").matches && !new URLSearchParams(location.search).has("nosplash")
   )
+  const [elapsed, setElapsed] = React.useState(false)
+  const show = enabled && (!elapsed || !ready)
   React.useEffect(() => {
-    if (!show) return
-    const id = window.setTimeout(() => setShow(false), 1700)
+    if (!enabled) return
+    const id = window.setTimeout(() => setElapsed(true), 1700)
     return () => window.clearTimeout(id)
-  }, [show])
+  }, [enabled])
 
   return (
     <AnimatePresence>

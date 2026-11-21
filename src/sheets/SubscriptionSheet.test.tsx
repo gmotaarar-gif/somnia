@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { StoreProvider, useStore } from "@/store/store"
 import { SUBSCRIPTION_KEY, SubscriptionProvider } from "@/store/subscription"
 import { SubscriptionCard } from "@/ui/SubscriptionCard"
+import { SheetHost } from "@/shell/SheetHost"
 import { BodyScanSheet, GroundingSheet } from "./PracticeSheets"
 import { SubscriptionSheet } from "./SubscriptionSheet"
 
@@ -30,6 +31,25 @@ function Flow() {
 }
 
 describe("Plus flow", () => {
+  it("routes the lazy sheet host through the paywall, activation, practice, and cancellation", async () => {
+    render(<StoreProvider><SubscriptionProvider><Triggers /><SheetHost /></SubscriptionProvider></StoreProvider>)
+    fireEvent.click(screen.getByText("Открыть скан"))
+    expect(await screen.findByRole("dialog", { name: "somna plus" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Начать" })).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: /Включить Plus бесплатно/ }))
+    expect(screen.getByText("0 ₽ · демо")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: /Сканирование тела/ }))
+    expect(await screen.findByRole("button", { name: "Начать" })).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Закрыть" }))
+    fireEvent.click(screen.getByRole("button", { name: /Подписка активна/ }))
+    fireEvent.click(await screen.findByRole("button", { name: "Отключить демоподписку" }))
+    fireEvent.click(screen.getByRole("button", { name: "Отключить" }))
+    fireEvent.click(screen.getByText("Открыть скан"))
+    expect(await screen.findByRole("dialog", { name: "somna plus" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Начать" })).toBeNull()
+    expect(localStorage.getItem(SUBSCRIPTION_KEY)).toBeNull()
+  })
+
   it("lets a free user dismiss the paywall without opening the premium practice", () => {
     render(<Flow />)
     fireEvent.click(screen.getByText("Открыть скан"))
