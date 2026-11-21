@@ -1,4 +1,5 @@
 import * as React from "react"
+import { Mascot } from "@/ui/Mascot"
 import { AnimatePresence, motion } from "framer-motion"
 import { ChevronDown, ChevronRight, HeartPulse, Plus } from "lucide-react"
 import { who5Label } from "@/lib/features"
@@ -329,7 +330,7 @@ export function MindScreen() {
       <motion.section {...riseIn(3)} className="mt-10">
         <SectionHead title="Дневник" />
         {diary.length === 0 ? (
-          <p className="glass mt-4 rounded-[26px] p-5 text-[14px] leading-relaxed text-ink-2">Здесь появятся ваши чек-ины.</p>
+          <div className="glass mt-4 flex items-center gap-3 rounded-[26px] p-5 text-[14px] leading-relaxed text-ink-2"><Mascot /><p className="min-w-0">Здесь появятся ваши чек-ины.</p></div>
         ) : (
           <ul className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-2">
             {diary.map((m) => <DiaryEntry key={m.id} entry={m} />)}

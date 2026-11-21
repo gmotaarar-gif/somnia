@@ -15,6 +15,7 @@ import { Hypnogram } from "@/ui/SleepStages"
 import { Button, Chip, IconButton, SectionHead } from "@/ui/controls"
 import { Dots } from "@/ui/Dots"
 import { WidgetGrid } from "@/widgets/WidgetGrid"
+import { Mascot } from "@/ui/Mascot"
 
 const onKey = (run: () => void) => (e: React.KeyboardEvent) => {
   if (e.target !== e.currentTarget) return
@@ -66,7 +67,7 @@ export function TodayScreen() {
 
   return (
     <>
-      <TopBar title={userName ? `${greeting(now)}, ${userName}` : greeting(now)} sub={`${weekdayShort(now)}, ${dayMonth(now)}`} />
+      <TopBar title={userName ? `${greeting(now)}, ${userName}` : greeting(now)} sub={`${weekdayShort(now)}, ${dayMonth(now)}`} action={<Mascot size={48} />} />
 
       <motion.div {...riseIn(0)}>
         <Card
@@ -84,7 +85,7 @@ export function TodayScreen() {
               {last && <span className="rounded-full bg-white/16 px-3 py-1.5 text-[12px] font-medium">{qualityLabel(last.quality)}</span>}
             </div>
             <div className="mt-8 flex items-end gap-3">
-              {last ? <Dots value={hm(last.durationMin)} shape="square" className="text-[64px]" /> : <span className="text-[64px] leading-none">—</span>}
+              {last ? <Dots value={hm(last.durationMin)} shape="square" className="text-[64px]" /> : <><span className="text-[64px] leading-none">—</span><Mascot size={80} /></>}
               {last && <span className="pb-0.5 text-[17px] text-white/65">ч</span>}
             </div>
             {last ? (
