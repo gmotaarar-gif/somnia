@@ -119,8 +119,8 @@ export interface Countdown {
 
 export function bedtimeCountdown(bedGoal: string, wakeGoal: string, now = new Date()): Countdown {
   const nowMin = now.getHours() * 60 + now.getMinutes()
-  let left = timeToMinutes(bedGoal) - nowMin
-  if (left < -180) left += 1440
+  let left = (timeToMinutes(bedGoal) - nowMin + 1440) % 1440
+  if (left >= 1440 - 180) left -= 1440
   const past = left <= 0
   const dayLen = Math.max(60, 1440 - spanMinutes(bedGoal, wakeGoal))
   const sinceWake = (((nowMin - timeToMinutes(wakeGoal)) % 1440) + 1440) % 1440

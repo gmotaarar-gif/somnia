@@ -20,6 +20,19 @@ describe("summarize calendar windows", () => {
 })
 
 describe("bedtimeCountdown", () => {
+  it("keeps the three-hour grace window across midnight and resets afterwards", () => {
+    for (const [hour, minute] of [[0, 15], [2, 30]]) {
+      expect(bedtimeCountdown("23:30", "07:30", new Date(2027, 0, 3, hour, minute)))
+        .toEqual({ minutes: 0, past: true, dayProgress: 1 })
+    }
+    expect(bedtimeCountdown("23:30", "07:30", new Date(2027, 0, 3, 2, 31)))
+      .toMatchObject({ minutes: 1259, past: false })
+    expect(bedtimeCountdown("23:30", "07:30", new Date(2027, 0, 3, 22, 30)))
+      .toMatchObject({ minutes: 60, past: false })
+    expect(bedtimeCountdown("00:15", "08:15", new Date(2027, 0, 3, 0, 30)))
+      .toMatchObject({ minutes: 0, past: true })
+  })
+
   it("counts toward a bedtime after midnight", () => {
     const now = new Date(2027, 0, 2, 23, 55)
 
