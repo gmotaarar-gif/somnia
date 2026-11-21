@@ -276,6 +276,7 @@ export function SleepScreen() {
 
         <Card className="mt-4">
           <div className="p-5">
+            {shown.length ? <>
             <div className="flex items-end justify-between gap-3">
               <div>
                 <div className="flex items-end gap-1.5">
@@ -308,6 +309,10 @@ export function SleepScreen() {
               <Stat label="Долг сна" value={hm(sum.debt)} note={sum.debt > 90 ? "лягте раньше" : "в норме"} />
               <Stat label="Спокойных" value={`${sum.calmNights}/${shown.length}`} note="без пробуждений" />
             </div>
+            </> : <>
+              <Dots value="--" className="text-[28px]" />
+              <p className="mt-2.5 text-[12px] text-ink-2">Нет записей за этот период</p>
+            </>}
           </div>
         </Card>
       </motion.section>

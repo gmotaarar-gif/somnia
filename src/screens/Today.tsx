@@ -130,11 +130,11 @@ export function TodayScreen() {
           title="Неделя"
           label="Индекс недели. Открыть итоги"
           icon={<ArrowUpRight />}
-          note={`${indexLabel(sum.index)}${sum.indexDelta ? ` · ${sum.indexDelta > 0 ? "+" : ""}${sum.indexDelta}` : ""}`}
+          note={sum.week.length ? `${indexLabel(sum.index)}${sum.indexDelta ? ` · ${sum.indexDelta > 0 ? "+" : ""}${sum.indexDelta}` : ""}` : "Нет записей за неделю"}
           tone="ember"
           onClick={() => openSheet("recap")}
         >
-          <Dots value={sum.index} shape="square" className="text-[34px]" />
+          <Dots value={sum.week.length ? sum.index : "--"} shape="square" className="text-[34px]" />
         </Tile>
       </motion.div>
 
