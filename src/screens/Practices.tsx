@@ -70,10 +70,7 @@ function phaseAt(phases: Phase[], elapsed: number) {
   return { index: 0, left: phases[0].sec }
 }
 
-export function PracticesScreen() {
-  const { ritual, toggleRitual, volume, patch, breath: today, sessions, worries, openSheet } = useStore()
-  const totalMin = Math.round(sessions.reduce((a, x) => a + x.min, 0))
-  const openWorries = worries.filter((w) => !w.done).length
+function BreathingCard() {
   const { breath, setBreath } = useBreath()
   const reduce = usePrefersReducedMotion()
   const tech = TECHNIQUES[breath.technique]
@@ -84,91 +81,134 @@ export function PracticesScreen() {
   const minutes = breath.totalSec / 60
 
   return (
+    <motion.div {...riseIn(0)} className="">
+      <Card r="lg" className="practice-hero h-full">
+        <div className="flex h-full flex-col items-center p-6">
+          <div className="flex w-full items-start justify-between gap-3">
+            <CardTitle sub={tech.about}>Дыхание</CardTitle>
+          </div>
+
+          <div className="relative mt-6 grid size-[236px] place-items-center">
+            {[1, 0.8, 0.6].map((s, i) => (
+              <span
+                key={i}
+                className="absolute rounded-full border border-dashed border-white/20"
+                style={{ inset: `${(1 - s) * 50}%` }}
+              />
+            ))}
+            <motion.div
+              className="absolute inset-[6%] rounded-full"
+              style={{
+                background: "radial-gradient(circle at 38% 30%, #fff3d6, #f29a5c 34%, #c2489c 68%, #4b2a8f 100%)",
+                boxShadow: "0 0 90px -10px rgb(242 154 92 / 0.75), inset 0 -18px 40px rgb(0 0 0 / 0.3)",
+              }}
+              initial={false}
+              animate={{ scale: reduce ? 0.8 : breath.running || started ? phase.to : 0.62 }}
+              transition={{ duration: breath.running ? phase.sec : 0.6, ease: [0.45, 0, 0.55, 1] }}
+            />
+            <div className="relative flex flex-col items-center text-black/85">
+              <span className="text-[19px] font-semibold tracking-[-0.02em]">
+                {breath.running ? phase.label : started ? "Пауза" : "Готовы?"}
+              </span>
+              {breath.running && <span className="mt-0.5 text-[14px] font-medium tabular-nums opacity-70">{Math.ceil(left)}</span>}
+            </div>
+          </div>
+
+          <Dots value={hm(breath.remainingSec)} still className="mt-7 text-[40px]" />
+          <DotTrack value={elapsed / breath.totalSec} count={36} className="-mx-6 mt-4 w-[calc(100%+48px)]" />
+
+          <div className="mt-6 flex items-center gap-4">
+            <IconButton
+              label="Сбросить"
+              disabled={!started}
+              className="disabled:opacity-30"
+              onClick={() => setBreath((b) => ({ ...b, running: false, remainingSec: b.totalSec }))}
+            >
+              <RotateCcw />
+            </IconButton>
+            <IconButton
+              label={breath.running ? "Пауза" : "Начать"}
+              size="lg"
+              solid
+              className="size-[72px]"
+              onClick={() => setBreath((b) => ({ ...b, running: !b.running }))}
+            >
+              {breath.running ? <Pause /> : <Play className="translate-x-px" />}
+            </IconButton>
+            <span className="grid size-11 place-items-center text-[13px] font-semibold tabular-nums text-ink-2">{minutes} мин</span>
+          </div>
+
+          <div className={cn("mt-7 w-full space-y-3 transition-opacity duration-250", started && "pointer-events-none opacity-40")}>
+            <Segmented
+              id="technique"
+              className="flex w-full"
+              value={breath.technique}
+              onChange={(technique) => setBreath((b) => ({ ...b, technique }))}
+              options={(Object.keys(TECHNIQUES) as Technique[]).map((k) => ({ value: k, label: TECHNIQUES[k].name }))}
+            />
+            <div className="flex gap-2">
+              {[2, 4, 6, 10].map((m) => (
+                <Chip
+                  key={m}
+                  active={minutes === m}
+                  className="flex-1 justify-center"
+                  onClick={() => setBreath((b) => ({ ...b, totalSec: m * 60, remainingSec: m * 60 }))}
+                >
+                  {m} мин
+                </Chip>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Card>
+    </motion.div>
+  )
+}
+
+function SoundCard() {
+  const { breath, setBreath } = useBreath()
+  return <SoundControls sound={breath.sound} setBreath={setBreath} />
+}
+
+const SoundControls = React.memo(function SoundControls({ sound, setBreath }: {
+  sound: ReturnType<typeof useBreath>["breath"]["sound"]
+  setBreath: ReturnType<typeof useBreath>["setBreath"]
+}) {
+  const { volume, patch } = useStore()
+  return (
+    <motion.div {...riseIn(2)}>
+      <Card>
+        <div className="p-5">
+          <CardTitle sub="Играет во время дыхания">Звук</CardTitle>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {SOUNDS.map((s) => (
+              <Chip key={s.id} active={sound === s.id} onClick={() => setBreath((b) => ({ ...b, sound: s.id }))}>
+                {s.label}
+              </Chip>
+            ))}
+          </div>
+          <div className="mt-4 flex items-center gap-3">
+            <Volume2 className="size-[18px] shrink-0 text-ink-2" />
+            <Slider label="Громкость" value={volume} onChange={(v) => patch({ volume: v })} className="flex-1" />
+            <span className="w-9 text-right text-[13px] font-semibold tabular-nums text-ink-2">{volume}</span>
+          </div>
+        </div>
+      </Card>
+    </motion.div>
+  )
+})
+
+export function PracticesScreen() {
+  const { ritual, toggleRitual, breath: today, sessions, worries, openSheet } = useStore()
+  const totalMin = Math.round(sessions.reduce((a, x) => a + x.min, 0))
+  const openWorries = worries.filter((w) => !w.done).length
+
+  return (
     <>
       <TopBar title="Практики" sub={`Сегодня ${today.min.toFixed(1)} мин дыхания`} />
 
       <div className="grid gap-3">
-        <motion.div {...riseIn(0)} className="">
-          <Card r="lg" className="practice-hero h-full">
-            <div className="flex h-full flex-col items-center p-6">
-              <div className="flex w-full items-start justify-between gap-3">
-                <CardTitle sub={tech.about}>Дыхание</CardTitle>
-              </div>
-
-              <div className="relative mt-6 grid size-[236px] place-items-center">
-                {[1, 0.8, 0.6].map((s, i) => (
-                  <span
-                    key={i}
-                    className="absolute rounded-full border border-dashed border-white/20"
-                    style={{ inset: `${(1 - s) * 50}%` }}
-                  />
-                ))}
-                <motion.div
-                  className="absolute inset-[6%] rounded-full"
-                  style={{
-                    background: "radial-gradient(circle at 38% 30%, #fff3d6, #f29a5c 34%, #c2489c 68%, #4b2a8f 100%)",
-                    boxShadow: "0 0 90px -10px rgb(242 154 92 / 0.75), inset 0 -18px 40px rgb(0 0 0 / 0.3)",
-                  }}
-                  initial={false}
-                  animate={{ scale: reduce ? 0.8 : breath.running || started ? phase.to : 0.62 }}
-                  transition={{ duration: breath.running ? phase.sec : 0.6, ease: [0.45, 0, 0.55, 1] }}
-                />
-                <div className="relative flex flex-col items-center text-black/85">
-                  <span className="text-[19px] font-semibold tracking-[-0.02em]">
-                    {breath.running ? phase.label : started ? "Пауза" : "Готовы?"}
-                  </span>
-                  {breath.running && <span className="mt-0.5 text-[14px] font-medium tabular-nums opacity-70">{Math.ceil(left)}</span>}
-                </div>
-              </div>
-
-              <Dots value={hm(breath.remainingSec)} still className="mt-7 text-[40px]" />
-              <DotTrack value={elapsed / breath.totalSec} count={36} className="-mx-6 mt-4 w-[calc(100%+48px)]" />
-
-              <div className="mt-6 flex items-center gap-4">
-                <IconButton
-                  label="Сбросить"
-                  disabled={!started}
-                  className="disabled:opacity-30"
-                  onClick={() => setBreath((b) => ({ ...b, running: false, remainingSec: b.totalSec }))}
-                >
-                  <RotateCcw />
-                </IconButton>
-                <IconButton
-                  label={breath.running ? "Пауза" : "Начать"}
-                  size="lg"
-                  solid
-                  className="size-[72px]"
-                  onClick={() => setBreath((b) => ({ ...b, running: !b.running }))}
-                >
-                  {breath.running ? <Pause /> : <Play className="translate-x-px" />}
-                </IconButton>
-                <span className="grid size-11 place-items-center text-[13px] font-semibold tabular-nums text-ink-2">{minutes} мин</span>
-              </div>
-
-              <div className={cn("mt-7 w-full space-y-3 transition-opacity duration-250", started && "pointer-events-none opacity-40")}>
-                <Segmented
-                  id="technique"
-                  className="flex w-full"
-                  value={breath.technique}
-                  onChange={(technique) => setBreath((b) => ({ ...b, technique }))}
-                  options={(Object.keys(TECHNIQUES) as Technique[]).map((k) => ({ value: k, label: TECHNIQUES[k].name }))}
-                />
-                <div className="flex gap-2">
-                  {[2, 4, 6, 10].map((m) => (
-                    <Chip
-                      key={m}
-                      active={minutes === m}
-                      className="flex-1 justify-center"
-                      onClick={() => setBreath((b) => ({ ...b, totalSec: m * 60, remainingSec: m * 60 }))}
-                    >
-                      {m} мин
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
+        <BreathingCard />
 
         <div className="grid content-start gap-3">
           <motion.div {...riseIn(1)}>
@@ -213,25 +253,7 @@ export function PracticesScreen() {
             </Card>
           </motion.div>
 
-          <motion.div {...riseIn(2)}>
-            <Card>
-              <div className="p-5">
-                <CardTitle sub="Играет во время дыхания">Звук</CardTitle>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {SOUNDS.map((s) => (
-                    <Chip key={s.id} active={breath.sound === s.id} onClick={() => setBreath((b) => ({ ...b, sound: s.id }))}>
-                      {s.label}
-                    </Chip>
-                  ))}
-                </div>
-                <div className="mt-4 flex items-center gap-3">
-                  <Volume2 className="size-[18px] shrink-0 text-ink-2" />
-                  <Slider label="Громкость" value={volume} onChange={(v) => patch({ volume: v })} className="flex-1" />
-                  <span className="w-9 text-right text-[13px] font-semibold tabular-nums text-ink-2">{volume}</span>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
+          <SoundCard />
         </div>
       </div>
 

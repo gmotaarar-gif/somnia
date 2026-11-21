@@ -85,11 +85,36 @@ function useWidgetAction(widget: Widget): { run: () => void; label: string } {
   }
 }
 
+function EveningBody({ wide }: { wide: boolean }) {
+  const store = useStore()
+  const { bedGoal, wakeGoal } = store
+  const now = useNow()
+  const c = bedtimeCountdown(bedGoal, wakeGoal, now)
+  const on = store.eveningMode
+  return (
+    <>
+      <Head
+        title={wide ? "Вечерний режим" : "Вечер"}
+        sub={wide ? `Отбой в ${bedGoal} · напоминание ${store.reminderTime}` : undefined}
+        right={<Toggle checked={on} onChange={(v) => store.patch({ eveningMode: v })} label="Вечерний режим" />}
+      />
+      <div className={cn("mt-auto transition-opacity duration-250", !on && "opacity-40")}>
+        <Figure
+          value={c.past ? "0:00" : hm(c.minutes)}
+          unit={wide ? (c.past ? "пора спать" : "до отбоя") : undefined}
+          className={wide ? "text-[40px]" : undefined}
+        />
+        {!wide && <div className="mt-2 text-[12px] text-ink-2">{c.past ? "пора спать" : "до отбоя"}</div>}
+        <DotTrack value={c.dayProgress} count={wide ? 44 : 22} className="-mx-[18px] mt-3" />
+      </div>
+    </>
+  )
+}
+
 function Body({ widget, wide }: BodyProps) {
   const store = useStore()
   const sum = useSummary()
-  const now = useNow()
-  const { nights, bedGoal, wakeGoal } = store
+  const { nights, bedGoal } = store
 
   switch (widget.kind) {
     case "streak": {
@@ -167,28 +192,8 @@ function Body({ widget, wide }: BodyProps) {
         </>
       )
     }
-    case "evening": {
-      const c = bedtimeCountdown(bedGoal, wakeGoal, now)
-      const on = store.eveningMode
-      return (
-        <>
-          <Head
-            title={wide ? "Вечерний режим" : "Вечер"}
-            sub={wide ? `Отбой в ${bedGoal} · напоминание ${store.reminderTime}` : undefined}
-            right={<Toggle checked={on} onChange={(v) => store.patch({ eveningMode: v })} label="Вечерний режим" />}
-          />
-          <div className={cn("mt-auto transition-opacity duration-250", !on && "opacity-40")}>
-            <Figure
-              value={c.past ? "0:00" : hm(c.minutes)}
-              unit={wide ? (c.past ? "пора спать" : "до отбоя") : undefined}
-              className={wide ? "text-[40px]" : undefined}
-            />
-            {!wide && <div className="mt-2 text-[12px] text-ink-2">{c.past ? "пора спать" : "до отбоя"}</div>}
-            <DotTrack value={c.dayProgress} count={wide ? 44 : 22} className="-mx-[18px] mt-3" />
-          </div>
-        </>
-      )
-    }
+    case "evening":
+      return <EveningBody wide={wide} />
     case "breath": {
       const min = store.breath.min
       return (
