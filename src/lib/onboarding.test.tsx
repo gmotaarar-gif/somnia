@@ -70,7 +70,7 @@ describe("redoing onboarding", () => {
     expect(requestReminderPermission).not.toHaveBeenCalled()
     expect(result.current.reminder).toBe(false)
   })
-  it("does not drop custom habits or their progress", () => {
+  it("does not drop custom habits or their progress", async () => {
     const { result } = renderHook(useStore, { wrapper: StoreProvider })
 
     act(() => result.current.addCustomWidget({ title: "Витамины", unit: "шт", target: 3, step: 1, tone: "lime", size: "1x1" }))
@@ -79,7 +79,7 @@ describe("redoing onboarding", () => {
     act(() => result.current.bumpWidget(id))
     act(() => result.current.patch({ onboarded: false }))
 
-    act(() => result.current.finishOnboarding({ widgets: onboardingWidgets(result.current.widgets, ["w-sleep"]) }))
+    await act(async () => { await result.current.finishOnboarding({ widgets: onboardingWidgets(result.current.widgets, ["w-sleep"]) }) })
 
     expect(result.current.onboarded).toBe(true)
     expect(result.current.widgets.find((w) => w.id === id)).toMatchObject({ kind: "custom", title: "Витамины", value: 2, visible: true })

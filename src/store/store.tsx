@@ -407,7 +407,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [])
   const notify = React.useCallback((text: string) => setToast({ id: Date.now(), text }), [])
 
-  React.useEffect(() => listenForReminders(openSheet), [openSheet])
   React.useEffect(() => {
     void syncReminders(data).catch(() => notify("Не удалось обновить напоминания. Попробуйте ещё раз."))
   }, [data.reminder, data.reminderTime, data.morningReminder, data.morningReminderTime, notify])
@@ -421,6 +420,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [nightMode, setNightMode] = React.useState(false)
   const [nightStart, setNightStart] = React.useState<string | null>(null)
   const [nightSound, setNightSound] = React.useState<SoundMode>("pink")
+  const endNight = React.useCallback((log: boolean) => {
+    setNightMode(false)
+    if (log) openSheet("sleep")
+    else setNightStart(null)
+  }, [openSheet])
+  React.useEffect(() => listenForReminders((target) => {
+    if (target === "mood" && (nightMode || nightStart)) endNight(true)
+    else openSheet(target)
+  }), [openSheet, endNight, nightMode, nightStart])
 
   React.useEffect(() => {
     const serialized = JSON.stringify(data)
@@ -594,16 +602,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         setNightStart(`${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`)
         setNightMode(true)
       },
-      endNight: (log: boolean) => {
-        setNightMode(false)
-        if (log) openSheet("sleep")
-        else setNightStart(null)
-      },
+      endNight,
       clearNightStart: () => setNightStart(null),
       nightSound,
       setNightSound,
     }),
-    [data, actions, tab, tabDir, setTab, sheet, sheetArg, openSheet, toast, notify, editing, nightMode, nightStart, nightSound]
+    [data, actions, tab, tabDir, setTab, sheet, sheetArg, openSheet, toast, notify, editing, nightMode, nightStart, nightSound, endNight]
   )
 
   return (

@@ -3,6 +3,13 @@
 import { act, cleanup, renderHook } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { StoreProvider, useStore } from "./store"
+import { listenForReminders } from "@/lib/notifications"
+
+vi.mock("@/lib/notifications", () => ({
+  listenForReminders: vi.fn(() => () => {}),
+  syncReminders: vi.fn().mockResolvedValue(undefined),
+  requestReminderPermission: vi.fn().mockResolvedValue(true),
+}))
 
 const STORAGE_KEY = "somna-state-v6"
 
@@ -23,6 +30,33 @@ const night = {
 }
 
 describe("StoreProvider", () => {
+  it("opens morning check-in when no night session is active", () => {
+    const { result } = renderHook(useStore, { wrapper: StoreProvider })
+    act(() => vi.mocked(listenForReminders).mock.lastCall![0]("mood"))
+    expect(result.current.sheet).toBe("mood")
+    expect(result.current.nightMode).toBe(false)
+  })
+
+  it("uses the wake-up path for a morning tap during a night session", () => {
+    const { result } = renderHook(useStore, { wrapper: StoreProvider })
+    act(() => result.current.startNight())
+    const started = result.current.nightStart
+    expect(started).toBeTruthy()
+    act(() => vi.mocked(listenForReminders).mock.lastCall![0]("mood"))
+    expect(result.current.nightMode).toBe(false)
+    expect(result.current.sheet).toBe("sleep")
+    expect(result.current.nightStart).toBe(started)
+  })
+
+  it("keeps the wake-up path while a started night awaits logging", () => {
+    const { result } = renderHook(useStore, { wrapper: StoreProvider })
+    act(() => result.current.startNight())
+    act(() => result.current.endNight(true))
+    act(() => result.current.openSheet(null))
+    act(() => vi.mocked(listenForReminders).mock.lastCall![0]("mood"))
+    expect(result.current.sheet).toBe("sleep")
+    expect(result.current.nightMode).toBe(false)
+  })
   it("restores profile and schedule changes on remount but closes transient sheets", () => {
     const first = renderHook(useStore, { wrapper: StoreProvider })
 
