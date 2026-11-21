@@ -50,11 +50,12 @@ export function MoodOrb({ valence }: { valence: number }) {
   const rgb = (color: number[]) => `rgb(${color.join(" ")})`
 
   return (
-    <svg aria-hidden="true" focusable="false" viewBox="0 0 160 160" className="size-32 shrink-0 overflow-visible">
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 160 160" className="size-40 shrink-0 overflow-visible">
       <defs>
-        <radialGradient id={`${id}-color`} cx="32%" cy="25%" r="78%">
-          <motion.stop initial={false} offset="0%" animate={{ stopColor: rgb(palette.core) }} transition={transition} />
-          <motion.stop initial={false} offset="45%" animate={{ stopColor: rgb(palette.mid) }} transition={transition} />
+        <radialGradient id={`${id}-color`} cx="43%" cy="34%" r="68%">
+          <stop offset="0%" stopColor="white" stopOpacity="0.95" />
+          <motion.stop initial={false} offset="20%" animate={{ stopColor: rgb(palette.core) }} transition={transition} />
+          <motion.stop initial={false} offset="58%" animate={{ stopColor: rgb(palette.mid) }} transition={transition} />
           <motion.stop initial={false} offset="100%" animate={{ stopColor: rgb(palette.outer) }} transition={transition} />
         </radialGradient>
         <radialGradient id={`${id}-shade`} cx="35%" cy="22%" r="80%">
@@ -63,13 +64,36 @@ export function MoodOrb({ valence }: { valence: number }) {
           <stop offset="100%" stopColor="black" stopOpacity="0.28" />
         </radialGradient>
         <filter id={`${id}-glow`} x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="10" />
+          <feGaussianBlur stdDeviation="14" />
         </filter>
       </defs>
       <g>
-        <motion.path initial={false} animate={{ d }} transition={transition} fill={`url(#${id}-color)`} opacity="0.45" filter={`url(#${id}-glow)`} />
-        <motion.path initial={false} animate={{ d }} transition={transition} fill={`url(#${id}-color)`} stroke="rgb(255 255 255 / 0.18)" strokeWidth="0.75" />
-        <motion.path initial={false} animate={{ d }} transition={transition} fill={`url(#${id}-shade)`} />
+        <motion.path
+          initial={false}
+          animate={{ d, fill: rgb(palette.mid) }}
+          transition={transition}
+          opacity="0.65"
+          filter={`url(#${id}-glow)`}
+          transform="translate(80 80) scale(1.12) translate(-80 -80)"
+        />
+        <motion.path
+          initial={false}
+          animate={{ d, fill: rgb(palette.outer) }}
+          transition={transition}
+          opacity="0.32"
+          transform="translate(80 80) rotate(-12) scale(1.12) translate(-80 -80)"
+        />
+        <motion.path
+          initial={false}
+          animate={{ d, fill: rgb(palette.mid) }}
+          transition={transition}
+          opacity="0.5"
+          transform="translate(80 80) rotate(9) scale(0.96) translate(-80 -80)"
+        />
+        <g transform="translate(80 80) scale(0.78) translate(-80 -80)">
+          <motion.path initial={false} animate={{ d }} transition={transition} fill={`url(#${id}-color)`} />
+          <motion.path initial={false} animate={{ d }} transition={transition} fill={`url(#${id}-shade)`} />
+        </g>
       </g>
     </svg>
   )
