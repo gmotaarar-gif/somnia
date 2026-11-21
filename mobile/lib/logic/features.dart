@@ -60,40 +60,7 @@ const stageMeta = {
   'deep': (label: 'Глубокий сон', color: '#b5a0ff', level: 3),
 };
 
-/// Estimated architecture, not sensor data. Segment lengths sum to in-bed time.
-List<StageSegment> hypnogram(SleepNight n) {
-  final total = math.max(60, spanMinutes(n.bedtime, n.wakeTime));
-  final cycles = math.max(1, jsRound(total / cycleMin));
-  final per = total / cycles;
-  final q = n.quality / 100;
-  final out = [
-    StageSegment(
-      stage: 'awake',
-      min: jsRound(fallAsleepMin * (1.5 - q)).toDouble(),
-    ),
-  ];
-  final wakeAt = {
-    for (var i = 0; i < n.awakenings; i++)
-      jsRound((i + 1) * cycles / (n.awakenings + 1)),
-  };
-  for (var c = 0; c < cycles; c++) {
-    final late = c / math.max(1, cycles - 1);
-    final deep = per * (0.34 - 0.26 * late) * (0.6 + 0.6 * q);
-    final rem = per * (0.12 + 0.2 * late);
-    final light = math.max(8.0, per - deep - rem);
-    out.add(StageSegment(stage: 'light', min: light * 0.55));
-    if (deep > 4) out.add(StageSegment(stage: 'deep', min: deep));
-    out.add(StageSegment(stage: 'light', min: light * 0.45));
-    out.add(StageSegment(stage: 'rem', min: rem));
-    if (wakeAt.contains(c + 1) && c < cycles - 1) {
-      out.add(const StageSegment(stage: 'awake', min: 8));
-    }
-  }
-  final sum = out.fold<double>(0, (a, s) => a + s.min);
-  return out
-      .map((s) => StageSegment(stage: s.stage, min: s.min / sum * total))
-      .toList();
-}
+List<StageSegment> hypnogram(SleepNight night) => [];
 
 Map<Stage, double> stageTotals(List<StageSegment> segments) {
   final totals = <Stage, double>{'awake': 0, 'rem': 0, 'light': 0, 'deep': 0};
