@@ -120,23 +120,23 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Оформление'), findsOneWidget);
       expect(brightness(), Brightness.dark);
-      await tester.tap(find.text('Светлая'));
+      await tester.tap(find.text('Светлое'));
       await tester.pumpAndSettle();
       expect(s.theme, 'light');
       expect(brightness(), Brightness.light);
       expect(s.sheet, 'profile');
-      await tester.tap(find.text('Тёмная'));
+      await tester.tap(find.text('Тёмное'));
       await tester.pumpAndSettle();
       expect(brightness(), Brightness.dark);
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
       addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-      await tester.tap(find.text('Системная'));
+      await tester.tap(find.text('Как в системе'));
       await tester.pumpAndSettle();
       expect(brightness(), Brightness.light);
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
       await tester.pumpAndSettle();
       expect(brightness(), Brightness.dark);
-      await tester.tap(find.byTooltip('Закрыть'));
+      await tester.tap(find.bySemanticsLabel('Закрыть'));
       await tester.pumpAndSettle();
       expect(s.sheet, null);
     },
