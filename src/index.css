@@ -3,7 +3,7 @@
 @theme {
   --font-sans: "Onest Variable", ui-sans-serif, system-ui, sans-serif;
 
-  --color-bg: #0e1017;
+  --color-bg: #080809;
   --color-ink: #ffffff;
   --color-ink-2: rgb(255 255 255 / 0.64);
   --color-ink-3: rgb(255 255 255 / 0.5);
@@ -12,7 +12,7 @@
   --color-lime-ink: #151a02;
   /* Text-weight accent: lime on dark surfaces, a readable olive on light ones */
   --color-accent: #d9f24a;
-  --color-sheet: #151720;
+  --color-sheet: #0d0d13;
   --color-danger: #ff8f8f;
 
   --ease-out-smooth: cubic-bezier(0.22, 1, 0.36, 1);
@@ -54,18 +54,13 @@
   --chrome-shadow: rgb(0 0 0 / 0.75);
   --scrim: 7 7 12;
   --veil: 7 7 12;
-  --surface: #191c26;
-  --surface-edge: rgb(204 211 255 / 0.09);
-  --surface-shadow: rgb(0 0 0 / 0.22);
-  --chart-rose: #f0a8dc;
-  --chart-ember: #ffb070;
 }
 
-/* Legacy white/black utility tokens follow the surface. Only immersive
-   illustrations and night views opt into a permanently dark scope. */
+/* Page, sheets and chrome follow the theme; cards retain their original
+   dark gradients. Restore their white/black tokens inside the card scope. */
 :root[data-theme="light"] {
   color-scheme: light;
-  --color-bg: #f5f4fa;
+  --color-bg: #f2f1f6;
   --color-ink: #15151c;
   --color-ink-2: rgb(21 21 28 / 0.7);
   --color-ink-3: rgb(21 21 28 / 0.56);
@@ -73,7 +68,7 @@
   --color-white: #15151c;
   --color-black: #ffffff;
   --color-accent: #4f6a00;
-  --color-sheet: #fcfbff;
+  --color-sheet: #f7f6fa;
   --color-danger: #c62f3b;
   --glass: rgb(255 255 255 / 0.62);
   --glass-edge: rgb(255 255 255 / 0.9);
@@ -84,13 +79,8 @@
   --chrome-shadow: rgb(60 50 110 / 0.28);
   --scrim: 242 241 246;
   --veil: 242 241 246;
-  --surface: #ffffff;
-  --surface-edge: rgb(57 43 100 / 0.08);
-  --surface-shadow: rgb(57 43 100 / 0.09);
-  --chart-rose: #963f8b;
-  --chart-ember: #a75116;
 }
-:root[data-theme="light"] .on-dark {
+:root[data-theme="light"] :is(.card, .on-dark) {
   color-scheme: dark;
   --color-ink: #ffffff;
   --color-ink-2: rgb(255 255 255 / 0.64);
@@ -289,15 +279,15 @@ button:disabled {
 
 .card {
   --r: 30px;
-  --core: #10121b;
+  --core: #050506;
   position: relative;
   isolation: isolate;
   overflow: hidden;
   border-radius: var(--r);
-  background: var(--surface);
+  background: #171719;
   box-shadow:
-    inset 0 0 0 1px var(--surface-edge),
-    0 12px 32px -20px var(--surface-shadow);
+    inset 0 1px 0 0 rgb(255 255 255 / 0.045),
+    0 18px 40px -30px rgb(0 0 0 / 0.7);
 }
 .card[data-r="lg"] {
   --r: 36px;
@@ -435,22 +425,9 @@ button:disabled {
 }
 .card.sleep-hero {
   background:
-    radial-gradient(ellipse at 100% 0%, #6b57ab 0%, transparent 62%),
-    radial-gradient(ellipse at 0% 110%, #354d80 0%, transparent 65%),
-    #25233f;
-}
-.sleep-hero::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  pointer-events: none;
-  width: 230px;
-  height: 230px;
-  right: -65px;
-  top: 55px;
-  border: 1px solid rgb(221 213 255 / 0.2);
-  border-radius: 50%;
-  box-shadow: 0 0 0 28px rgb(221 213 255 / 0.045), 0 0 0 60px rgb(221 213 255 / 0.025);
+    radial-gradient(ellipse at 8% 40%, #7045ff 0%, transparent 58%),
+    radial-gradient(ellipse at 108% 100%, #ff4db8 0%, transparent 60%),
+    linear-gradient(145deg, #35208a, #17112d 65%, #753b86);
 }
 .card.recap-emotions {
   background:
@@ -463,30 +440,6 @@ button:disabled {
     #1a1921;
 }
 
-/* Daylight surfaces retain each card's category color without a dark panel. */
-:root[data-theme="light"] .card:not(.on-dark) {
-  background: radial-gradient(ellipse at 100% 0%, var(--tint, #fff) 0%, transparent 85%), var(--surface);
-}
-:root[data-theme="light"] .card[data-tone="plum"] { --tint: #edddf4; }
-:root[data-theme="light"] .card[data-tone="lime"] { --tint: #e7efcf; }
-:root[data-theme="light"] .card[data-tone="ember"] { --tint: #f8dfc8; }
-:root[data-theme="light"] .card[data-tone="forest"] { --tint: #d8eae2; }
-:root[data-theme="light"] .card[data-tone="moss"] { --tint: #e3eacb; }
-:root[data-theme="light"] .card[data-tone="rose"] { --tint: #f9dfe7; }
-:root[data-theme="light"] .card[data-tone="dusk"] { --tint: #e5def4; }
-:root[data-theme="light"] .card[data-tone="cobalt"] { --tint: #dce5ff; }
-:root[data-theme="light"] .card[data-tone="coral"] { --tint: #fbded3; }
-:root[data-theme="light"] .card[data-tone="ink"] { --tint: #e8e8ef; }
-:root[data-theme="light"] .card[data-tone="violet"] { --tint: #e9dff8; }
-:root[data-theme="light"] .card[data-tone="mint"] { --tint: #dceedd; }
-:root[data-theme="light"] .card[data-tone="night"] { --tint: #e0e1f9; }
-:root[data-theme="light"] .card[data-tone="sunset"] { --tint: #f8e0d8; }
-.card.mind-hero { --core: #14251f; --c1: #426a51; --c2: #202f29; }
-.card.practice-hero { --core-w: 115%; --core-h: 100%; --core-y: 100%; }
-.screen-heading { border-bottom: 1px solid var(--color-hair); margin-bottom: 24px; }
-.app-sheet { border: 1px solid var(--surface-edge); border-bottom: 0; }
-.app-dock { box-shadow: inset 0 0 0 1px var(--chrome-edge), 0 12px 36px -12px var(--chrome-shadow); }
-
 /* Fixed-color miniature previews are illustrations, not app surfaces. */
 .appearance-preview {
   position: relative;
@@ -497,18 +450,18 @@ button:disabled {
   padding: 12px;
   overflow: hidden;
   border-radius: 18px;
-  background: #f5f4fa;
+  background: #f2f1f6;
   border: 2px solid transparent;
   box-shadow: inset 0 0 0 1px rgb(85 73 120 / 0.15);
 }
-.appearance-preview[data-mode="dark"] { background: #151720; }
-.appearance-preview[data-mode="system"] { background: linear-gradient(90deg, #f5f4fa 50%, #151720 50%); }
+.appearance-preview[data-mode="dark"] { background: #080809; }
+.appearance-preview[data-mode="system"] { background: linear-gradient(90deg, #f2f1f6 50%, #080809 50%); }
 .appearance-mini-header { display: flex; justify-content: space-between; align-items: center; }
 .appearance-mini-header > span:first-child { width: 28px; height: 4px; border-radius: 4px; background: #9a91b4; }
 .appearance-mini-header > span:last-child { width: 8px; height: 8px; border-radius: 50%; background: #9a91b4; }
-.appearance-mini-hero { height: 35px; border-radius: 8px; background: linear-gradient(120deg, #454070, #8070ad); }
+.appearance-mini-hero { height: 35px; border-radius: 8px; background: linear-gradient(120deg, #7045ff, #35208a 55%, #ff4db8); }
 .appearance-mini-cards { display: flex; gap: 5px; }
-.appearance-mini-cards > span { flex: 1; height: 15px; border-radius: 5px; background: rgb(154 145 180 / 0.25); }
+.appearance-mini-cards > span { flex: 1; height: 15px; border-radius: 5px; background: #25202f; }
 .appearance-check { position: absolute; display: none; place-items: center; right: 4px; bottom: 4px; width: 18px; height: 18px; border-radius: 50%; background: var(--color-accent); color: var(--color-bg); }
 .appearance-choice input:checked + .appearance-preview { border-color: var(--color-accent); }
 .appearance-choice input:checked + .appearance-preview .appearance-check { display: grid; }
@@ -763,7 +716,7 @@ button:disabled {
 }
 
 /* Lime reads as text only on dark surfaces. */
-:root[data-theme="light"] .text-lime:not(.on-dark, .on-dark *) {
+:root[data-theme="light"] .text-lime:not(:is(.card, .on-dark), :is(.card, .on-dark) *) {
   color: var(--color-accent);
 }
 

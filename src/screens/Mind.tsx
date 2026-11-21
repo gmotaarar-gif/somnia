@@ -195,7 +195,7 @@ export function MindScreen() {
       />
 
       <motion.div {...riseIn(0)}>
-        <Card tone="mint" r="lg" className="mind-hero">
+        <Card tone="mint" r="lg">
           <div className="flex min-h-[316px] flex-col p-6">
             <div className="flex items-center justify-between gap-3">
               <span className="text-[14px] font-medium text-white/80">Сейчас</span>

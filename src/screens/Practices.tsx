@@ -71,7 +71,7 @@ export function PracticesScreen() {
       <TopBar title="Практики" sub={`${readCount} из ${ARTICLES.length} ${pluralRu(ARTICLES.length, ["статьи", "статей", "статей"])} прочитано`} />
 
       <motion.div {...riseIn(0)}>
-        <Card tone={featured.tone} r="lg" className="practice-hero">
+        <Card tone={featured.tone} r="lg">
           <button
             type="button"
             aria-label={`Читать: ${featured.title}`}

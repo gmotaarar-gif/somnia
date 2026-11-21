@@ -138,12 +138,12 @@ function Body({ widget, wide }: BodyProps) {
         <>
           <Head title="Сон" sub={wide && last ? `${last.bedtime} → ${last.wakeTime}` : undefined} right={<Badge><ArrowUpRight /></Badge>} />
           <div className={cn("mt-auto", wide && "flex items-end justify-between gap-6")}>
-            {!wide && <Wave values={sum.week.map((n) => n.durationMin)} color="var(--chart-rose)" height={56} className="mb-2" />}
+            {!wide && <Wave values={sum.week.map((n) => n.durationMin)} color="#f0a8dc" height={56} className="mb-2" />}
             <div>
               <Figure value={last ? hm(last.durationMin) : "0:00"} shape="square" className={wide ? "text-[44px]" : undefined} />
               <div className="mt-2 text-[12px] text-ink-2">{last ? "часов прошлой ночью" : "нет записей"}</div>
             </div>
-            {wide && <Wave values={sum.week.map((n) => n.durationMin)} color="var(--chart-rose)" height={70} className="max-w-[52%]" />}
+            {wide && <Wave values={sum.week.map((n) => n.durationMin)} color="#f0a8dc" height={70} className="max-w-[52%]" />}
           </div>
         </>
       )
@@ -168,7 +168,7 @@ function Body({ widget, wide }: BodyProps) {
       const m = sum.lastMood
       const pct = m ? moodPct(m.valence) : 0
       const ring = (
-        <Ring value={pct / 100} size={wide ? 118 : 96} stroke={2.4}>
+        <Ring value={pct / 100} size={wide ? 118 : 96} stroke={2.4} color="#c9ec5a">
           {m ? <Dots value={pct} shape="square" className={wide ? "text-[30px]" : "text-[24px]"} /> : <span className={wide ? "text-[30px] leading-none" : "text-[24px] leading-none"}>—</span>}
         </Ring>
       )
@@ -219,7 +219,7 @@ function Body({ widget, wide }: BodyProps) {
               <Figure value={q} unit="/ 100" shape="square" className={wide ? "text-[44px]" : undefined} />
               {!wide && <div className="mt-2 truncate text-[12px] text-ink-2">{qualityLabel(q)}</div>}
             </div>
-            {wide && <Wave values={sum.week.map((n) => n.quality)} color="var(--chart-ember)" height={70} className="max-w-[52%]" />}
+            {wide && <Wave values={sum.week.map((n) => n.quality)} color="#ffb070" height={70} className="max-w-[52%]" />}
           </div>
         </>
       )

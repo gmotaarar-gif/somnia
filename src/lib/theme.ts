@@ -21,7 +21,7 @@ export function useResolvedTheme(mode: ThemeMode): Theme {
 }
 
 /** Page background per theme; mirrors --color-bg for the browser chrome. */
-export const THEME_BG: Record<Theme, string> = { dark: "#0e1017", light: "#f5f4fa" }
+export const THEME_BG: Record<Theme, string> = { dark: "#080809", light: "#f2f1f6" }
 
 export function applyTheme(theme: Theme) {
   document.documentElement.dataset.theme = theme

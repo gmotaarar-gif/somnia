@@ -59,7 +59,7 @@ function MoodForm({ onDone }: { onDone: () => void }) {
           {step === 0 ? (
             <motion.div key="state" {...swap}>
               <div
-                className="card on-dark"
+                className="card"
                 data-r="lg"
                 style={{
                   background: `radial-gradient(120% 58% at 50% 42%, #050506 0%, rgb(5 5 6 / 0.82) 34%, rgb(5 5 6 / 0.3) 68%, transparent 100%), linear-gradient(180deg, ${rgb(pal.outer)}, ${rgb(pal.mid)})`,

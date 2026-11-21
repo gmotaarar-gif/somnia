@@ -19,9 +19,8 @@ export function TopBar({
   return (
     <header className="screen-heading flex items-start justify-between gap-3 px-1 pb-7 pt-4">
       <div className="min-w-0 flex-1">
-        <p className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-3"><span className="size-1.5 rounded-full bg-accent" aria-hidden />Somna · в своём ритме</p>
-        <h1 className="text-[32px] font-semibold leading-[1.1] tracking-[-0.045em] [overflow-wrap:anywhere]">{title}</h1>
-        {sub && <p className="mt-2 text-[12px] leading-relaxed text-ink-2">{sub}</p>}
+        {sub && <p className="text-[13px] leading-snug text-ink-3">{sub}</p>}
+        <h1 className="mt-1.5 text-[30px] font-semibold leading-[1.08] tracking-[-0.045em] [overflow-wrap:anywhere]">{title}</h1>
       </div>
       <div className="flex shrink-0 items-center gap-2 pt-1">
         {action}
