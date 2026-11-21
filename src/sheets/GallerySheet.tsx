@@ -32,6 +32,9 @@ export function GallerySheet() {
   const [query, setQuery] = React.useState("")
   const [group, setGroup] = React.useState<string>("all")
   const [confirmReset, setConfirmReset] = React.useState(false)
+  const resetPrompt = React.useRef<HTMLDivElement>(null)
+  const restoreTrigger = React.useRef<HTMLButtonElement>(null)
+  const wasConfirming = React.useRef(false)
   const [title, setTitle] = React.useState("Медитация")
   const [unit, setUnit] = React.useState("мин")
   const [target, setTarget] = React.useState(20)
@@ -40,6 +43,11 @@ export function GallerySheet() {
   const [size, setSize] = React.useState<WidgetSize>("1x1")
   const open = sheet === "gallery"
   const close = () => openSheet(null)
+  React.useLayoutEffect(() => {
+    if (open && confirmReset) resetPrompt.current?.querySelector<HTMLButtonElement>("button")?.focus()
+    else if (open && wasConfirming.current) restoreTrigger.current?.focus()
+    wasConfirming.current = confirmReset
+  }, [open, confirmReset])
   React.useEffect(() => {
     if (open) {
       setMode("catalog")
@@ -98,7 +106,7 @@ export function GallerySheet() {
         ) : (
           <div>
             {confirmReset ? (
-              <div role="group" aria-label="Восстановление виджетов">
+              <div ref={resetPrompt} role="group" aria-label="Восстановление виджетов">
                 <p className="text-[14px] font-medium">Вернуть стандартный набор?</p>
                 <p className="mt-1 text-[12px] leading-relaxed text-ink-2">Цвета, размеры и порядок стандартных виджетов сбросятся. Свои привычки и их прогресс сохранятся.</p>
                 <div className="mt-3 flex gap-2">
@@ -108,7 +116,7 @@ export function GallerySheet() {
               </div>
             ) : (
               <div className="flex items-center gap-3">
-                <IconButton label="Вернуть стандартный набор" onClick={() => setConfirmReset(true)}><RotateCcw /></IconButton>
+                <IconButton ref={restoreTrigger} label="Вернуть стандартный набор" onClick={() => setConfirmReset(true)}><RotateCcw /></IconButton>
                 <p role="status" className="min-w-0 flex-1 text-[12px] text-ink-2">На главном: <span className="font-semibold text-ink">{selected}</span></p>
                 <Button onClick={close}>Готово</Button>
               </div>
@@ -174,7 +182,7 @@ export function GallerySheet() {
                   </button>
                 </div>
                 <div className="mt-2 px-1 text-[13px] font-medium">{meta.title}</div>
-                <div className="mt-0.5 px-1 text-[12px] leading-snug text-ink-3">{meta.about}</div>
+                <div className="mt-0.5 px-1 text-[12px] leading-snug text-ink-2">{meta.about}</div>
                 <div className={cn("mt-1.5 px-1 text-[11px] font-medium", w.visible ? "text-lime" : "text-ink-2")}>{w.visible ? "На главном" : "Добавить на главный"}</div>
               </li>
             )
