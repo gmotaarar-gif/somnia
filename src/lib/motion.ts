@@ -14,14 +14,13 @@ export const SPRING_SOFT = { type: "spring", stiffness: 260, damping: 30 } as co
 
 /** Tab screens slide in from the side the user navigated to (`custom` = direction). */
 export const screenVariants = {
-  enter: (dir: number = 1) => ({ opacity: 0, x: 28 * dir, scale: 0.985 }),
+  enter: (dir: number = 1) => ({ opacity: 0, x: 8 * dir }),
   center: {
     opacity: 1,
     x: 0,
-    scale: 1,
-    transition: { duration: DUR.slow, ease: EASE_OUT },
+    transition: { duration: DUR.fast, ease: EASE_OUT },
   },
-  exit: (dir: number = 1) => ({ opacity: 0, x: -20 * dir, transition: { duration: DUR.quick, ease: EASE_OUT } }),
+  exit: (dir: number = 1) => ({ opacity: 0, x: -8 * dir, transition: { duration: DUR.fast, ease: EASE_OUT } }),
 }
 
 export const riseIn = (i = 0) => ({

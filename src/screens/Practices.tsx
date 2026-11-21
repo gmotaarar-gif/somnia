@@ -3,7 +3,8 @@ import { motion } from "framer-motion"
 import { ArrowUpRight, Check, ChevronRight, Eye, LockKeyhole, NotebookPen, ScanLine } from "lucide-react"
 import { ARTICLES, TOPICS, type Article, type ArticleTopic } from "@/lib/articles"
 import { cn } from "@/lib/cn"
-import { DUR, EASE_OUT, riseIn } from "@/lib/motion"
+import { DUR, EASE_OUT } from "@/lib/motion"
+import { useRiseIn } from "@/ui/MotionProvider"
 import { pluralRu } from "@/lib/time"
 import { useStore } from "@/store/store"
 import { useSubscription } from "@/store/subscription"
@@ -48,6 +49,7 @@ function ArticleRow({ article, read, onOpen }: { article: Article; read: boolean
 }
 
 export function PracticesScreen() {
+  const riseIn = useRiseIn()
   const { isPlus } = useSubscription()
   const { ritual, toggleRitual, sessions, worries, readArticles, openSheet } = useStore()
   const [topic, setTopic] = React.useState<ArticleTopic | "all">("all")

@@ -3,7 +3,7 @@ import { motion } from "framer-motion"
 import { ArrowUpRight, Plus } from "lucide-react"
 import { ARTICLES } from "@/lib/articles"
 import { indexLabel, moodPct, qualityLabel } from "@/lib/metrics"
-import { riseIn } from "@/lib/motion"
+import { useRiseIn } from "@/ui/MotionProvider"
 import { dayMonth, greeting, hm, pluralRu, weekdayShort } from "@/lib/time"
 import { getValenceLabel } from "@/lib/valence"
 import { useNow, useSummary } from "@/store/derived"
@@ -55,6 +55,7 @@ function Tile({
 }
 
 export function TodayScreen() {
+  const riseIn = useRiseIn()
   const { userName, widgets, readArticles, setTab, openSheet, editing, setEditing } = useStore()
   const sum = useSummary()
   const now = useNow(60_000)

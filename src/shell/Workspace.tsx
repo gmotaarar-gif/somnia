@@ -1,6 +1,5 @@
 import { useEffect, useState, type ComponentType } from "react"
-import { AnimatePresence, motion } from "framer-motion"
-import { screenVariants } from "@/lib/motion"
+import { ScreenTransition } from "@/ui/ScreenTransition"
 import { TodayScreen } from "@/screens/Today"
 import { Dock } from "@/shell/Dock"
 import { SheetHost } from "@/shell/SheetHost"
@@ -36,11 +35,9 @@ export default function Workspace() {
     <>
       <div id="app-scroll" className="app-scroll">
         <div className="px-5 pb-[var(--dock-space)] pt-[max(var(--safe-top),14px)]">
-          <AnimatePresence mode="wait" initial={false} custom={visible.tabDir}>
-            <motion.main key={visible.tab} custom={visible.tabDir} variants={screenVariants} initial="enter" animate="center" exit="exit">
-              <Screen />
-            </motion.main>
-          </AnimatePresence>
+          <ScreenTransition screenKey={visible.tab} direction={visible.tabDir}>
+            <Screen />
+          </ScreenTransition>
         </div>
       </div>
       <Dock />

@@ -450,6 +450,17 @@ button:disabled {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .stage,
+  .phone-screen *,
+  .phone-screen *::before,
+  .phone-screen *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .press:active {
+    transform: none;
+  }
   .jiggle,
   .dots .d {
     animation: none;

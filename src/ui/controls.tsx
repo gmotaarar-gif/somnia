@@ -1,5 +1,5 @@
 import * as React from "react"
-import { motion } from "framer-motion"
+import { LayoutGroup, motion } from "framer-motion"
 import { Clock } from "lucide-react"
 import { cn } from "@/lib/cn"
 import { SPRING } from "@/lib/motion"
@@ -98,11 +98,12 @@ export function Toggle({
       )}
     >
       <motion.span
-        layout
+        initial={false}
+        animate={{ x: checked ? 22 : 0 }}
         transition={SPRING}
         className={cn(
-          "absolute top-[3px] size-6 rounded-full shadow-[0_2px_8px_rgb(0_0_0/0.4)]",
-          checked ? "right-[3px] bg-lime-ink" : "left-[3px] bg-white"
+          "absolute left-[3px] top-[3px] size-6 rounded-full shadow-[0_2px_8px_rgb(0_0_0/0.4)]",
+          checked ? "bg-lime-ink" : "bg-white"
         )}
       />
     </button>
@@ -125,7 +126,9 @@ export function Segmented<T extends string>({
   label?: string
   className?: string
 }) {
+  const instanceId = React.useId()
   return (
+    <LayoutGroup id={`${id}-${instanceId}`}>
     <div role="radiogroup" aria-label={label} className={cn("glass inline-flex rounded-full p-1", className)}>
       {options.map((o, index) => {
         const active = o.value === value
@@ -159,13 +162,14 @@ export function Segmented<T extends string>({
             )}
           >
             {active && (
-              <motion.span layoutId={`seg-${id}`} transition={SPRING} className="absolute inset-0 rounded-full bg-white" />
+              <motion.span layoutId="thumb" transition={SPRING} className="absolute inset-0 rounded-full bg-white" />
             )}
             <span className="relative">{o.label}</span>
           </button>
         )
       })}
     </div>
+    </LayoutGroup>
   )
 }
 

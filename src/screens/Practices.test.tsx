@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
-import { afterEach, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { ARTICLES } from "@/lib/articles"
 import { StoreProvider, useStore } from "@/store/store"
 import { SubscriptionProvider } from "@/store/subscription"
@@ -25,9 +25,19 @@ function Probe() {
 const renderScreen = () =>
   render(<StoreProvider><SubscriptionProvider><PracticesScreen /><Probe /></SubscriptionProvider></StoreProvider>)
 
+beforeEach(() => {
+  vi.stubGlobal("matchMedia", () => ({
+    matches: true,
+    addListener() {},
+    addEventListener() {},
+    removeEventListener() {},
+  }))
+})
+
 afterEach(() => {
   cleanup()
   localStorage.clear()
+  vi.unstubAllGlobals()
 })
 
 it("offers no breathing practice", () => {

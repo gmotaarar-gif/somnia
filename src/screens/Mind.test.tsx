@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
-import { afterEach, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { StoreProvider } from "@/store/store"
 import { SubscriptionProvider } from "@/store/subscription"
 import { MindScreen } from "./Mind"
@@ -11,9 +11,19 @@ vi.mock("framer-motion", async (importOriginal) => ({
   useReducedMotion: () => true,
 }))
 
+beforeEach(() => {
+  vi.stubGlobal("matchMedia", () => ({
+    matches: true,
+    addListener() {},
+    addEventListener() {},
+    removeEventListener() {},
+  }))
+})
+
 afterEach(() => {
   cleanup()
   localStorage.clear()
+  vi.unstubAllGlobals()
 })
 
 it("shows a check-in's note next to its tags in the diary", () => {

@@ -4,7 +4,8 @@ import { ChevronDown, ChevronRight, HeartPulse, Plus } from "lucide-react"
 import { who5Label } from "@/lib/features"
 import { cn } from "@/lib/cn"
 import { buildInsights, emotionCounts, factorImpacts, moodPct, sleepMoodLink } from "@/lib/metrics"
-import { DUR, EASE_OUT, riseIn } from "@/lib/motion"
+import { DUR, EASE_OUT } from "@/lib/motion"
+import { useRiseIn } from "@/ui/MotionProvider"
 import { clockOf, dateKey, daysAgo, pluralRu, relativeDay, weekdayShort } from "@/lib/time"
 import { getValenceLabel, sampleValencePalette } from "@/lib/valence"
 import { useSummary } from "@/store/derived"
@@ -159,6 +160,7 @@ function swap(key: string, children: React.ReactNode) {
 }
 
 export function MindScreen() {
+  const riseIn = useRiseIn()
   const { moods, nights, bedGoal, wakeGoal, openSheet, wellbeing } = useStore()
   const who = wellbeing[wellbeing.length - 1]
   const whoPrev = wellbeing[wellbeing.length - 2]

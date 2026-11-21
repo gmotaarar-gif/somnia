@@ -6,7 +6,8 @@ import { Hypnogram, StageLegend } from "@/ui/SleepStages"
 import { cn } from "@/lib/cn"
 import type { SoundMode } from "@/lib/audio"
 import { nightScore, qualityLabel } from "@/lib/metrics"
-import { DUR, EASE_OUT, riseIn } from "@/lib/motion"
+import { DUR, EASE_OUT } from "@/lib/motion"
+import { useRiseIn } from "@/ui/MotionProvider"
 import { dateKey, dayMonthShort, daysAgo, durationRu, hm, parseKey, pluralRu, relativeDay, timeToMinutes, weekdayShort } from "@/lib/time"
 import { useSummary } from "@/store/derived"
 import { useStore, type SleepNight } from "@/store/store"
@@ -118,6 +119,7 @@ function MonthGrid() {
 }
 
 export function SleepScreen() {
+  const riseIn = useRiseIn()
   const { nights, bedGoal, wakeGoal, openSheet, nightSound, setNightSound, startNight, soundTimer, patch } = useStore()
   const best = wakeOptions(bedGoal).find((o) => o.best)
   const [period, setPeriod] = React.useState<"7" | "14" | "30">("7")

@@ -1,5 +1,5 @@
 import { Suspense, useCallback, useLayoutEffect, useState, type ReactNode } from "react"
-import { MotionConfig } from "framer-motion"
+import { MotionProvider } from "@/ui/MotionProvider"
 import { LocalAccountProvider, useLocalAccount } from "@/account/LocalAccountProvider"
 import { Aurora } from "@/shell/Aurora"
 import { Island } from "@/shell/Island"
@@ -49,7 +49,7 @@ function Shell() {
 
 export default function App() {
   return (
-    <MotionConfig reducedMotion="user">
+    <MotionProvider>
       <StoreProvider>
         <SubscriptionProvider>
           <LocalAccountProvider>
@@ -57,6 +57,6 @@ export default function App() {
           </LocalAccountProvider>
         </SubscriptionProvider>
       </StoreProvider>
-    </MotionConfig>
+    </MotionProvider>
   )
 }

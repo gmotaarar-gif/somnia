@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
-import { afterEach, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { StoreProvider, useStore } from "@/store/store"
 import { SubscriptionProvider } from "@/store/subscription"
 import { TodayScreen } from "./Today"
@@ -21,9 +21,19 @@ function Probe() {
 const renderToday = () =>
   render(<StoreProvider><SubscriptionProvider><TodayScreen /><Probe /></SubscriptionProvider></StoreProvider>)
 
+beforeEach(() => {
+  vi.stubGlobal("matchMedia", () => ({
+    matches: true,
+    addListener() {},
+    addEventListener() {},
+    removeEventListener() {},
+  }))
+})
+
 afterEach(() => {
   cleanup()
   localStorage.clear()
+  vi.unstubAllGlobals()
 })
 
 it("opens the sleep form, not the sleep tab, when Enter is pressed on the empty hero's button", () => {
