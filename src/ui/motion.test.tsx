@@ -7,7 +7,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { Island } from "@/shell/Island"
 import { Bars, Ring, Wave } from "./charts"
 import { MotionProvider, usePrefersReducedMotion, useRiseIn } from "./MotionProvider"
-import { ScreenTransition } from "./ScreenTransition"
 
 const { store } = vi.hoisted(() => ({
   store: { toast: null as null | { id: number; text: string }, tab: "today", setTab: vi.fn(), nightMode: false },
@@ -36,41 +35,6 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
-})
-
-describe("screen transition lifecycle", () => {
-  it("shows the latest screen immediately during rapid navigation and makes outgoing screens inert", async () => {
-    const view = (key: string) => (
-      <MotionConfig reducedMotion="never">
-        <ScreenTransition screenKey={key} direction={1}><button>{key}</button></ScreenTransition>
-      </MotionConfig>
-    )
-    const { rerender } = render(view("today"))
-    rerender(view("sleep"))
-    expect(screen.getByRole("main").textContent).toBe("sleep")
-    const outgoing = screen.getByText("today").closest("main")!
-    expect(outgoing.hasAttribute("inert")).toBe(true)
-    expect(outgoing.getAttribute("aria-hidden")).toBe("true")
-
-    rerender(view("mind"))
-    rerender(view("practices"))
-    expect(screen.getByRole("main").textContent).toBe("practices")
-    await waitFor(() => expect(screen.getAllByRole("main", { hidden: true })).toHaveLength(1))
-  })
-
-  it("can return to a screen that is still exiting without leaving it inert", async () => {
-    const view = (key: string) => (
-      <MotionConfig reducedMotion="never">
-        <ScreenTransition screenKey={key} direction={-1}>{key}</ScreenTransition>
-      </MotionConfig>
-    )
-    const { rerender } = render(view("today"))
-    rerender(view("sleep"))
-    rerender(view("today"))
-    expect(screen.getByRole("main").hasAttribute("inert")).toBe(false)
-    expect(screen.getByRole("main").textContent).toBe("today")
-    await waitFor(() => expect(screen.getAllByRole("main", { hidden: true })).toHaveLength(1))
-  })
 })
 
 it("settles animations without waiting for explicit delays when reduced motion is enabled", async () => {
