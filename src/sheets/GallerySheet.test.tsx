@@ -5,6 +5,7 @@ import { afterEach, expect, it, vi } from "vitest"
 import { dateKey } from "@/lib/time"
 import { DEFAULT_WIDGETS, StoreProvider, useStore, type Widget } from "@/store/store"
 import { GallerySheet } from "./GallerySheet"
+import { WidgetGrid } from "@/widgets/WidgetGrid"
 
 vi.mock("@/ui/Sheet", () => ({
   Sheet: ({ open, children, footer }: { open: boolean; children: React.ReactNode; footer: React.ReactNode }) => open ? <div>{children}{footer}</div> : null,
@@ -50,6 +51,23 @@ it("restores a hidden custom habit without losing its progress", () => {
   fireEvent.click(screen.getByRole("button", { name: "Привычки" }))
   fireEvent.click(screen.getByRole("button", { name: "Чтение: добавить на главный" }))
   expect(savedWidgets().find((widget) => widget.id === custom.id)).toEqual({ ...custom, visible: true })
+})
+
+it("hides a custom habit from home and recovers it through the gallery with its progress", () => {
+  const visibleHabit = { ...custom, visible: true }
+  localStorage.setItem("somna-state-v6", JSON.stringify({ widgets: [visibleHabit] }))
+  function HomeHarness() {
+    const { setEditing } = useStore()
+    return <><button onClick={() => setEditing(true)}>Изменить</button><WidgetGrid /><GallerySheet /></>
+  }
+  render(<StoreProvider><HomeHarness /></StoreProvider>)
+  fireEvent.click(screen.getByRole("button", { name: "Изменить" }))
+  fireEvent.click(screen.getByRole("button", { name: "Убрать виджет" }))
+  expect(savedWidgets().find((widget) => widget.id === custom.id)).toEqual({ ...custom, visible: false })
+  expect(savedWidgets().filter((widget) => widget.visible)).toEqual([])
+  fireEvent.click(screen.getByRole("button", { name: "Добавить виджет" }))
+  fireEvent.click(screen.getByRole("button", { name: "Чтение: добавить на главный" }))
+  expect(savedWidgets().filter((widget) => widget.visible)).toEqual([visibleHabit])
 })
 
 it("confirms starter-layout restore and preserves custom habits and progress", () => {
