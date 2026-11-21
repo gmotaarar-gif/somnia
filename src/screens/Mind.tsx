@@ -1,6 +1,6 @@
 import * as React from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { ChevronRight, HeartPulse, Plus } from "lucide-react"
+import { ChevronDown, ChevronRight, HeartPulse, Plus } from "lucide-react"
 import { who5Label } from "@/lib/features"
 import { cn } from "@/lib/cn"
 import { buildInsights, emotionCounts, factorImpacts, moodPct, sleepMoodLink } from "@/lib/metrics"
@@ -22,6 +22,44 @@ const rgb = (c: number[]) => `rgb(${c.join(" ")})`
 const dayAverage = (moods: MoodEntry[], key: string) => {
   const entries = moods.filter((m) => dateKey(new Date(m.at)) === key)
   return entries.length ? entries.reduce((s, m) => s + m.valence, 0) / entries.length : null
+}
+
+/** One check-in: a compact row that opens to the full tags and note. */
+function DiaryEntry({ entry: m }: { entry: MoodEntry }) {
+  const [open, setOpen] = React.useState(false)
+  const pal = sampleValencePalette(m.valence)
+  const tags = [...m.emotions, ...m.factors].join(" · ")
+  const note = m.note?.trim()
+  const more = !!tags || !!note
+  const body = (
+    <>
+      <span className="size-11 shrink-0 rounded-full" style={{ background: `radial-gradient(circle at 36% 30%, ${rgb(pal.core)}, ${rgb(pal.mid)} 48%, ${rgb(pal.outer)})` }} />
+      <span className="min-w-0 flex-1">
+        <span className="flex items-baseline justify-between gap-3">
+          <span className="text-[15px] font-medium leading-snug">{getValenceLabel(m.valence)}</span>
+          <span className="shrink-0 text-[13px] font-semibold tabular-nums text-ink-2">{moodPct(m.valence)}%</span>
+        </span>
+        <span className="mt-0.5 block text-[12px] text-ink-3">
+          {relativeDay(dateKey(new Date(m.at)))}, {clockOf(m.at)}
+        </span>
+        {tags && <span className={cn("mt-1.5 block text-[13px] leading-snug text-ink-2", !open && "truncate")}>{tags}</span>}
+        {note && <span className={cn("mt-1.5 block break-words text-[13px] leading-snug text-ink-2", !open && "truncate")}>«{note}»</span>}
+      </span>
+      {more && <ChevronDown className={cn("size-4 shrink-0 self-center text-ink-3 transition-transform duration-250", open && "rotate-180")} />}
+    </>
+  )
+  const row = "glass flex w-full items-start gap-4 rounded-[26px] p-3 pl-4 pr-4 text-left"
+  return (
+    <li>
+      {more ? (
+        <button type="button" aria-expanded={open} onClick={() => setOpen((v) => !v)} className={cn("press", row)}>
+          {body}
+        </button>
+      ) : (
+        <div className={row}>{body}</div>
+      )}
+    </li>
+  )
 }
 
 function MonthHeat({ moods }: { moods: MoodEntry[] }) {
@@ -291,24 +329,7 @@ export function MindScreen() {
           <p className="glass mt-4 rounded-[26px] p-5 text-[14px] leading-relaxed text-ink-2">Здесь появятся ваши чек-ины.</p>
         ) : (
           <ul className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-2">
-            {diary.map((m) => {
-              const pal = sampleValencePalette(m.valence)
-              return (
-                <li key={m.id} className="glass flex items-center gap-4 rounded-[26px] p-3 pl-4">
-                  <span className="size-11 shrink-0 rounded-full" style={{ background: `radial-gradient(circle at 36% 30%, ${rgb(pal.core)}, ${rgb(pal.mid)} 48%, ${rgb(pal.outer)})` }} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline gap-2">
-                      <span className="truncate text-[15px] font-medium">{getValenceLabel(m.valence)}</span>
-                      <span className="shrink-0 text-[12px] text-ink-3">
-                        {relativeDay(dateKey(new Date(m.at)))}, {clockOf(m.at)}
-                      </span>
-                    </div>
-                    <div className="mt-0.5 truncate text-[13px] text-ink-2">{[...m.emotions, ...m.factors].join(" · ") || m.note || "Без уточнений"}</div>
-                  </div>
-                  <span className="shrink-0 pr-2 text-[13px] font-semibold tabular-nums text-ink-2">{moodPct(m.valence)}%</span>
-                </li>
-              )
-            })}
+            {diary.map((m) => <DiaryEntry key={m.id} entry={m} />)}
           </ul>
         )}
         {moods.length > 3 && (
