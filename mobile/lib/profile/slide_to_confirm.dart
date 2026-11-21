@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../theme/tokens.dart';
+import 'controls.dart';
 
 /// A deliberate slide for the one action that cannot be undone.
 class SlideToConfirm extends StatefulWidget {
@@ -71,103 +72,114 @@ class _SlideToConfirmState extends State<SlideToConfirm>
       label: _done ? widget.doneLabel : widget.label,
       onTap: _done ? null : _confirm,
       excludeSemantics: true,
-      child: LayoutBuilder(
-        builder: (context, box) {
-          final travel = box.maxWidth - knob - _pad * 2,
-              x = travel * _slide.value;
-          return RawGestureDetector(
-            gestures: {
-              HorizontalDragGestureRecognizer:
-                  GestureRecognizerFactoryWithHandlers<
-                    HorizontalDragGestureRecognizer
-                  >(HorizontalDragGestureRecognizer.new, (r) {
-                    r
-                      ..onUpdate = ((d) => _drag(d.delta.dx, travel))
-                      ..onEnd = ((_) => _end())
-                      ..onCancel = _end;
-                  }),
-            },
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              height: widget.height,
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                color: c.glassInset,
-                borderRadius: BorderRadius.circular(widget.height / 2),
-              ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: x + knob + _pad * 2,
-                    child: Opacity(
-                      opacity: _done ? 1 : (.15 + _slide.value).clamp(0.0, 1.0),
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: widget.color,
-                          borderRadius: BorderRadius.circular(
-                            widget.height / 2,
+      child: FocusableActionDetector(
+        enabled: !_done,
+        shortcuts: activateShortcuts,
+        actions: {
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) => _confirm(),
+          ),
+        },
+        child: LayoutBuilder(
+          builder: (context, box) {
+            final travel = box.maxWidth - knob - _pad * 2,
+                x = travel * _slide.value;
+            return RawGestureDetector(
+              gestures: {
+                HorizontalDragGestureRecognizer:
+                    GestureRecognizerFactoryWithHandlers<
+                      HorizontalDragGestureRecognizer
+                    >(HorizontalDragGestureRecognizer.new, (r) {
+                      r
+                        ..onUpdate = ((d) => _drag(d.delta.dx, travel))
+                        ..onEnd = ((_) => _end())
+                        ..onCancel = _end;
+                    }),
+              },
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                height: widget.height,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: c.glassInset,
+                  borderRadius: BorderRadius.circular(widget.height / 2),
+                ),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: x + knob + _pad * 2,
+                      child: Opacity(
+                        opacity: _done
+                            ? 1
+                            : (.15 + _slide.value).clamp(0.0, 1.0),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: widget.color,
+                            borderRadius: BorderRadius.circular(
+                              widget.height / 2,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  Center(
-                    child: _done
-                        ? Text(
-                            widget.doneLabel,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Opacity(
-                            opacity: (1 - _slide.value * 1.6).clamp(0.0, 1.0),
-                            child: Padding(
-                              padding: EdgeInsets.only(left: knob),
-                              child: Text(
-                                widget.label,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
-                                  color: c.ink2,
+                    Center(
+                      child: _done
+                          ? Text(
+                              widget.doneLabel,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Opacity(
+                              opacity: (1 - _slide.value * 1.6).clamp(0.0, 1.0),
+                              child: Padding(
+                                padding: EdgeInsets.only(left: knob),
+                                child: Text(
+                                  widget.label,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: c.ink2,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                  ),
-                  Positioned(
-                    left: _pad + x,
-                    top: _pad,
-                    width: knob,
-                    height: knob,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _done ? Colors.white : widget.color,
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color.fromRGBO(0, 0, 0, .18),
-                            blurRadius: 6,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        _done ? Icons.check : Icons.chevron_right,
-                        size: 24,
-                        color: _done ? widget.color : Colors.white,
+                    ),
+                    Positioned(
+                      left: _pad + x,
+                      top: _pad,
+                      width: knob,
+                      height: knob,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _done ? Colors.white : widget.color,
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color.fromRGBO(0, 0, 0, .18),
+                              blurRadius: 6,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          _done ? Icons.check : Icons.chevron_right,
+                          size: 24,
+                          color: _done ? widget.color : Colors.white,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

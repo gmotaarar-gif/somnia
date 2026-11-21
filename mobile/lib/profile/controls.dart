@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../theme/tokens.dart';
@@ -195,6 +196,12 @@ class SomnaButton extends StatelessWidget {
   }
 }
 
+/// Enter and Space activate a focused control, as on [PressScale].
+const activateShortcuts = <ShortcutActivator, Intent>{
+  SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+  SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+};
+
 class SomnaToggle extends StatelessWidget {
   final bool value;
   final String label;
@@ -215,36 +222,45 @@ class SomnaToggle extends StatelessWidget {
       enabled: onChanged != null,
       onTap: onChanged == null ? null : () => onChanged!(!value),
       excludeSemantics: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onChanged == null ? null : () => onChanged!(!value),
-        child: AnimatedContainer(
-          duration: SomnaMotion.fast,
-          width: 52,
-          height: 30,
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            color: value ? c.ink : c.ink.withValues(alpha: .16),
-            borderRadius: BorderRadius.circular(15),
+      child: FocusableActionDetector(
+        enabled: onChanged != null,
+        shortcuts: activateShortcuts,
+        actions: {
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) => onChanged?.call(!value),
           ),
-          child: AnimatedAlign(
+        },
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onChanged == null ? null : () => onChanged!(!value),
+          child: AnimatedContainer(
             duration: SomnaMotion.fast,
-            curve: SomnaMotion.smooth,
-            alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-            child: AnimatedContainer(
+            width: 52,
+            height: 30,
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              color: value ? c.ink : c.ink.withValues(alpha: .16),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: AnimatedAlign(
               duration: SomnaMotion.fast,
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: value && dark ? Colors.black : Colors.white,
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color.fromRGBO(0, 0, 0, .4),
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
-                  ),
-                ],
+              curve: SomnaMotion.smooth,
+              alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+              child: AnimatedContainer(
+                duration: SomnaMotion.fast,
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: value && dark ? Colors.black : Colors.white,
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color.fromRGBO(0, 0, 0, .4),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

@@ -119,64 +119,77 @@ class _CometDialState extends State<CometDial>
       onIncrease: () => _commit(value + _nudge),
       onDecrease: () => _commit(value - _nudge),
       excludeSemantics: true,
-      child: RawGestureDetector(
-        // Claims the pointer so turning the ring never scrolls the sheet.
-        gestures: {
-          EagerGestureRecognizer:
-              GestureRecognizerFactoryWithHandlers<EagerGestureRecognizer>(
-                EagerGestureRecognizer.new,
-                (_) {},
-              ),
+      child: FocusableActionDetector(
+        shortcuts: const {
+          SingleActivator(LogicalKeyboardKey.arrowRight): _Turn(1),
+          SingleActivator(LogicalKeyboardKey.arrowUp): _Turn(1),
+          SingleActivator(LogicalKeyboardKey.arrowLeft): _Turn(-1),
+          SingleActivator(LogicalKeyboardKey.arrowDown): _Turn(-1),
         },
-        child: Listener(
-          onPointerDown: (e) => _point(e.localPosition, begin: true),
-          onPointerMove: (e) => _point(e.localPosition, begin: false),
-          onPointerUp: (_) => _release(),
-          onPointerCancel: (_) => _release(),
-          child: SizedBox.square(
-            dimension: widget.size,
-            child: CustomPaint(
-              painter: _DialPainter(
-                fraction: (_shown - widget.min) / _range,
-                tail: _glide.isAnimating
-                    ? math.sin(math.pi * _glide.value) *
-                          ((_to - _from) / _range * CometDial.sweep).clamp(
-                            -180.0,
-                            180.0,
-                          )
-                    : 0,
-                thickness: widget.thickness,
-                ink: c.ink,
-                accent: c.accent,
-              ),
-              child: Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(
-                      text,
-                      style: TextStyle(
-                        fontSize: figure,
-                        height: 1,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: -figure * .04,
-                        color: c.ink,
-                        fontFeatures: const [FontFeature.tabularFigures()],
+        actions: {
+          _Turn: CallbackAction<_Turn>(
+            onInvoke: (turn) => _commit(value + _nudge * turn.steps),
+          ),
+        },
+        child: RawGestureDetector(
+          // Claims the pointer so turning the ring never scrolls the sheet.
+          gestures: {
+            EagerGestureRecognizer:
+                GestureRecognizerFactoryWithHandlers<EagerGestureRecognizer>(
+                  EagerGestureRecognizer.new,
+                  (_) {},
+                ),
+          },
+          child: Listener(
+            onPointerDown: (e) => _point(e.localPosition, begin: true),
+            onPointerMove: (e) => _point(e.localPosition, begin: false),
+            onPointerUp: (_) => _release(),
+            onPointerCancel: (_) => _release(),
+            child: SizedBox.square(
+              dimension: widget.size,
+              child: CustomPaint(
+                painter: _DialPainter(
+                  fraction: (_shown - widget.min) / _range,
+                  tail: _glide.isAnimating
+                      ? math.sin(math.pi * _glide.value) *
+                            ((_to - _from) / _range * CometDial.sweep).clamp(
+                              -180.0,
+                              180.0,
+                            )
+                      : 0,
+                  thickness: widget.thickness,
+                  ink: c.ink,
+                  accent: c.accent,
+                ),
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        text,
+                        style: TextStyle(
+                          fontSize: figure,
+                          height: 1,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: -figure * .04,
+                          color: c.ink,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
                       ),
-                    ),
-                    SizedBox(width: figure * .06),
-                    Text(
-                      widget.unit,
-                      style: TextStyle(
-                        fontSize: figure * .5,
-                        height: 1,
-                        fontWeight: FontWeight.w500,
-                        color: c.ink.withValues(alpha: .5),
+                      SizedBox(width: figure * .06),
+                      Text(
+                        widget.unit,
+                        style: TextStyle(
+                          fontSize: figure * .5,
+                          height: 1,
+                          fontWeight: FontWeight.w500,
+                          color: c.ink.withValues(alpha: .5),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -256,4 +269,9 @@ class _DialPainter extends CustomPainter {
       old.thickness != thickness ||
       old.ink != ink ||
       old.accent != accent;
+}
+
+class _Turn extends Intent {
+  final int steps;
+  const _Turn(this.steps);
 }

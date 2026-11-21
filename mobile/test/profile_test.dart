@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:somna/data/defaults.dart';
@@ -220,6 +221,48 @@ void main() {
       await tester.pump(const Duration(milliseconds: 1500));
       await tester.pumpAndSettle();
       expect(find.byType(SlideToConfirm), findsNothing);
+    });
+
+    testWidgets('toggle, volume ring and reset slider work from a keyboard', (
+      tester,
+    ) async {
+      final store = _store({
+        'nights': [night('2026-11-21').toJson()],
+      });
+      await _boot(tester, store, sheet: 'profile');
+      Future<void> focus(Finder control) async {
+        await tester.ensureVisible(control);
+        await tester.pumpAndSettle();
+        Focus.of(
+          tester.element(
+            find.descendant(of: control, matching: find.byType(Listener)).last,
+          ),
+        ).requestFocus();
+        await tester.pump();
+      }
+
+      final morning = store.morningReminder;
+      await focus(find.bySemanticsLabel('Утренний чек-ин'));
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pumpAndSettle();
+      expect(store.morningReminder, !morning);
+
+      final volume = store.volume;
+      await focus(find.byType(CometDial));
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+      expect(store.volume, greaterThan(volume));
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+      expect(store.volume, volume);
+
+      await _tap(tester, find.text('Сбросить журнал'));
+      await focus(find.byType(SlideToConfirm));
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect(store.nights.any((n) => n.id == '2026-11-21'), false);
+      await tester.pump(const Duration(milliseconds: 1500));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('restarting onboarding closes the sheet', (tester) async {
