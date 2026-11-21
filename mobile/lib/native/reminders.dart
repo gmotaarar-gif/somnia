@@ -146,6 +146,14 @@ class ReminderService with WidgetsBindingObserver {
         return await scheduler.requestPermission();
       } catch (_) {
         return false;
+      } finally {
+        if (!_disposed && _store != null) {
+          try {
+            await _schedule(ReminderSettings.fromStore(_store!));
+          } catch (_) {
+            if (!_disposed) _store?.notify(reminderFailureToast);
+          }
+        }
       }
     });
   }

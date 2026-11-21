@@ -162,6 +162,25 @@ void main() {
       expect(validReminderTime(good), true);
     }
   });
+  test('onboarding reschedules unchanged enabled reminders after permission without a lifecycle resume', () async {
+    final s = SomnaStore(
+      initialState: defaultState().patch({
+        'reminder': true,
+        'morningReminder': false,
+      }),
+      autoRefresh: false,
+      requestReminderPermission: service.requestPermission,
+    );
+    addTearDown(s.dispose);
+    await service.start(s);
+    fake.scheduled.clear();
+    fake.calls.clear();
+    expect(await s.finishOnboarding({'reminder': true}), true);
+    await Future<void>.delayed(Duration.zero);
+    expect(s.onboarded, true);
+    expect(fake.calls, contains('request'));
+    expect(fake.scheduled.map((r) => r.id), [1001]);
+  });
   test('no scheduling without permission', () async {
     fake.granted = false;
     await service.sync(settings);
