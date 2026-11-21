@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import { startSound, stopSound } from "@/lib/audio"
 import { StoreProvider, useStore } from "@/store/store"
+import { SubscriptionProvider } from "@/store/subscription"
 import { SheetHost } from "./SheetHost"
 
 const loading = vi.hoisted(() => {
@@ -35,7 +36,7 @@ afterEach(() => {
 
 it("stops night playback when its chunk fails without logging sleep or unmounting the screen", async () => {
   vi.spyOn(console, "error").mockImplementation(() => {})
-  render(<StoreProvider><Controls /><SheetHost /></StoreProvider>)
+  render(<StoreProvider><SubscriptionProvider><Controls /><SheetHost /></SubscriptionProvider></StoreProvider>)
   fireEvent.click(screen.getByRole("button", { name: "Start night" }))
   expect(startSound).toHaveBeenCalledWith("pink")
   vi.mocked(stopSound).mockClear()

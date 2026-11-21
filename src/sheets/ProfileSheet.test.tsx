@@ -5,6 +5,7 @@ import { Blob as NodeBlob } from "node:buffer"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { StoreProvider, useStore } from "@/store/store"
+import { SubscriptionProvider } from "@/store/subscription"
 import { ProfileSheet } from "./ProfileSheet"
 
 // Exercise profile/store behavior without the shared sheet's animation/portal lifecycle.
@@ -18,12 +19,12 @@ const STORAGE_KEY = "somna-state-v6"
 const savedNight = { id: "own-night", dateKey: "2030-01-02", bedtime: "00:00", wakeTime: "08:00", durationMin: 480, quality: 80, awakenings: 0, tags: [] }
 
 function Harness() {
-  const { openSheet } = useStore()
-  return <><button onClick={() => openSheet("profile")}>Открыть профиль</button><ProfileSheet /></>
+  const { openSheet, sheet } = useStore()
+  return <><button onClick={() => openSheet("profile")}>Открыть профиль</button><output data-testid="active-sheet">{sheet}</output><ProfileSheet /></>
 }
 
 function openProfile() {
-  const result = render(<StoreProvider><Harness /></StoreProvider>)
+  const result = render(<StoreProvider><SubscriptionProvider><Harness /></SubscriptionProvider></StoreProvider>)
   fireEvent.click(screen.getByText("Открыть профиль"))
   return result
 }
@@ -36,6 +37,16 @@ afterEach(() => {
 })
 
 describe("ProfileSheet", () => {
+  it("opens the subscription from the profile without losing personal settings", () => {
+    openProfile()
+    fireEvent.change(screen.getByLabelText("Как к вам обращаться"), { target: { value: "Мира" } })
+    fireEvent.click(screen.getByRole("button", { name: /Больше заботы о себе/ }))
+    expect(screen.getByTestId("active-sheet").textContent).toBe("subscription")
+    expect(screen.queryByRole("dialog")).toBeNull()
+    fireEvent.click(screen.getByText("Открыть профиль"))
+    expect((screen.getByLabelText("Как к вам обращаться") as HTMLInputElement).value).toBe("Мира")
+  })
+
   it("persists personal settings and updates the sleep duration across midnight", () => {
     const first = openProfile()
     fireEvent.change(screen.getByLabelText("Как к вам обращаться"), { target: { value: "Мира" } })

@@ -5,6 +5,7 @@ import { durationRu, spanMinutes } from "@/lib/time"
 import { useStore, type Chronotype } from "@/store/store"
 import { Button, Slider, TimeField, Toggle } from "@/ui/controls"
 import { Sheet } from "@/ui/Sheet"
+import { SubscriptionCard } from "@/ui/SubscriptionCard"
 
 const CHRONOTYPES: { value: Chronotype; label: string; hint: string; icon: LucideIcon; description: string }[] = [
   { value: "early", label: "Жаворонок", hint: "Раннее утро", icon: Sunrise, description: "Больше энергии утром. Оставьте вечер для спокойных дел." },
@@ -83,7 +84,8 @@ export function ProfileSheet() {
           </dl>
         </section>
 
-        {/* Account and subscription cards belong together here, below the identity card. */}
+        {/* LocalAccountCard belongs beside the subscription card once registration lands. */}
+        <SubscriptionCard />
         <ProfileRow icon={Award} title="Мои достижения" description="Маленькие шаги, которые важны" onClick={() => s.openSheet("awards")} accent />
 
         <ProfileSection title="Мой ритм" description="Настройте Somna под себя">
