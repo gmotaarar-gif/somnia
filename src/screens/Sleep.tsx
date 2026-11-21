@@ -91,7 +91,7 @@ function MonthGrid() {
         {days.map((d, i) => {
           const key = dateKey(d)
           const n = byKey.get(key)
-          const future = d > today
+          const future = key > dateKey(today)
           const score = n ? nightScore(n, bedGoal, wakeGoal) : 0
           return (
             <motion.button

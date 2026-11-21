@@ -4,6 +4,7 @@ import { getValenceLabel, sampleValencePalette } from "@/lib/valence"
 import { useStore } from "@/store/store"
 import { Button, Chip, Slider } from "@/ui/controls"
 import { Dots } from "@/ui/Dots"
+import { MoodOrb } from "@/ui/MoodOrb"
 import { Field, Sheet } from "@/ui/Sheet"
 
 const EMOTIONS = {
@@ -41,15 +42,7 @@ function MoodForm({ onDone }: { onDone: () => void }) {
           }}
         >
           <div className="flex flex-col items-center px-5 pb-6 pt-7">
-            <div
-              className="size-[92px] rounded-full"
-              style={{
-                background: `radial-gradient(circle at 36% 30%, ${rgb(pal.core)}, ${rgb(pal.mid)} 46%, ${rgb(pal.outer)} 100%)`,
-                boxShadow: `0 0 60px -6px ${rgb(pal.mid)}, inset 0 -10px 24px rgb(0 0 0 / 0.25)`,
-                scale: String(0.86 + (valence + 1) * 0.1),
-                transition: "scale 0.35s cubic-bezier(0.22,1,0.36,1)",
-              }}
-            />
+            <MoodOrb valence={valence} />
             <Dots value={`${moodPct(valence)}%`} still className="mt-6 text-[34px]" />
             <div className="mt-3 text-[17px] font-semibold tracking-[-0.01em]">{getValenceLabel(valence)}</div>
           </div>
