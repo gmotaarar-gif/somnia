@@ -17,7 +17,7 @@ const WorrySheet = lazy(() => import("@/sheets/PracticeSheets").then((m) => ({ d
 const NightMode = lazy(() => import("@/shell/NightMode").then((m) => ({ default: m.NightMode })))
 
 export function SheetHost() {
-  const { sheet, nightMode } = useStore()
+  const { sheet, nightMode, endNight } = useStore()
   return (
     <>
       <Deferred active={sheet === "mood"}><MoodSheet /></Deferred>
@@ -32,7 +32,7 @@ export function SheetHost() {
       <Deferred active={sheet === "grounding"}><GroundingSheet /></Deferred>
       <Deferred active={sheet === "bodyscan"}><BodyScanSheet /></Deferred>
       <Deferred active={sheet === "worry"}><WorrySheet /></Deferred>
-      <Deferred active={nightMode}><NightMode /></Deferred>
+      <Deferred active={nightMode}><NightMode onLoadError={() => endNight(false)} /></Deferred>
     </>
   )
 }
