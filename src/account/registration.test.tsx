@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { StoreProvider, useStore } from "@/store/store"
 import { LocalAccountProvider, useLocalAccount } from "./LocalAccountProvider"
 import { RegistrationForm } from "./RegistrationSheet"
-import { normalizeLocalAccount } from "./registration"
+import { normalizeLocalAccount, validateRegistration } from "./registration"
 
 const STORAGE_KEY = "somna-state-v6"
 const savedAccount = () => JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}").localAccount ?? null
@@ -22,6 +22,14 @@ afterEach(() => {
 })
 
 describe("local registration", () => {
+  it.each(["mira@example.com,", "mira@example..com", "mira@-example.com", "mira@example-.com", ".mira@example.com", "mi..ra@example.com"])("rejects malformed email %s", (email) => {
+    expect(validateRegistration({ name: "Мира", email }).email).toBeTruthy()
+  })
+
+  it.each(["mira+sleep@example.com", "mira.ivanova@my-domain.example", " MIRA@Example.com "])("allows a standard email %s", (email) => {
+    expect(validateRegistration({ name: "Мира", email })).toEqual({})
+  })
+
   it("persists a normalized identity without replacing the existing journal or settings", () => {
     const first = renderHook(() => ({ account: useLocalAccount(), store: useStore() }), { wrapper: Providers })
     act(() => {

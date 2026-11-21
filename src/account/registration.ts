@@ -9,12 +9,22 @@ export interface RegistrationInput {
   email: string
 }
 
+function validEmail(email: string) {
+  // Standard unquoted addresses, with dot-separated domain labels. No delivery claim.
+  const [local, domain, extra] = email.split("@")
+  return extra === undefined && !!domain && local.length <= 64 &&
+    /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*$/i.test(local) &&
+    domain.length <= 253 && domain.includes(".") && domain.split(".").every((label) =>
+      label.length <= 63 && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label)
+    )
+}
+
 export function validateRegistration({ name, email }: RegistrationInput) {
   const errors: Partial<Record<keyof RegistrationInput, string>> = {}
   if (!name.trim()) errors.name = "Введите имя"
   else if (name.trim().length > 20) errors.name = "Не больше 20 символов"
   if (!email.trim()) errors.email = "Введите почту"
-  else if (email.trim().length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+  else if (email.trim().length > 254 || !validEmail(email.trim())) {
     errors.email = "Проверьте адрес, например name@example.com"
   }
   return errors
