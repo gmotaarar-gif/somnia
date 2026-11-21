@@ -191,11 +191,11 @@ export function ProfileSheet() {
               close()
             }}
           />
-          <Row buttonRef={journalActionRef} danger icon={<Trash2 />} title="Сбросить журнал" sub="Вернёт демо-данные" onClick={() => setConfirm("journal")} />
+          <Row buttonRef={journalActionRef} danger icon={<Trash2 />} title="Сбросить журнал" sub="Удалит записи и сбросит настройки" onClick={() => setConfirm("journal")} />
         </div>
         {confirm && (
           <div key={confirm} role="group" aria-label={confirm === "widgets" ? "Восстановить виджеты?" : "Сбросить журнал?"} className="mt-3">
-            <p className="px-1 text-[13px] leading-relaxed text-ink-2">{confirm === "widgets" ? "Порядок, размеры и оформление стандартных виджетов вернутся к начальным настройкам. Ваши привычки сохранятся." : "Все ваши записи и настройки будут заменены демо-данными. Имя сохранится. Это нельзя отменить — сначала экспортируйте журнал."}</p>
+            <p className="px-1 text-[13px] leading-relaxed text-ink-2">{confirm === "widgets" ? "Порядок, размеры и оформление стандартных виджетов вернутся к начальным настройкам. Ваши привычки сохранятся." : "Все записи будут удалены, а настройки сброшены. Имя и локальный профиль сохранятся. Это нельзя отменить — сначала экспортируйте журнал."}</p>
             <div className="mt-3 flex gap-2.5">
               <Button autoFocus variant="glass" className="flex-1" onClick={cancelConfirmation}>
                 Отмена

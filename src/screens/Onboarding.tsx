@@ -215,6 +215,7 @@ export function Onboarding() {
   const [bedGoal, setBedGoal] = React.useState(store.bedGoal)
   const [wakeGoal, setWakeGoal] = React.useState(store.wakeGoal)
   const [valence, setValence] = React.useState(0.3)
+  const [moodAnswered, setMoodAnswered] = React.useState(false)
   const [picked, setPicked] = React.useState<string[]>(() => STARTER.filter((id) => store.widgets.some((w) => w.id === id && w.visible)))
   const [reminder, setReminder] = React.useState(store.reminder)
   const [reminderTime, setReminderTime] = React.useState(store.reminderTime)
@@ -232,7 +233,7 @@ export function Onboarding() {
 
   const finish = () => {
     const widgets = onboardingWidgets(store.widgets, picked)
-    store.addMood({ valence, emotions: [], factors: [] })
+    if (moodAnswered) store.addMood({ valence, emotions: [], factors: [] })
     store.finishOnboarding({ userName: name.trim(), focus, chronotype, bedGoal, wakeGoal, reminder, reminderTime, widgets })
     store.notify(`Добро пожаловать, ${name.trim()}`)
   }
@@ -428,7 +429,7 @@ export function Onboarding() {
                 max={1}
                 step={0.02}
                 value={valence}
-                onChange={setValence}
+                onChange={(value) => { setValence(value); setMoodAnswered(true) }}
                 track="linear-gradient(90deg,#5b3fd9,#3b82f6,#34d399,#d9f24a,#fb923c)"
               />
               <div className="mt-2 flex justify-between text-[12px] text-ink-3">
@@ -523,7 +524,10 @@ export function Onboarding() {
       {!building && (
         <>
           <Button className="mt-7 h-14 w-full shrink-0 text-[16px]" disabled={!canNext} onClick={() => {
-            if (step !== STEPS - 1) return go(1)
+            if (step !== STEPS - 1) {
+              if (step === 5) setMoodAnswered(true)
+              return go(1)
+            }
             finish()
             if (!account) openRegistration()
           }}>
