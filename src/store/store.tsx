@@ -1,4 +1,5 @@
 import * as React from "react"
+import { normalizeEmail, normalizeLocalAccount, validateRegistration, type LocalAccount, type RegistrationInput } from "@/account/registration"
 import { setSoundVolume, startSound, stopSound, type SoundMode } from "@/lib/audio"
 import { dateKey, daysAgo, spanMinutes } from "@/lib/time"
 
@@ -220,6 +221,7 @@ export const DEFAULT_WIDGETS: Widget[] = [
 interface Persisted {
   onboarded: boolean
   userName: string
+  localAccount: LocalAccount | null
   chronotype: Chronotype
   bedGoal: string
   wakeGoal: string
@@ -249,6 +251,7 @@ function defaults(): Persisted {
   return {
     onboarded: false,
     userName: "",
+    localAccount: null,
     chronotype: "balanced",
     bedGoal: "23:30",
     wakeGoal: "07:30",
@@ -304,6 +307,7 @@ function load(): Persisted {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return base
     const saved = rollDay({ ...base, ...(JSON.parse(raw) as Partial<Persisted>) }, today())
+    saved.localAccount = normalizeLocalAccount(saved.localAccount)
     saved.nights = normalizeNights(saved.nights)
     // widgets added in later versions appear in the gallery of existing installs
     const missing = DEFAULT_WIDGETS.filter((w) => !saved.widgets.some((x) => x.id === w.id))
@@ -315,6 +319,7 @@ function load(): Persisted {
 }
 
 export interface Store extends Persisted {
+  registerLocalProfile: (input: RegistrationInput) => void
   tab: TabId
   setTab: (t: TabId) => void
   sheet: SheetId
@@ -367,6 +372,9 @@ const BreathContext = React.createContext<{
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = React.useState<Persisted>(load)
+  const latestData = React.useRef(data)
+  latestData.current = data
+  const lastSaved = React.useRef<string | null>(null)
   const [tab, setTabRaw] = React.useState<TabId>("today")
   const [tabDir, setTabDir] = React.useState(1)
   const [sheet, setSheet] = React.useState<SheetId>(null)
@@ -403,12 +411,31 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   })
 
   React.useEffect(() => {
+    const serialized = JSON.stringify(data)
+    if (serialized === lastSaved.current) return
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+      window.localStorage.setItem(STORAGE_KEY, serialized)
+      lastSaved.current = serialized
     } catch {
       // storage can be full or disabled; the session keeps working in memory
     }
   }, [data])
+
+  // Keep an already-open tab from autosaving its pre-registration profile later.
+  React.useEffect(() => {
+    const sync = (event: StorageEvent) => {
+      if (event.storageArea === window.localStorage && (event.key === STORAGE_KEY || event.key === null)) {
+        // A failed local autosave may be the only copy of a new check-in.
+        if (JSON.stringify(latestData.current) !== lastSaved.current) return
+        const incoming = load()
+        // Imported snapshots must not be written back over a newer remote save.
+        lastSaved.current = JSON.stringify(incoming)
+        setData(incoming)
+      }
+    }
+    window.addEventListener("storage", sync)
+    return () => window.removeEventListener("storage", sync)
+  }, [])
 
   // A tab left open past midnight moves to the new day: counters reset, "Сегодня" labels re-derive.
   React.useEffect(() => {
@@ -525,8 +552,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         setWidgets((ws) =>
           ws.map((w) => (w.id === id ? { ...w, value: (w.value ?? 0) + (w.step ?? 1), day: today() } : w))
         ),
-      resetWidgets: () => setWidgets(DEFAULT_WIDGETS),
-      resetAll: () => setData((d) => ({ ...defaults(), onboarded: d.onboarded, userName: d.userName })),
+      resetWidgets: () => setWidgets((widgets) => [
+        ...widgets.filter((widget) => widget.kind === "custom"),
+        ...DEFAULT_WIDGETS.map((widget) => ({ ...widget })),
+      ]),
+      resetAll: () => setData((d) => ({ ...defaults(), onboarded: d.onboarded, userName: d.userName, localAccount: d.localAccount })),
     }
   }, [])
 
@@ -534,6 +564,23 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     () => ({
       ...data,
       ...actions,
+      registerLocalProfile: (input) => {
+        if (Object.keys(validateRegistration(input)).length) throw new Error("Invalid local registration")
+        const next: Persisted = {
+          ...data,
+          userName: input.name.trim(),
+          localAccount: {
+            email: normalizeEmail(input.email),
+            createdAt: data.localAccount?.createdAt ?? new Date().toISOString(),
+          },
+        }
+        // One atomic write saves the name, email, and existing journal together.
+        // Unlike background autosave, registration must surface storage failures.
+        const serialized = JSON.stringify(next)
+        window.localStorage.setItem(STORAGE_KEY, serialized)
+        lastSaved.current = serialized
+        setData(next)
+      },
       tab,
       setTab,
       tabDir,

@@ -184,7 +184,7 @@ export function TodayScreen() {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[15px] font-semibold tracking-[-0.01em]">Итоги недели готовы</span>
-          <span className="mt-0.5 block truncate text-[13px] text-ink-2">
+          <span className="mt-0.5 block text-[13px] leading-relaxed text-ink-2">
             {range} · {sum.goalNights} из {week.length} ночей по цели
             {last ? ` · ${qualityLabel(last.quality).toLowerCase()}` : ""}
           </span>
