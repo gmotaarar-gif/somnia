@@ -2,8 +2,7 @@
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
-    <path android:pathData="M61 28C46 24 32 35 32 50C32 65 47 75 61 69C67 66 71 61 73 55C63 63 50 60 46 50C42 40 49 31 61 28Z"
-        android:fillColor="#FFFFFFFF">
+    <path android:pathData="M61 28C46 24 32 35 32 50C32 65 47 75 61 69C67 66 71 61 73 55C63 63 50 60 46 50C42 40 49 31 61 28Z">
         <aapt:attr name="android:fillColor">
             <gradient android:type="linear" android:startX="37" android:startY="29"
                 android:endX="65" android:endY="69">

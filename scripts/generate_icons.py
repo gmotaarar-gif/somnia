@@ -45,8 +45,8 @@ def vector(paths, monochrome=False):
             continue
         gradient = GRADIENTS[fill[5:-1]]
         a = gradient.attrib
-        lines.extend(['        android:fillColor="#FFFFFFFF">',
-                      '        <aapt:attr name="android:fillColor">',
+        lines[-1] += ">"
+        lines.extend(['        <aapt:attr name="android:fillColor">',
                       f'            <gradient android:type="linear" android:startX="{a["x1"]}" android:startY="{a["y1"]}"',
                       f'                android:endX="{a["x2"]}" android:endY="{a["y2"]}">'])
         for stop in gradient:
