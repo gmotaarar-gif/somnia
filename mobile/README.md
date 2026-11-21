@@ -45,6 +45,42 @@ navigation are transient store state; screens and playback adapters come later.
 There are no browser storage events on native: `reloadFromStorage()` explicitly
 accepts external snapshots only when there are no unsaved local edits.
 
+## Native shell / integration seams
+
+`main.dart` runs `SomnaApp` (`lib/shell/app.dart`), which loads the store behind
+the splash screen and gates onboarding/workspace. Theme mode is read from the
+store; system mode follows live platform brightness changes. Onest variable
+font (including Cyrillic) and its SIL OFL license are bundled from
+`https://github.com/google/fonts/tree/main/ofl/onest`.
+
+Replace one of `lib/screens/{today,sleep,mind,practices}.dart` with its native
+screen. The workspace retains all four screen elements in an `IndexedStack`;
+the outgoing visual is captured for a 250ms crossfade/slide, not remounted.
+Theme tokens/motion live in `lib/theme/`; shared surfaces, dots, orb,
+press targets and sheet infrastructure live in `lib/ui/`.
+
+Inject a `SheetRegistry` into `SomnaApp(sheetRegistry: registry)` and register
+builders in your feature's composition code (no shell edits needed):
+
+```dart
+final registry = SheetRegistry();
+registry.register('article', (context, arg) => ArticleSheet(articleId: arg));
+runApp(SomnaApp(sheetRegistry: registry));
+```
+
+Use `SomnaScope.of(context).openSheet('article', id)` to navigate. Registry
+builders receive the store's sheet arg unchanged, can be replaced live, and
+have a placeholder fallback. Profile's default builder is installed only if
+not overridden. System back, swipe and barrier dismissal clear store state;
+switching/clearing the store sheet updates the route. For independent sheets
+use `showSomnaSheet(context, builder: ...)` and close with `Navigator.pop`.
+The registry is owned/disposed by its creator when injected.
+
+Aurora uses native soft radial blobs, **not a FragmentProgram or WebView**.
+It interpolates all web palettes on tab/theme changes, with idle drift only
+during onboarding (like the web). Reduced-motion settings stop the drift and
+tab transitions. DistortionWave and real tab/sheet content remain deferred.
+
 ## Checks
 
 ```sh
