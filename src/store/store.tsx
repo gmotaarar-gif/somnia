@@ -371,6 +371,9 @@ const BreathContext = React.createContext<{
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = React.useState<Persisted>(load)
+  const latestData = React.useRef(data)
+  latestData.current = data
+  const lastSaved = React.useRef<string | null>(null)
   const [tab, setTabRaw] = React.useState<TabId>("today")
   const [tabDir, setTabDir] = React.useState(1)
   const [sheet, setSheet] = React.useState<SheetId>(null)
@@ -407,8 +410,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   })
 
   React.useEffect(() => {
+    const serialized = JSON.stringify(data)
+    if (serialized === lastSaved.current) return
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+      window.localStorage.setItem(STORAGE_KEY, serialized)
+      lastSaved.current = serialized
     } catch {
       // storage can be full or disabled; the session keeps working in memory
     }
@@ -418,7 +424,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     const sync = (event: StorageEvent) => {
       if (event.storageArea === window.localStorage && (event.key === STORAGE_KEY || event.key === null)) {
-        setData(load())
+        // A failed local autosave may be the only copy of a new check-in.
+        if (JSON.stringify(latestData.current) !== lastSaved.current) return
+        const incoming = load()
+        // Imported snapshots must not be written back over a newer remote save.
+        lastSaved.current = JSON.stringify(incoming)
+        setData(incoming)
       }
     }
     window.addEventListener("storage", sync)
@@ -561,7 +572,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }
         // One atomic write saves the name, email, and existing journal together.
         // Unlike background autosave, registration must surface storage failures.
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+        const serialized = JSON.stringify(next)
+        window.localStorage.setItem(STORAGE_KEY, serialized)
+        lastSaved.current = serialized
         setData(next)
       },
       tab,

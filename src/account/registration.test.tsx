@@ -129,4 +129,27 @@ describe("local registration", () => {
     expect(savedAccount()?.email).toBe("mira@example.com")
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).userName).toBe("Мира")
   })
+
+  it("does not autosave imported cross-tab snapshots", () => {
+    const { result } = renderHook(useStore, { wrapper: Providers })
+    const incoming = { ...JSON.parse(localStorage.getItem(STORAGE_KEY)!), volume: 12 }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(incoming))
+    const write = vi.spyOn(Storage.prototype, "setItem")
+    act(() => window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY, storageArea: localStorage })))
+    expect(result.current.volume).toBe(12)
+    expect(write).not.toHaveBeenCalled()
+  })
+
+  it("keeps an unsaved check-in in memory when another tab changes settings", () => {
+    const { result } = renderHook(useStore, { wrapper: Providers })
+    const before = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
+    const originalWrite = Storage.prototype.setItem
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("Quota exceeded", "QuotaExceededError") })
+    act(() => result.current.addMood({ valence: 0.7, emotions: ["Ясность"], factors: [] }))
+    expect(result.current.moods.length).toBe(before.moods.length + 1)
+    originalWrite.call(localStorage, STORAGE_KEY, JSON.stringify({ ...before, volume: 12 }))
+    act(() => window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY, storageArea: localStorage })))
+    expect(result.current.moods.length).toBe(before.moods.length + 1)
+    expect(result.current.moods.at(-1)?.emotions).toEqual(["Ясность"])
+  })
 })
