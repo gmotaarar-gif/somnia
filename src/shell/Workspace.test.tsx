@@ -15,7 +15,9 @@ vi.mock("@/screens/Today", () => ({ TodayScreen: () => <div>Today content</div> 
 vi.mock("@/screens/Sleep", async () => { loading.requested(); return loading.sleep })
 vi.mock("@/screens/Mind", () => { throw new Error("Chunk unavailable") })
 vi.mock("@/shell/SheetHost", () => ({ SheetHost: () => null }))
-vi.mock("@/shell/Aurora", () => ({ Aurora: () => null }))
+vi.mock("@/shell/Aurora", () => ({
+  Aurora: ({ theme, snapshot }: { theme: string; snapshot: boolean }) => <div data-testid="aurora" data-theme={theme} data-snapshot={snapshot} />,
+}))
 vi.mock("@/shell/Dock", async () => {
   const { useStore } = await import("@/store/store")
   return {
@@ -33,6 +35,13 @@ afterEach(() => {
   cleanup()
   localStorage.clear()
   vi.restoreAllMocks()
+})
+
+it("captures the selected theme in the single workspace backdrop", () => {
+  localStorage.setItem("somna-state-v6", JSON.stringify({ onboarded: true, theme: "light" }))
+  render(<StoreProvider><Workspace /></StoreProvider>)
+  expect(screen.getByTestId("aurora").getAttribute("data-theme")).toBe("light")
+  expect(screen.getByTestId("aurora").getAttribute("data-snapshot")).toBe("true")
 })
 
 it("keeps the current screen mounted until the requested tab finishes loading", async () => {
