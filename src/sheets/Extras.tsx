@@ -8,8 +8,6 @@ import {
   WHO5_SCALE,
   bedOptions,
   buildAwards,
-  hypnogram,
-  stageTotals,
   wakeOptions,
   who5Label,
   type Stage,
@@ -21,7 +19,7 @@ import { useNow } from "@/store/derived"
 import { useStore } from "@/store/store"
 import { Card, type CardTone } from "@/ui/Card"
 import { Ring } from "@/ui/charts"
-import { Hypnogram } from "@/ui/SleepStages"
+import { Hypnogram, stageMinutes } from "@/ui/SleepStages"
 import { Button, Segmented, TimeField } from "@/ui/controls"
 import { Dots, DotsCount } from "@/ui/Dots"
 import { Field, Sheet } from "@/ui/Sheet"
@@ -204,7 +202,7 @@ export function WellbeingSheet() {
 export function NightSheet() {
   const { sheet, sheetArg, openSheet, nights, bedGoal, wakeGoal, removeNight, notify } = useStore()
   const night = nights.find((n) => n.id === sheetArg)
-  const totals = night ? stageTotals(hypnogram(night)) : null
+  const totals = night ? stageMinutes(night) : null
   const score = night ? nightScore(night, bedGoal, wakeGoal) : 0
 
   return (

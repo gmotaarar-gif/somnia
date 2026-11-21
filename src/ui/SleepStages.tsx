@@ -7,6 +7,20 @@ import type { SleepNight } from "@/store/store"
 const STAGES: Stage[] = ["deep", "light", "rem", "awake"]
 const LABELS: Record<Stage, string> = { deep: "Глубокий", light: "Лёгкий", rem: "REM", awake: "Бодрств." }
 
+/** Round cumulative minutes so the displayed phases still add up to the night. */
+export function stageMinutes(night: SleepNight): Record<Stage, number> {
+  const totals = stageTotals(hypnogram(night))
+  let elapsed = 0
+  let rounded = 0
+  for (const stage of STAGES) {
+    elapsed += totals[stage]
+    const next = Math.round(elapsed)
+    totals[stage] = next - rounded
+    rounded = next
+  }
+  return totals
+}
+
 export function Hypnogram({ night, className, compact = false }: { night: SleepNight; className?: string; compact?: boolean }) {
   const id = React.useId()
   const segs = React.useMemo(() => hypnogram(night), [night])
@@ -49,7 +63,7 @@ export function Hypnogram({ night, className, compact = false }: { night: SleepN
 }
 
 export function StageLegend({ night }: { night: SleepNight }) {
-  const totals = React.useMemo(() => stageTotals(hypnogram(night)), [night])
+  const totals = React.useMemo(() => stageMinutes(night), [night])
   return (
     <div>
       <div className="flex h-1.5 overflow-hidden rounded-full" aria-hidden>
