@@ -5,13 +5,13 @@ import { MESH_DRIFT_FRAG } from "@/shell/meshDrift.glsl"
 
 type Palette = [string, string, string, string]
 
-/** Mesh colours per screen, low → high. Dark stays close to black so cards carry the colour. */
+/** Mesh colours per screen, low → high. Dark is a deep colour field; the cards on it carry the black. */
 const PALETTES: Record<Theme, Record<string, Palette>> = {
   dark: {
-    today: ["#080809", "#15143a", "#3a2063", "#5a3fa8"],
-    sleep: ["#080809", "#0c1440", "#22318f", "#5a4fc0"],
-    mind: ["#080809", "#0b2a14", "#2c6a24", "#8a9c36"],
-    practices: ["#080809", "#30102a", "#8a3656", "#b05a2c"],
+    today: ["#18123f", "#261c63", "#40288c", "#6a47c2"],
+    sleep: ["#0b1240", "#13226b", "#2639a6", "#6f7fe8"],
+    mind: ["#0d2812", "#184c1d", "#2f7a28", "#8bb23d"],
+    practices: ["#22152a", "#4c2143", "#8a3b5b", "#b86a3c"],
     onboarding: ["#0a0a24", "#2a1f78", "#7a3aa8", "#4a62e0"],
   },
   light: {

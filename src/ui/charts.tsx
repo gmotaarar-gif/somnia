@@ -37,18 +37,10 @@ export function DotTrack({
 }) {
   const at = Math.round(clamp(value) * (count - 1))
   return (
-    <div className={cn("flex h-4 items-center justify-between", className)} aria-hidden>
-      {Array.from({ length: count }, (_, i) =>
-        i === at && marker ? (
-          <span key={i} className="h-4 w-[5px] rounded-[2px] bg-lime shadow-[0_0_12px_rgb(217_242_74/0.8)]" />
-        ) : (
-          <span
-            key={i}
-            className={cn("track-dot rounded-full", i < at ? "size-[5px] bg-white" : "size-[2.5px] bg-white/35")}
-            style={{ animationDelay: `${i * 14}ms` }}
-          />
-        )
-      )}
+    <div className={cn("dot-track", className)} style={{ "--n": count - 1, "--at": at } as React.CSSProperties} aria-hidden>
+      <span className="dot-track-rest" />
+      <span className="dot-track-done" />
+      {marker && <span className="dot-track-mark" />}
     </div>
   )
 }
@@ -253,7 +245,33 @@ export function Ring({
   )
 }
 
-/** Capsule bars; `goal` draws a dashed target line. */
+/** Dense tick ruler with a single lime marker at `value`. */
+export function Ruler({
+  value,
+  labels,
+  className,
+}: {
+  /** 0..1 */
+  value: number
+  labels?: string[]
+  className?: string
+}) {
+  return (
+    <div className={className} aria-hidden>
+      <div className="relative h-7">
+        <div className="ruler absolute inset-x-0 bottom-0 h-[18px] text-white/30" />
+        <span className="absolute bottom-0 h-7 w-[2px] -translate-x-1/2 rounded-full bg-lime" style={{ left: `${clamp(value) * 100}%` }} />
+      </div>
+      {labels && (
+        <div className="mt-2 flex justify-between text-[10px] leading-none text-ink-3">
+          {labels.map((l) => <span key={l}>{l}</span>)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** LED columns; `goal` draws a dashed target line. */
 export function Bars({
   values,
   labels,
@@ -274,8 +292,12 @@ export function Bars({
   const reduce = usePrefersReducedMotion()
   const top = max ?? Math.max(...values, goal ?? 0, 1)
   const hot = highlight ?? values.length - 1
+  const [d, p, gap] = values.length > 14 ? [4, 7, 2] : values.length > 7 ? [6, 10, 4] : [8, 12, 6]
   return (
-    <div className={cn("relative flex h-full items-end gap-[6px]", className)}>
+    <div
+      className={cn("relative flex h-full items-end", className)}
+      style={{ "--d": `${d}px`, "--p": `${p}px`, gap } as React.CSSProperties}
+    >
       {goal != null && (
         <div
           className="pointer-events-none absolute inset-x-0 border-t border-dashed border-white/30"
@@ -285,17 +307,22 @@ export function Bars({
       {values.map((v, i) => (
         <div key={i} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
           <div className="relative flex w-full flex-1 items-end justify-center">
+            <span className="led led-up absolute bottom-0 left-1/2 -translate-x-1/2 text-white/14" aria-hidden />
             <motion.div
               key={String(reduce)}
               title={format ? format(v) : undefined}
-              className={cn(
-                "w-full max-w-[26px] rounded-full",
-                i === hot ? "bg-lime shadow-[0_0_22px_-4px_rgb(217_242_74/0.8)]" : "bg-white/22"
-              )}
+              className="relative w-[var(--d)]"
               initial={reduce ? false : { height: "4%" }}
               animate={{ height: `${Math.max(6, (v / top) * 100)}%` }}
               transition={{ duration: 0.7, ease: EASE_OUT, delay: 0.12 + i * 0.045 }}
-            />
+            >
+              <span
+                className={cn(
+                  "led led-near absolute bottom-0 left-0",
+                  i === hot ? "text-lime drop-shadow-[0_0_6px_rgb(217_242_74/0.55)]" : "text-white/85"
+                )}
+              />
+            </motion.div>
           </div>
           {labels && (
             <span className={cn("h-[14px] text-[10px] leading-none", i === hot ? "text-ink" : "text-ink-3")}>

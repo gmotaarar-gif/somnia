@@ -1,22 +1,24 @@
 import * as React from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { AlarmClock, ChevronDown, ChevronRight, MoonStar, Plus } from "lucide-react"
-import { wakeOptions } from "@/lib/features"
+import { hypnogram, wakeOptions } from "@/lib/features"
+import { NightLine } from "@/ui/NightLine"
 import { Hypnogram, StageLegend } from "@/ui/SleepStages"
 import { cn } from "@/lib/cn"
 import type { SoundMode } from "@/lib/audio"
 import { nightScore, qualityLabel } from "@/lib/metrics"
 import { DUR, EASE_OUT } from "@/lib/motion"
 import { useRiseIn } from "@/ui/MotionProvider"
-import { dateKey, dayMonthShort, daysAgo, durationRu, hm, parseKey, pluralRu, relativeDay, spanMinutes, timeToMinutes, weekdayShort } from "@/lib/time"
+import { dateKey, dayMonthShort, daysAgo, deviationMinutes, durationRu, hm, parseKey, pluralRu, relativeDay, spanMinutes, timeToMinutes, weekdayShort } from "@/lib/time"
 import { useSummary } from "@/store/derived"
 import { useStore, type SleepNight } from "@/store/store"
 import { TopBar } from "@/shell/TopBar"
 import { Card } from "@/ui/Card"
-import { Bars } from "@/ui/charts"
+import { Bars, Ruler } from "@/ui/charts"
 import { Button, Chip, SectionHead, Segmented } from "@/ui/controls"
 import { Dots } from "@/ui/Dots"
 import { Mascot } from "@/ui/Mascot"
+import { SwipeToDelete } from "@/ui/dissolve/swipe-to-delete"
 
 export const SOUNDS: { id: SoundMode; label: string }[] = [
   { id: "off", label: "Тишина" },
@@ -63,8 +65,8 @@ function SleepWindows({ nights, bedGoal, wakeGoal }: { nights: SleepNight[]; bed
             <div
               title={`${relativeDay(n.dateKey)}: ${n.bedtime} → ${n.wakeTime}`}
               className={cn(
-                "absolute inset-x-0 mx-auto max-w-[22px] rounded-full",
-                i === nights.length - 1 ? "bg-lime shadow-[0_0_22px_-4px_rgb(217_242_74/0.8)]" : "bg-white/24"
+                "absolute inset-x-0 mx-auto max-w-[8px] rounded-full",
+                i === nights.length - 1 ? "bg-lime shadow-[0_0_14px_-2px_rgb(217_242_74/0.7)]" : "bg-white/85"
               )}
               style={{ top: `${top}%`, height: `${Math.max(MIN_BAR_HEIGHT, bottom - top)}%` }}
             />
@@ -79,11 +81,23 @@ function Stat({ label, value, note }: { label: string; value: string | number; n
   return (
     <div className="min-w-0">
       <div className="text-[12px] text-ink-3">{label}</div>
-      <div className="mt-2 text-[22px] font-semibold leading-none tracking-[-0.03em] tabular-nums">{value}</div>
-      <div className="mt-1.5 truncate text-[11px] text-ink-3">{note}</div>
+      <div className="mt-2 text-[22px] font-medium leading-none tracking-[-0.03em] tabular-nums">{value}</div>
+      <div className="mt-1.5 text-[11px] leading-tight text-ink-3">{note}</div>
     </div>
   )
 }
+
+function HeroStat({ label, value, note }: { label: string; value: string | number; note: string }) {
+  return (
+    <div className="tile squircle min-w-0 px-3.5 py-3">
+      <div className="text-[12px] text-white/70">{label}</div>
+      <div className="mt-1.5 text-[20px] font-medium leading-none tracking-[-0.02em] tabular-nums">{value}</div>
+      <div className="mt-1.5 truncate text-[11px] text-white/60">{note}</div>
+    </div>
+  )
+}
+
+const planNote = (minutes: number) => (minutes === 0 ? "по плану" : `${minutes > 0 ? "+" : "−"}${Math.abs(minutes)} мин`)
 
 /** Last five weeks as a calendar; each night is tinted by its score. */
 function MonthGrid() {
@@ -93,7 +107,7 @@ function MonthGrid() {
   const offset = (today.getDay() + 6) % 7
   const days = Array.from({ length: 35 }, (_, i) => daysAgo(34 - i - (6 - offset)))
   return (
-    <div className="glass mt-4 rounded-[30px] p-5">
+    <div className="card mt-4 p-5">
       <div className="grid grid-cols-7 gap-1.5 text-center text-[10px] text-ink-3">
         {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((d) => (
           <span key={d}>{d}</span>
@@ -117,11 +131,14 @@ function MonthGrid() {
               viewport={{ once: true }}
               transition={{ duration: 0.3, delay: i * 0.012 }}
               className={cn(
-                "grid aspect-square place-items-center rounded-[12px] text-[11px] font-medium tabular-nums",
-                n ? "text-lime-ink" : "bg-white/6 text-ink-3",
-                key === dateKey(today) && "ring-1 ring-white/70"
+                "grid aspect-square place-items-center rounded-full text-[11px] font-medium tabular-nums",
+                n ? "text-lime-ink" : "bg-white/7 text-ink-3",
+                key === dateKey(today) && "ring-1 ring-white/70 ring-offset-2 ring-offset-black"
               )}
-              style={n ? { background: `rgb(217 242 74 / ${0.25 + (score / 100) * 0.75})` } : undefined}
+              style={n ? {
+                background: `rgb(217 242 74 / ${0.25 + (score / 100) * 0.75})`,
+                boxShadow: score >= 80 ? "0 0 14px -2px rgb(217 242 74 / 0.5)" : undefined,
+              } : undefined}
             >
               {d.getDate()}
             </motion.button>
@@ -134,7 +151,9 @@ function MonthGrid() {
 
 export function SleepScreen() {
   const riseIn = useRiseIn()
-  const { nights, bedGoal, wakeGoal, openSheet, nightSound, setNightSound, startNight, soundTimer, patch } = useStore()
+  const { nights, bedGoal, wakeGoal, openSheet, nightSound, setNightSound, startNight, soundTimer, patch, removeNight } = useStore()
+  // A row that was dragged sideways is being swiped away, not opened.
+  const pressX = React.useRef(0)
   const best = wakeOptions(bedGoal).find((o) => o.best)
   const [period, setPeriod] = React.useState<"7" | "14" | "30">("7")
   const [chart, setChart] = React.useState<"hours" | "window">("hours")
@@ -155,33 +174,32 @@ export function SleepScreen() {
       />
 
       <motion.div {...riseIn(0)}>
-        <Card r="lg" className="sleep-hero">
-          <div className="flex min-h-[316px] flex-col p-6">
+        <Card tone="nightfall" r="lg" grain>
+          <div className="flex min-h-[292px] flex-col p-6">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-[14px] font-medium text-white/80">Прошлая ночь</span>
-              {last && <span className="rounded-full bg-white/16 px-3 py-1.5 text-[12px] font-medium">{qualityLabel(last.quality)}</span>}
+              <span className="text-[17px] font-medium leading-tight tracking-[-0.02em]">Прошлая ночь</span>
+              {last && <span className="rounded-full bg-white/14 px-3 py-1.5 text-[12px]">{qualityLabel(last.quality)}</span>}
             </div>
-            <div className="mt-8 flex items-end gap-3">
+            <div className="mt-7 flex items-end gap-3">
               {last ? <Dots value={hm(last.durationMin)} shape="square" className="text-[64px]" /> : <Mascot size={80} />}
               {last && <span className="pb-0.5 text-[17px] text-white/65">ч</span>}
             </div>
             {last ? (
               <>
                 <p className="mt-4 text-[13px] text-white/70">
-                  {last.bedtime} → {last.wakeTime} ·{" "}
-                  {last.awakenings ? `${last.awakenings} ${pluralRu(last.awakenings, ["пробуждение", "пробуждения", "пробуждений"])}` : "без пробуждений"}
+                  {last.awakenings ? `${last.awakenings} ${pluralRu(last.awakenings, ["пробуждение", "пробуждения", "пробуждений"])}` : "Без пробуждений"} за ночь
                 </p>
-                <div className="mt-auto pt-6">
+                <div className="mt-auto pt-8">
                   <button
                     type="button"
                     aria-label="Подробности ночи"
                     onClick={() => openSheet("night", last.id)}
                     className="press -mx-1 block w-[calc(100%+8px)] rounded-[16px] p-1 text-left"
                   >
-                    <Hypnogram night={last} />
+                    {hypnogram(last).length ? <Hypnogram night={last} /> : <NightLine bedtime={last.bedtime} wakeTime={last.wakeTime} goal={{ bed: bedGoal, wake: wakeGoal }} />}
                   </button>
                 </div>
-                <div className="mt-4"><StageLegend night={last} /></div>
+                <StageLegend night={last} />
               </>
             ) : (
               <>
@@ -192,15 +210,22 @@ export function SleepScreen() {
               </>
             )}
           </div>
+          {last && (
+            <div className="grid grid-cols-3 gap-2 px-2.5 pb-2.5">
+              <HeroStat label="Отбой" value={last.bedtime} note={planNote(deviationMinutes(last.bedtime, bedGoal))} />
+              <HeroStat label="Подъём" value={last.wakeTime} note={planNote(deviationMinutes(last.wakeTime, wakeGoal))} />
+              <HeroStat label="Оценка" value={nightScore(last, bedGoal, wakeGoal)} note="из 100" />
+            </div>
+          )}
         </Card>
       </motion.div>
 
       <motion.div {...riseIn(1)} className="mt-3">
-        <Card>
+        <Card tone="cobalt">
           <div className="p-5">
             <div className="flex items-center gap-4">
               <div className="min-w-0 flex-1">
-                <div className="text-[17px] font-semibold leading-tight tracking-[-0.025em]">Ночной режим</div>
+                <div className="text-[17px] font-medium leading-tight tracking-[-0.02em]">Ночной режим</div>
                 <button
                   type="button"
                   aria-expanded={tune}
@@ -317,7 +342,8 @@ export function SleepScreen() {
                 <SleepWindows nights={shown} bedGoal={bedGoal} wakeGoal={wakeGoal} />
               )}
             </div>
-            <div className="mt-6 grid grid-cols-3 gap-4 border-t border-white/8 pt-5">
+            {shown.length > 0 && <Ruler value={sum.index / 100} labels={["Режим сбит", "Ровный режим", "Отличный ритм"]} className="mt-6" />}
+            <div className="mt-6 grid grid-cols-3 gap-4">
               <Stat label="Индекс" value={shown.length ? sum.index : "—"} note={!shown.length ? "Пока нет данных" : sum.indexDelta ? `${sum.indexDelta > 0 ? "+" : ""}${sum.indexDelta} к прошлому` : "без изменений"} />
               <Stat label="Долг сна" value={shown.length ? hm(sum.debt) : "—"} note={!shown.length ? "Пока нет данных" : sum.debt > 90 ? "лягте раньше" : "в норме"} />
               <Stat label="Спокойных" value={shown.length ? `${sum.calmNights}/${shown.length}` : "—"} note="без пробуждений" />
@@ -330,24 +356,32 @@ export function SleepScreen() {
         <SectionHead title="История" hint="Чем ярче день, тем выше оценка ночи" />
         <MonthGrid />
         {!nights.length && <p className="mt-3 text-[14px] text-ink-2">Здесь появятся ваши записи сна.</p>}
-        <ul className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-2">
+        {nights.length > 0 && <p className="mt-3 px-1 text-[12px] text-ink-3">Смахните ночь влево, чтобы удалить её</p>}
+        <ul className="mt-3">
           {journal.map((n) => (
             <li key={n.id}>
-              <button type="button" onClick={() => openSheet("night", n.id)} className="press glass flex w-full items-center gap-4 rounded-[26px] p-3 pl-4 text-left">
-                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-black/40">
-                  <Dots value={nightScore(n, bedGoal, wakeGoal)} still className="text-[14px]" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-baseline gap-2">
-                    <span className="text-[15px] font-medium">{relativeDay(n.dateKey)}</span>
-                    {n.dateKey >= dateKey(daysAgo(1)) && <span className="truncate text-[12px] text-ink-3">{dayMonthShort(parseKey(n.dateKey))}</span>}
+              <SwipeToDelete className="mb-2" rowClassName="rounded-[26px]" threshold={0.5} onDelete={() => removeNight(n.id)}>
+                <button
+                  type="button"
+                  onPointerDown={(e) => { pressX.current = e.clientX }}
+                  onClick={(e) => { if (e.detail === 0 || Math.abs(e.clientX - pressX.current) < 12) openSheet("night", n.id) }}
+                  className="press glass-solid flex w-full items-center gap-4 rounded-[26px] p-3 pl-4 text-left"
+                >
+                  <span className="grid size-11 shrink-0 place-items-center rounded-full bg-black/45">
+                    <Dots value={nightScore(n, bedGoal, wakeGoal)} still className="text-[14px]" />
                   </span>
-                  <span className="mt-0.5 block truncate text-[13px] text-ink-2">
-                    {n.bedtime} → {n.wakeTime} · {durationRu(n.durationMin)}
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-baseline gap-2">
+                      <span className="text-[15px] font-medium">{relativeDay(n.dateKey)}</span>
+                      {n.dateKey >= dateKey(daysAgo(1)) && <span className="truncate text-[12px] text-ink-3">{dayMonthShort(parseKey(n.dateKey))}</span>}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[13px] text-ink-2">
+                      {n.bedtime} → {n.wakeTime} · {durationRu(n.durationMin)}
+                    </span>
                   </span>
-                </span>
-                <ChevronRight className="mr-1 size-5 shrink-0 text-ink-3" />
-              </button>
+                  <ChevronRight className="mr-1 size-5 shrink-0 text-ink-3" />
+                </button>
+              </SwipeToDelete>
             </li>
           ))}
         </ul>

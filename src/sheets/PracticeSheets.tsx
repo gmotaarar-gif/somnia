@@ -73,7 +73,7 @@ function Grounding({ onDone }: { onDone: () => void }) {
             type="button"
             onClick={tap}
             aria-label={`Отметить: ${count + 1} из ${s.n}`}
-            whileTap={{ scale: 0.94 }}
+            whileTap={{ scale: 0.96 }}
             className="relative grid size-[210px] place-items-center rounded-full"
             style={{ background: `radial-gradient(circle at 35% 30%, #fff8, ${s.color} 38%, ${s.color}55 70%, transparent 72%)` }}
           >
@@ -139,7 +139,7 @@ function BodyScan({ onDone }: { onDone: () => void }) {
   const left = total - sec
   return (
     <div className="flex h-full flex-col items-center px-6 pb-[max(var(--safe-bottom),24px)] pt-12 text-center">
-      <div className="flex items-center gap-3 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-3"><Mascot size={40} active={running} />Шаг {step + 1} из {BODY.length}</div>
+      <div className="flex items-center gap-3 text-[12px] font-medium text-ink-3"><Mascot size={40} active={running} />Шаг {step + 1} из {BODY.length}</div>
       <div className="relative mt-5 h-[300px] w-[150px]">
         <svg viewBox="0 0 100 200" className="size-full" aria-hidden>
           <g fill="currentColor" fillOpacity="0.1" stroke="currentColor" strokeOpacity="0.22" strokeWidth="0.8">
@@ -224,7 +224,7 @@ export function WorrySheet() {
           maxLength={240}
           placeholder="Например: не успеваю с отчётом"
           aria-label="Тревожная мысль"
-          className="glass w-full resize-none rounded-[22px] px-4 py-3 text-[15px] leading-relaxed outline-none placeholder:text-ink-3"
+          className="glass w-full resize-none rounded-[22px] px-4 py-3 text-[16px] leading-relaxed outline-none placeholder:text-ink-3"
         />
       </Field>
       <Field label="Первый маленький шаг завтра">
@@ -234,7 +234,7 @@ export function WorrySheet() {
           maxLength={120}
           placeholder="Например: в 10:00 написать план на 3 пункта"
           aria-label="Шаг на завтра"
-          className="glass h-12 w-full rounded-full px-5 text-[15px] outline-none placeholder:text-ink-3"
+          className="glass h-12 w-full rounded-full px-5 text-[16px] outline-none placeholder:text-ink-3"
         />
       </Field>
       <Button className="mt-5 w-full" disabled={!text.trim()} onClick={save}>

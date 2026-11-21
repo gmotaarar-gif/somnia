@@ -10,6 +10,7 @@ import { useStore } from "@/store/store"
 import { useSubscription } from "@/store/subscription"
 import { TopBar } from "@/shell/TopBar"
 import { Card } from "@/ui/Card"
+import { DotTrack } from "@/ui/charts"
 import { Chip, SectionHead } from "@/ui/controls"
 
 const PREVIEW = 3
@@ -71,7 +72,7 @@ export function PracticesScreen() {
       <TopBar title="Практики" sub={`${readCount} из ${ARTICLES.length} ${pluralRu(ARTICLES.length, ["статьи", "статей", "статей"])} прочитано`} />
 
       <motion.div {...riseIn(0)}>
-        <Card tone={featured.tone} r="lg">
+        <Card tone={featured.tone} r="lg" grain>
           <button
             type="button"
             aria-label={`Читать: ${featured.title}`}
@@ -79,12 +80,12 @@ export function PracticesScreen() {
             className="press flex min-h-[300px] w-full flex-col p-6 text-left"
           >
             <span className="flex w-full items-center justify-between gap-3">
-              <span className="rounded-full bg-black/25 px-3 py-1.5 text-[12px] font-medium">{featured.tag} · {featured.min} мин</span>
-              <span className="grid size-10 place-items-center rounded-full bg-white/16">
-                <ArrowUpRight className="size-[18px]" />
+              <span className="rounded-full bg-white/14 px-3 py-1.5 text-[12px]">{featured.tag} · {featured.min} мин</span>
+              <span className="grid size-10 place-items-center rounded-full bg-white/14">
+                <ArrowUpRight className="size-[18px]" strokeWidth={1.75} />
               </span>
             </span>
-            <span className="mt-auto block pt-10 text-[28px] font-semibold leading-[1.06] tracking-[-0.045em]">{featured.title}</span>
+            <span className="mt-auto block pt-10 text-[28px] font-medium leading-[1.08] tracking-[-0.04em]">{featured.title}</span>
             <span className="mt-3 line-clamp-2 block text-[14px] leading-snug text-white/72">{featured.lead}</span>
           </button>
         </Card>
@@ -139,13 +140,13 @@ export function PracticesScreen() {
                   <x.icon className="size-[18px]" />
                 </span>
                 {x.id === "bodyscan" && (
-                  <span className="flex items-center gap-1 rounded-full bg-white/14 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]">
+                  <span className="flex items-center gap-1 rounded-full bg-white/14 px-2.5 py-1 text-[11px] font-medium">
                     {!isPlus && <LockKeyhole className="size-3" />} Plus
                   </span>
                 )}
               </div>
               <div className="mt-auto min-w-0">
-                <div className="text-[17px] font-semibold tracking-[-0.02em]">{x.title}</div>
+                <div className="text-[17px] font-medium tracking-[-0.02em]">{x.title}</div>
                 <div className="mt-1 text-[12px] leading-snug text-white/65">{x.sub}</div>
               </div>
             </div>
@@ -172,12 +173,8 @@ export function PracticesScreen() {
 
       <motion.section {...riseIn(3)} className="mt-10" aria-label="Вечерний ритуал">
         <SectionHead title="Вечерний ритуал" hint={`${ritual.done.length} из ${RITUAL.length} шагов перед сном`} />
-        <div className="glass mt-4 rounded-[30px] p-5">
-          <div className="flex gap-1.5" aria-hidden>
-            {RITUAL.map((r) => (
-              <span key={r.id} className={cn("h-1.5 flex-1 rounded-full transition-colors duration-350", ritual.done.includes(r.id) ? "bg-lime" : "bg-white/12")} />
-            ))}
-          </div>
+        <div className="card mt-4 p-5">
+          <DotTrack value={ritual.done.length / RITUAL.length} count={44} className="-mx-5" />
           <ul className="-mx-2 -mb-2 mt-3">
             {RITUAL.map((r) => {
               const done = ritual.done.includes(r.id)

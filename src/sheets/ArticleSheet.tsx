@@ -67,7 +67,7 @@ export function ArticleSheet() {
           </div>
 
           <div className="glass mt-7 rounded-[26px] p-5">
-            <div className="text-[12px] font-medium uppercase tracking-[0.08em] text-lime">Попробуйте сегодня</div>
+            <div className="text-[12px] font-medium text-lime">Попробуйте сегодня</div>
             <p className="mt-2 text-[16px] font-medium leading-snug">{article.action}</p>
           </div>
 

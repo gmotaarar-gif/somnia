@@ -3,6 +3,11 @@ import { AnimatePresence, motion } from "framer-motion"
 import { EASE_OUT } from "@/lib/motion"
 
 const LETTERS = "Somna".split("")
+const SPLASH_MS = 1700
+let liftsAt = 0
+
+/** Milliseconds until the launch animation lifts: an entrance underneath waits for it. */
+export const splashLeft = () => Math.max(0, liftsAt - performance.now())
 
 /** Launch animation: a moon eclipses into the wordmark, then the app fades in underneath. */
 export function Splash({ ready = true }: { ready?: boolean }) {
@@ -13,7 +18,8 @@ export function Splash({ ready = true }: { ready?: boolean }) {
   const show = enabled && (!elapsed || !ready)
   React.useEffect(() => {
     if (!enabled) return
-    const id = window.setTimeout(() => setElapsed(true), 1700)
+    liftsAt = performance.now() + SPLASH_MS
+    const id = window.setTimeout(() => setElapsed(true), SPLASH_MS)
     return () => window.clearTimeout(id)
   }, [enabled])
 

@@ -1,196 +1,175 @@
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type SyntheticEvent } from "react"
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type SyntheticEvent } from "react"
 import { AnimatePresence } from "framer-motion"
-import { DistortionWave, type DistortionWaveHandle, type WaveStyleInput, type WaveType } from "distortion-waves"
-import { usePrefersReducedMotion } from "./MotionProvider"
-import { createWaveCapture } from "./waveCapture"
+import { WaveController, type WaveType } from "distortion-waves"
 
-// A short section change, not a full-screen celebration on every tap.
-const WAVE: WaveStyleInput = {
-  anticipation: 0.1,
-  travel: 0.5,
-  returnSpeed: 1.2,
-  amplitude: 18,
-  aberration: 3,
-  blur: 4,
-  particleCount: 12,
-  particleLife: 0.85,
-  linger: 0.08,
-  rimFade: 0.2,
-  hairlineLinger: 0.08,
-  hairlineFade: 0.2,
-}
-
-type View = { key: string; content: ReactNode }
 type Slot = 0 | 1
-type Views = {
-  key: string
-  active: Slot
-  slots: [View | null, View | null]
-  source: HTMLElement | null
-  type: WaveType
-}
+type View = { key: string; content: ReactNode }
+type Stage = { id: number; active: Slot; views: [View | null, View | null] }
 
-// Slow/unsupported capture must never hold navigation indefinitely.
-const CAPTURE_BUDGET = 1200
-// Include playback too: a software GPU can prepare quickly but draw very slowly.
-const NAVIGATION_BUDGET = 2500
+const SLOTS: Slot[] = [0, 1]
+const other = (slot: Slot): Slot => (slot === 0 ? 1 : 0)
+const LAYER = "isolate col-start-1 row-start-1 min-h-0 min-w-0"
+// The wave bends pictures of both screens, taken while it gathers at its
+// source. A device that needs longer than this for one, twice running, runs
+// on colour alone for a while and is then given the lens again: one slow
+// picture is a busy moment, not a slow device.
+const PICTURE_BUDGET = 200
+const PLAIN_RUNS = 6
+// The share of the run up to its clearing during which the front has yet to
+// cross most of the view: the screen on show is still the one leaving.
+const GATHERING = 0.4
 
-/** Two real DOM views; only the destination is interactive or exposed to AT.
- * Alternate slots so settling a wave never remounts the destination screen.
+/** Carries one screen into the next with a distortion wave that opens from
+ * the control that asked for it: up from a dock tab, a ring out of a card.
+ * `overlay` stays live above the wave.
+ *
+ * The two layers never leave the DOM and a screen never changes layer, so the
+ * arriving screen is not remounted when the wave settles. One engine at a
+ * time is bound to the pair in the direction of travel: showing → empty.
  */
 export function ScreenTransition({ screenKey, children, overlay }: {
   screenKey: string
-  direction?: number
   children: ReactNode
   overlay?: ReactNode
 }) {
-  const reduce = usePrefersReducedMotion()
-  const wave = useRef<DistortionWaveHandle>(null)
-  const preparation = useRef(Promise.resolve())
-  const [shown, setShown] = useState<Slot>(0)
-  const [captureTooSlow, setCaptureTooSlow] = useState(false)
-  const [skipPlayback, setSkipPlayback] = useState(false)
+  const root = useRef<HTMLDivElement>(null)
+  const chrome = useRef<HTMLDivElement>(null)
+  const layers = [useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null)]
+  const engine = useRef<{ wave: WaveController; from: HTMLElement } | null>(null)
+  const pressed = useRef<HTMLElement | null>(null)
   const source = useRef<HTMLElement | null>(null)
-  const type = useRef<WaveType>("vertical")
-  const latest = useRef<View>({ key: screenKey, content: children })
-  const [views, setViews] = useState<Views>(() => ({
-    key: screenKey, active: 0, slots: [latest.current, null], source: null, type: "vertical",
-  }))
+  const lens = useRef({ on: true, slow: 0, rest: 0, wait: PLAIN_RUNS })
+  const judged = useRef<WaveController | null>(null)
+  const shown = useRef(children)
+  const [stage, setStage] = useState<Stage>(() => ({ id: 0, active: 0, views: [{ key: screenKey, content: children }, null] }))
+  const [armed, setArmed] = useState(0)
 
-  if (!skipPlayback && views.key !== screenKey) {
-    // A new request while capture is pending replaces the pending view,
-    // not the still-visible one. Late captures cannot select an old tab.
-    const next: Slot = shown === 0 ? 1 : 0
-    const slots: [View | null, View | null] = [null, null]
-    slots[shown] = latest.current.key === views.slots[shown]?.key ? latest.current : views.slots[shown]
-    slots[next] = { key: screenKey, content: children }
-    setViews({ key: screenKey, active: next, slots, source: source.current, type: type.current })
-  }
-
-  useLayoutEffect(() => { latest.current = { key: screenKey, content: children } })
-
-  const pictures = useMemo(() => createWaveCapture(), [views.key])
-  const crossfade = reduce || captureTooSlow
-  useEffect(() => {
-    if (skipPlayback) return
-    const destination = views.active
-    if (destination === shown) return
-    if (crossfade) {
-      setShown(destination)
-      return
-    }
-
-    let cancelled = false
-    const started = performance.now()
-    const fallback = () => {
-      if (cancelled) return
-      setCaptureTooSlow(true)
-      setShown(destination)
-    }
-    const timer = window.setTimeout(fallback, CAPTURE_BUDGET)
-    // prepare() does not wait for a capture already in progress. Serialize
-    // requests so rapid navigation always prepares the latest DOM afresh.
-    preparation.current = preparation.current.catch(() => {}).then(async () => {
-      if (cancelled) return
-      await wave.current?.prepare()
-      if (cancelled) return
-      // prepare() may reuse a previously fresh slot. Seed both scene pictures
-      // so even a later invalidation at go() is a cheap cached upload.
-      await pictures.prepare()
-      if (cancelled) return
-      await wave.current?.prepare()
-      if (cancelled) return
-      // A synchronous DOM readback can starve setTimeout. Enforce the same
-      // budget even when the timer hasn't had an event-loop turn yet.
-      if (performance.now() - started >= CAPTURE_BUDGET) {
-        fallback()
-        return
+  const travelling = stage.views[other(stage.active)] !== null
+  if (stage.views[stage.active]!.key !== screenKey) {
+    const views: Stage["views"] = [null, null]
+    const back = other(stage.active)
+    const run = travelling ? engine.current?.wave.debug : null
+    if (run && run.progress < run.clearAt * GATHERING) {
+      // The wave has hardly left: the screen on show is still the one
+      // leaving. Asked for again, it simply stays; asked for another, it
+      // leaves for that one instead of the screen nobody has seen.
+      if (stage.views[back]!.key === screenKey) {
+        views[back] = { key: screenKey, content: children }
+        setStage({ id: stage.id + 1, active: back, views })
+      } else {
+        views[back] = stage.views[back]
+        views[stage.active] = { key: screenKey, content: children }
+        setStage({ id: stage.id + 1, active: stage.active, views })
       }
-      window.clearTimeout(timer)
-      setShown(destination)
-    }).catch(fallback)
-    return () => { cancelled = true; window.clearTimeout(timer) }
-  }, [views.key, views.active, shown, crossfade, pictures, skipPlayback])
+    } else {
+      // The screen on show leaves as it was last drawn; the new one takes the
+      // other layer, replacing whatever an unfinished wave left there.
+      views[stage.active] = { key: stage.views[stage.active]!.key, content: shown.current }
+      views[back] = { key: screenKey, content: children }
+      setStage({ id: stage.id + 1, active: back, views })
+    }
+  }
+  useLayoutEffect(() => { shown.current = children })
 
+  useLayoutEffect(() => {
+    const to = layers[stage.active].current!
+    const back = layers[other(stage.active)].current!
+    const from = travelling ? back : to
+    const rested = engine.current?.from === from ? engine.current.wave : null
+    if (rested && travelling) {
+      const eye = lens.current
+      // How long this engine took to picture the screen now leaving. The very
+      // first picture also fills the engine's caches: allow for that.
+      const { count, walk, raster } = rested.debug.content
+      if (!eye.on) {
+        if (--eye.rest <= 0) Object.assign(eye, { on: true, slow: 1 })
+      } else if (count && judged.current !== rested) {
+        judged.current = rested
+        const slow = walk + raster > PICTURE_BUDGET * (stage.id === 1 && count === 1 ? 2.5 : 1)
+        if (!slow) Object.assign(eye, { slow: 0, wait: PLAIN_RUNS })
+        else if (++eye.slow > 1) Object.assign(eye, { on: false, slow: 0, rest: eye.wait, wait: Math.min(eye.wait * 2, 48) })
+      }
+    } else if (rested) {
+      // A trip called off as the wave gathered: back to rest where it was.
+      rested.reset()
+    } else {
+      engine.current?.wave.destroy()
+      engine.current = { wave: new WaveController(root.current!, from, travelling ? to : back), from }
+    }
+    let type: WaveType = "vertical"
+    if (travelling) {
+      source.current = pressed.current?.isConnected ? pressed.current : null
+      pressed.current = null
+      if (source.current && !chrome.current?.contains(source.current)) type = "center"
+    }
+    const id = stage.id
+    engine.current!.wave.update({
+      type,
+      palette: "colorful",
+      capture: lens.current.on,
+      resolution: Math.min(window.devicePixelRatio || 1, 2),
+      onFinish: () => setStage((now) => {
+        if (now.id !== id) return now
+        const views: Stage["views"] = [null, null]
+        views[now.active] = now.views[now.active]
+        return { ...now, views }
+      }),
+    })
+  }, [stage.id, travelling])
+
+  // The wave leaves once the arriving screen has run its mount effects and
+  // drawn what they changed, so its first picture is the one that stays.
   useEffect(() => {
-    if (skipPlayback || !views.slots[0] || !views.slots[1]) return
-    const timer = window.setTimeout(() => {
-      // Stop using the renderer entirely: changing reducedMotion/scrub while
-      // its playback is running still leaves the library owning visibility.
-      setSkipPlayback(true)
-    }, NAVIGATION_BUDGET)
-    return () => window.clearTimeout(timer)
-  }, [views.key, views.active, views.slots, skipPlayback])
+    if (travelling) setArmed(stage.id)
+  }, [stage.id, travelling])
+  useEffect(() => {
+    if (!travelling || armed !== stage.id) return
+    // The wave is the entrance: drop the screen's own CSS mount animations.
+    for (const animation of layers[stage.active].current!.getAnimations?.({ subtree: true }) ?? []) {
+      if ("animationName" in animation && animation.effect?.getComputedTiming().endTime !== Infinity) animation.cancel()
+    }
+    engine.current?.wave.play({ source: source.current })
+  }, [armed])
 
-  // Keep the real control even if its lazy-loaded screen takes time to arrive.
-  const rememberSource = (event: SyntheticEvent) => {
-    if (!(event.target instanceof Element)) return
-    const control = event.target.closest<HTMLElement>("button, a, [role='button'], [role='tab']")
-    if (!control) return
-    source.current = control
-    type.current = control.closest("nav") ? "vertical" : "center"
+  useLayoutEffect(() => () => {
+    engine.current?.wave.destroy()
+    engine.current = null
+  }, [])
+
+  const remember = (event: SyntheticEvent) => {
+    if (event.target instanceof Element) pressed.current = event.target.closest<HTMLElement>("button, a, [role='button'], [role='tab']")
   }
-
-  const renderSlot = (slot: Slot) => {
-    const view = views.slots[slot]
-    if (!view) return null
-    // Keep these attributes stable from preparation through playback.
-    // Changing them when playback starts dirties both prepared textures.
-    const active = views.active === slot
-    return (
-      <main key={view.key} className="relative h-full min-h-0 overflow-hidden bg-bg"
-        data-active-screen={active} inert={!active} aria-hidden={!active || undefined}>
-        {/* The wave replaces screen-entry animations; capture fully visible
-            cards/charts rather than their initial opacity/path-length zero. */}
-        <AnimatePresence initial={false}>
-          <Fragment key={view.key}>{views.active === slot ? children : view.content}</Fragment>
-        </AnimatePresence>
-      </main>
-    )
-  }
-
-  // Exceptional recovery: release the slow renderer and mount the current
-  // screen visibly. Further section changes use ordinary DOM navigation.
-  if (skipPlayback) return (
-    <div className="absolute inset-0 z-10 overflow-hidden rounded-[inherit]">
-      <main className="relative h-full min-h-0 overflow-hidden bg-bg" data-active-screen="true">
-        <AnimatePresence initial={false}>
-          <Fragment key={screenKey}>{children}</Fragment>
-        </AnimatePresence>
-      </main>
-      {overlay}
-    </div>
-  )
 
   return (
-    <DistortionWave
-      ref={wave}
-      className="absolute inset-0 z-10 overflow-hidden rounded-[inherit]"
-      style={{ gridTemplateRows: "minmax(0, 1fr)" }}
-      type={views.type}
-      source={views.source}
-      revealed={shown === 1}
-      revealedContent={renderSlot(1)}
-      overlay={overlay}
-      palette="colorful"
-      waveStyle={WAVE}
-      resolution={1}
-      capture={pictures.capture}
-      prewarm={false}
-      live={false}
-      reducedMotion={crossfade ? "always" : "system"}
-      onClickCapture={rememberSource}
+    <div
+      ref={root}
+      className="absolute inset-0 z-10 isolate grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden rounded-[inherit]"
+      onClickCapture={remember}
       onKeyDownCapture={(event) => {
-        if (event.key === "Enter" || event.key === " ") rememberSource(event)
+        if (event.key === "Enter" || event.key === " ") remember(event)
       }}
-      onFinish={(revealed) => setViews((current) => {
-        if (current.active !== shown || revealed !== (shown === 1)) return current
-        const slots: [View | null, View | null] = [...current.slots]
-        slots[current.active === 0 ? 1 : 0] = null
-        return { ...current, slots }
-      })}
     >
-      {renderSlot(0)}
-    </DistortionWave>
+      {SLOTS.map((slot) => {
+        const view = stage.views[slot]
+        return (
+          // The arriving layer paints above the leaving one, for the crossfade.
+          <div key={slot} ref={layers[slot]} className={LAYER} style={{ order: slot === stage.active ? 1 : 0 }}>
+            {view && (
+              <main key={view.key} data-screen={view.key} className="relative h-full overflow-hidden bg-bg">
+                {/* Screens arrive by wave, not by their own entrance animations. */}
+                <AnimatePresence initial={false}>
+                  <Fragment key={view.key}>{slot === stage.active ? children : view.content}</Fragment>
+                </AnimatePresence>
+              </main>
+            )}
+          </div>
+        )
+      })}
+      {overlay != null && (
+        <div ref={chrome} data-dw-skip="" className={`${LAYER} pointer-events-none relative z-2 *:pointer-events-auto`}>
+          {overlay}
+        </div>
+      )}
+    </div>
   )
 }

@@ -20,6 +20,8 @@ import { Dots, DotsCount } from "@/ui/Dots"
 import { usePrefersReducedMotion } from "@/ui/MotionProvider"
 import { WIDGET_META } from "@/widgets/catalog"
 import { WidgetTile } from "@/widgets/Widget"
+import BlurText from "@/ui/BlurText"
+import { splashLeft } from "@/shell/Splash"
 
 const FOCUS = [
   { id: "Стабильный подъём", icon: Sunrise },
@@ -185,7 +187,7 @@ function Building({ onDone, remindersAvailable }: { onDone: () => void; reminder
       <Ring value={n / total} size={170} stroke={4}>
         <DotsCount value={Math.round((n / total) * 100)} format={(v) => `${Math.round(v)}%`} className="text-[40px]" />
       </Ring>
-      <h1 className="mt-9 text-[28px] font-semibold tracking-[-0.03em]">Собираем ваш план</h1>
+      <BlurText as="h1" text="Собираем ваш план" trigger="load" effect="focus" delay={80} className="mt-9 justify-center text-[28px] font-medium tracking-[-0.03em]" />
       <ul className="mt-6 w-full max-w-[280px] space-y-3 text-left">
         {labels.map((label, i) => (
           <motion.li
@@ -293,10 +295,16 @@ export function Onboarding() {
           {step === 0 && (
             <>
               <IntroStack />
-              <h1 className="mt-10 text-center text-[34px] font-semibold leading-[1.05] tracking-[-0.04em]">
-                Сон и состояние
-                <br />в одном ритме
-              </h1>
+              {/* The first thing a new user reads comes into focus word by word. */}
+              <BlurText
+                as="h1"
+                text="Сон и состояние в одном ритме"
+                trigger="load"
+                startDelay={splashLeft() / 1000}
+                delay={90}
+                distance={24}
+                className="mx-auto mt-10 max-w-[270px] justify-center text-center text-[34px] font-medium leading-[1.05] tracking-[-0.04em]"
+              />
               <p className="mx-auto mt-4 max-w-[300px] text-center text-[15px] leading-relaxed text-ink-2">
                 Минута утром и 20 секунд вечером. Somna покажет, как ночи меняют ваши дни.
               </p>
@@ -312,7 +320,7 @@ export function Onboarding() {
                   initial={{ scale: 0.7, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: "spring", stiffness: 420, damping: 22 }}
-                  className="grid size-16 shrink-0 place-items-center rounded-full bg-lime text-[26px] font-semibold text-lime-ink"
+                  className="grid size-16 shrink-0 place-items-center rounded-full bg-white text-[26px] font-medium text-black"
                 >
                   {(name.trim()[0] ?? "?").toUpperCase()}
                 </motion.span>
@@ -348,12 +356,12 @@ export function Onboarding() {
                       onClick={() => setFocus(on ? focus.filter((x) => x !== id) : focus.length < 3 ? [...focus, id] : focus)}
                       className={cn(
                         "flex h-[104px] flex-col justify-between rounded-[26px] p-4 text-left transition-colors duration-250",
-                        on ? "bg-lime text-lime-ink" : "glass"
+                        on ? "bg-white text-black" : "glass"
                       )}
                     >
                       <span className="flex items-center justify-between">
                         <Icon className="size-5" />
-                        <span className={cn("grid size-5 place-items-center rounded-full transition-opacity duration-250", on ? "bg-lime-ink text-lime" : "opacity-0")}>
+                        <span className={cn("grid size-5 place-items-center rounded-full transition-opacity duration-250", on ? "bg-black text-white" : "opacity-0")}>
                           <Check className="size-3" strokeWidth={3.5} />
                         </span>
                       </span>
@@ -378,7 +386,7 @@ export function Onboarding() {
                   <LensRuler label="Сколько часов вы спите" className="mt-5" min={4} max={10} step={0.5} value={hours} onChange={setHours} format={(v) => String(v).replace(".", ",")} />
                 </div>
               </Card>
-              <div className="mt-6 flex items-center gap-2 text-[13px] font-medium uppercase tracking-[0.08em] text-ink-3">
+              <div className="mt-6 flex items-center gap-2 text-[13px] font-medium text-ink-3">
                 <BatteryCharging className="size-4" /> Просыпаетесь разбитым
               </div>
               <div className="mt-3 grid grid-cols-4 gap-2">
@@ -430,7 +438,7 @@ export function Onboarding() {
                   }}
                 />
                 <Dots value={`${moodPct(valence)}%`} still className="mt-9 text-[40px]" />
-                <div className="mt-3 text-[18px] font-semibold">{getValenceLabel(valence)}</div>
+                <div className="mt-3 text-[18px] font-medium">{getValenceLabel(valence)}</div>
               </div>
               <Slider
                 label="Состояние"
@@ -559,7 +567,7 @@ export function Onboarding() {
 function Title({ title, text }: { title: string; text: string }) {
   return (
     <>
-      <h1 className="text-[30px] font-semibold leading-[1.08] tracking-[-0.04em]">{title}</h1>
+      <h1 className="text-[30px] font-medium leading-[1.08] tracking-[-0.04em]">{title}</h1>
       <p className="mt-2.5 text-[15px] leading-relaxed text-ink-2">{text}</p>
     </>
   )

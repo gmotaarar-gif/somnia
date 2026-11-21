@@ -85,7 +85,7 @@ export function PhoneFrame({ tab, children }: { tab: string; children: React.Rea
       </div>
       {framed && <><aside className="stage-note left-[max(40px,calc(50%-560px))]">
         <div className="text-[15px] font-semibold tracking-[-0.01em]">Somna</div>
-        <p className="mt-3 text-[34px] font-semibold leading-[1.05] tracking-[-0.04em]">
+        <p className="mt-3 text-[34px] font-medium leading-[1.05] tracking-[-0.04em]">
           Сон и состояние
           <br />в одном ритме
         </p>

@@ -104,7 +104,7 @@ function SubscriptionContent({ fromPractice, onClose }: { fromPractice: boolean;
               ))}
             </div>
             <fieldset className="mt-6 space-y-2.5">
-              <legend className="mb-3 text-[11px] font-medium uppercase tracking-[0.09em] text-ink-3">Выберите тариф · пример цен</legend>
+              <legend className="mb-3 text-[11px] font-medium text-ink-3">Выберите тариф · пример цен</legend>
               {(["yearly", "monthly"] as const).map((id) => {
                 const option = SUBSCRIPTION_PLANS[id]
                 return (

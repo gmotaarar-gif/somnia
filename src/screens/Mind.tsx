@@ -195,11 +195,11 @@ export function MindScreen() {
       />
 
       <motion.div {...riseIn(0)}>
-        <Card tone="mint" r="lg">
+        <Card tone="mint" r="lg" grain>
           <div className="flex min-h-[316px] flex-col p-6">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-[14px] font-medium text-white/80">Сейчас</span>
-              <span className="text-[12px] text-white/60">{last ? `${relativeDay(dateKey(new Date(last.at)))}, ${clockOf(last.at)}` : "нет записей"}</span>
+              <span className="text-[17px] font-medium leading-tight tracking-[-0.02em]">Сейчас</span>
+              <span className="text-[12px] text-white/70">{last ? `${relativeDay(dateKey(new Date(last.at)))}, ${clockOf(last.at)}` : "нет записей"}</span>
             </div>
             <div className="mt-2 flex items-center gap-2">
               <div className="-ml-4 shrink-0 [&_svg]:size-[150px]">
@@ -207,8 +207,8 @@ export function MindScreen() {
               </div>
               <div className="min-w-0 flex-1">
                 <Dots value={last ? `${moodPct(last.valence)}%` : "--"} className="text-[40px]" />
-                <div className="mt-4 text-[20px] font-semibold leading-tight tracking-[-0.03em]">{last ? getValenceLabel(last.valence) : "Как вы сейчас?"}</div>
-                <div className="mt-1.5 text-[13px] leading-snug text-white/65 [overflow-wrap:anywhere]">
+                <div className="mt-4 text-[20px] font-medium leading-tight tracking-[-0.03em]">{last ? getValenceLabel(last.valence) : "Как вы сейчас?"}</div>
+                <div className="mt-1.5 text-[13px] leading-snug text-white/75 [overflow-wrap:anywhere]">
                   {last ? last.emotions.slice(0, 3).join(" · ") || "без уточнений" : "Первый чек-ин займёт полминуты"}
                 </div>
               </div>
@@ -225,7 +225,7 @@ export function MindScreen() {
           <div className="p-5">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-[17px] font-semibold leading-tight tracking-[-0.025em]">Настроение</div>
+                <div className="text-[17px] font-medium leading-tight tracking-[-0.02em]">Настроение</div>
                 <div className="mt-1 text-[13px] text-ink-3">{view === "trend" ? "последние 14 дней" : "последние 28 дней"}</div>
               </div>
               <Segmented
@@ -273,13 +273,13 @@ export function MindScreen() {
           <Card tone={insight.tone as CardTone} className="mt-3">
             <div className="flex min-h-[176px] flex-col p-5">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-[13px] font-medium text-white/75">Наблюдение</span>
+                <span className="text-[17px] font-medium leading-tight tracking-[-0.02em]">Наблюдение</span>
                 {insights.length > 1 && (
                   <button
                     type="button"
                     aria-label="Следующее наблюдение"
                     onClick={() => setInsightAt((i) => (i + 1) % insights.length)}
-                    className="press -mr-1 flex h-8 items-center gap-1 rounded-full bg-black/20 pl-3 pr-2 text-[12px] font-medium tabular-nums"
+                    className="press -mr-1 flex h-9 items-center gap-1 rounded-full bg-white/14 pl-3.5 pr-2 text-[12px] tabular-nums"
                   >
                     {(insightAt % insights.length) + 1} / {insights.length}
                     <ChevronRight className="size-4" />
@@ -291,7 +291,7 @@ export function MindScreen() {
                 <div className="mt-6 flex items-start gap-4">
                   <Dots value={insight.metric} still shape="square" className="mt-1 shrink-0 text-[26px]" />
                   <div className="min-w-0">
-                    <div className="text-[17px] font-semibold leading-snug tracking-[-0.02em]">{insight.title}</div>
+                    <div className="text-[17px] font-medium leading-snug tracking-[-0.02em]">{insight.title}</div>
                     <p className="mt-1.5 text-[13px] leading-relaxed opacity-75">{insight.body}</p>
                   </div>
                 </div>

@@ -16,14 +16,14 @@ const SCREENS: Record<TabId, () => Promise<ComponentType>> = {
 }
 
 export default function Workspace() {
-  const { tab, tabDir, setTab, notify, theme: themeMode } = useStore()
+  const { tab, setTab, notify, theme: themeMode } = useStore()
   const theme = useResolvedTheme(themeMode)
-  const [visible, setVisible] = useState({ tab: "today" as TabId, tabDir, Screen: TodayScreen as ComponentType })
+  const [visible, setVisible] = useState({ tab: "today" as TabId, Screen: TodayScreen as ComponentType })
   useEffect(() => {
     if (tab === visible.tab) return
     let current = true
     loadWithRetry(SCREENS[tab]).then(
-      (Screen) => { if (current) setVisible({ tab, tabDir, Screen }) },
+      (Screen) => { if (current) setVisible({ tab, Screen }) },
       () => {
         if (!current) return
         setTab(visible.tab)
@@ -31,12 +31,12 @@ export default function Workspace() {
       }
     )
     return () => { current = false }
-  }, [tab, tabDir, visible.tab, setTab, notify])
+  }, [tab, visible.tab, setTab, notify])
   const { Screen } = visible
 
   return (
     <>
-      <ScreenTransition screenKey={visible.tab} direction={visible.tabDir} overlay={<Dock />}>
+      <ScreenTransition screenKey={visible.tab} overlay={<Dock />}>
         <Aurora tab={visible.tab} theme={theme} snapshot />
         <div className="app-scroll">
           <div className="px-5 pb-[var(--dock-space)] pt-[max(var(--safe-top),14px)]">

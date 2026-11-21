@@ -77,7 +77,7 @@ export function Sheet({ open, onClose, title, description, children, footer, bar
                   <>
                     <header className="flex items-start justify-between gap-4 px-6 pb-4 pt-8">
                       <div className="min-w-0">
-                        <Dialog.Title className="text-[24px] font-semibold leading-tight tracking-[-0.03em]">
+                        <Dialog.Title className="text-[24px] font-medium leading-tight tracking-[-0.03em]">
                           {title}
                         </Dialog.Title>
                         {description && <p className="mt-1.5 text-[14px] leading-snug text-ink-3">{description}</p>}
@@ -112,7 +112,7 @@ export function Field({ label, hint, children }: { label: string; hint?: React.R
   return (
     <section className="mt-6 first:mt-0">
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <h3 className="text-[13px] font-medium uppercase tracking-[0.08em] text-ink-3">{label}</h3>
+        <h3 className="text-[13px] font-medium text-ink-3">{label}</h3>
         {hint != null && <span className="text-[13px] text-ink-2">{hint}</span>}
       </div>
       {children}

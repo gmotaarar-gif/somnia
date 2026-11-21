@@ -66,7 +66,7 @@ function RecapStories({ onClose }: { onClose: () => void }) {
         </svg>
         <div className="flex flex-col items-center">
           <Dots value={hasSleep ? sum.index : "--"} shape="square" className="text-[76px]" still />
-          <span className="mt-3 text-[12px] uppercase tracking-[0.14em] text-ink-2">{hasSleep ? "индекс сна / 100" : "пока без оценки"}</span>
+          <span className="mt-3 text-[12px] text-ink-2">{hasSleep ? "индекс сна / 100" : "пока без оценки"}</span>
         </div>
       </div>
       <h3 className="text-center text-[23px] font-semibold tracking-[-0.025em]">{hasSleep ? indexLabel(sum.index) : "Начнём с одной ночи"}</h3>
@@ -100,7 +100,7 @@ function RecapStories({ onClose }: { onClose: () => void }) {
     </React.Fragment>,
     <React.Fragment key="mood">
       <div className="flex flex-1 flex-col justify-center py-6">
-        <p className="mb-6 text-[11px] font-semibold uppercase tracking-[0.1em] text-white/80">
+        <p className="mb-6 text-[11px] font-semibold text-white/80">
           {recap.emotions.length ? "Чаще всего вы чувствовали" : "Неделя в ощущениях"}
         </p>
         {recap.emotions.length ? (
@@ -193,7 +193,7 @@ function RecapStories({ onClose }: { onClose: () => void }) {
             transition={{ duration: reduced ? 0 : DUR.fast, ease: EASE_OUT }}
             onAnimationComplete={() => { if (navigated.current) heading.current?.focus({ preventScroll: true }) }}
           >
-            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-2" aria-live="polite">{index + 1} / {STORIES.length} · Последние 7 дней</p>
+            <p className="text-[11px] font-medium text-ink-2" aria-live="polite">{index + 1} / {STORIES.length} · Последние 7 дней</p>
             <h2 ref={heading} tabIndex={-1} className="mt-2 text-[30px] font-semibold leading-[1.08] tracking-[-0.035em] outline-none">{last ? "Одна цель — уже начало" : STORIES[index].title}</h2>
             {slides[index]}
           </motion.section>

@@ -17,11 +17,11 @@ export const IconButton = React.forwardRef<
       aria-label={label}
       title={label}
       className={cn(
-        "press grid shrink-0 place-items-center rounded-full text-ink [&_svg]:shrink-0",
+        "press grid shrink-0 place-items-center rounded-full text-ink [&_svg]:shrink-0 [&_svg]:[stroke-width:1.75]",
         size === "sm" && "size-8 [&_svg]:size-[15px]",
         size === "md" && "size-11 [&_svg]:size-[18px]",
         size === "lg" && "size-14 [&_svg]:size-[22px]",
-        solid ? "bg-lime text-lime-ink shadow-[0_10px_30px_-10px_rgb(217_242_74/0.7)]" : "glass",
+        solid ? "bg-white text-black shadow-[0_10px_30px_-14px_rgb(0_0_0/0.7)]" : "glass",
         className
       )}
       {...rest}
@@ -41,8 +41,8 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "press inline-flex h-12 items-center justify-center gap-2 rounded-full px-6 text-[15px] font-semibold tracking-[-0.01em] disabled:opacity-40 [&_svg]:size-[18px]",
-        variant === "primary" && "bg-lime text-lime-ink shadow-[0_14px_36px_-14px_rgb(217_242_74/0.8)]",
+        "press inline-flex h-12 items-center justify-center gap-2 rounded-full px-6 text-[15px] font-medium tracking-[-0.01em] disabled:opacity-40 [&_svg]:size-[18px]",
+        variant === "primary" && "bg-white text-black shadow-[0_14px_36px_-18px_rgb(0_0_0/0.7)]",
         variant === "glass" && "glass text-ink",
         variant === "ghost" && "text-ink-2 hover:text-ink",
         variant === "danger" && "bg-[#ff5d5d]/14 text-danger ring-1 ring-inset ring-[#ff5d5d]/25",
@@ -94,7 +94,7 @@ export function Toggle({
       }}
       className={cn(
         "relative h-[30px] w-[52px] shrink-0 rounded-full transition-colors duration-250",
-        checked ? "bg-lime" : "bg-white/16"
+        checked ? "bg-white" : "bg-white/16"
       )}
     >
       <motion.span
@@ -102,8 +102,8 @@ export function Toggle({
         animate={{ x: checked ? 22 : 0 }}
         transition={SPRING}
         className={cn(
-          "absolute left-[3px] top-[3px] size-6 rounded-full shadow-[0_2px_8px_rgb(0_0_0/0.4)]",
-          checked ? "bg-lime-ink" : "bg-white"
+          "absolute left-[3px] top-[3px] size-6 rounded-full shadow-[0_2px_8px_rgb(0_0_0/0.4)] transition-colors duration-250",
+          checked ? "bg-black" : "bg-white"
         )}
       />
     </button>
@@ -269,8 +269,8 @@ export function TimeField({
 }) {
   return (
     <label className="glass relative flex min-w-0 flex-1 flex-col gap-1 rounded-[22px] px-4 py-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-lime">
-      <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-ink-3">{label}</span>
-      <span className="flex items-center justify-between text-[26px] font-semibold tabular-nums tracking-[-0.02em]" aria-hidden>
+      <span className="text-[12px] text-ink-3">{label}</span>
+      <span className="flex items-center justify-between text-[26px] font-medium tabular-nums tracking-[-0.02em]" aria-hidden>
         {value}
         <Clock className="size-[18px] text-ink-3" />
       </span>
@@ -305,7 +305,7 @@ export function SectionHead({
   return (
     <div className="flex items-end justify-between gap-3 px-1">
       <div className="min-w-0">
-        <h2 className="text-[20px] font-semibold leading-tight tracking-[-0.02em]">{title}</h2>
+        <h2 className="text-[20px] font-medium leading-tight tracking-[-0.025em]">{title}</h2>
         {hint && <p className="mt-1 text-[13px] text-ink-3">{hint}</p>}
       </div>
       {children && <div className="flex shrink-0 items-center gap-2">{children}</div>}

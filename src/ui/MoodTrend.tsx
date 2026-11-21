@@ -27,6 +27,7 @@ export function MoodTrend({ days }: { days: Day[] }) {
   }
   if (run.length) runs.push(run)
   const count = days.filter((d) => d.value != null).length
+  const knob = [...points].reverse().find((p) => p.value != null)
 
   return (
     <div>
@@ -49,6 +50,12 @@ export function MoodTrend({ days }: { days: Day[] }) {
         ) : (
           <path key={i} d={smoothPath(pts, 0.14)} fill="none" stroke={`url(#${id})`} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         ))}
+        {knob && (
+          <g>
+            <rect x={knob.x - 7} y={knob.y - 3} width="14" height="26" rx="7" fill="currentColor" fillOpacity="0.1" />
+            <circle cx={knob.x} cy={knob.y} r="5.5" fill="currentColor" />
+          </g>
+        )}
         {points.filter((_, i) => i % 2 === (points.length - 1) % 2).map((p) => (
           <text key={p.key} x={p.x} y="177" textAnchor="middle" fill="currentColor" fillOpacity="0.5" fontSize="10">{p.label}</text>
         ))}

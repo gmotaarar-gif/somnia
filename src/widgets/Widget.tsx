@@ -177,7 +177,7 @@ function Body({ widget, wide }: BodyProps) {
           <div className="flex h-full min-w-0 flex-col justify-between">
             <CardTitle sub="Последний чек-ин">Состояние</CardTitle>
             <div>
-              <div className="text-[20px] font-semibold leading-tight tracking-[-0.02em]">
+              <div className="text-[20px] font-medium leading-tight tracking-[-0.02em]">
                 {m ? getValenceLabel(m.valence) : "Нет записей"}
               </div>
               <div className="mt-1.5 truncate text-[12px] text-ink-2">{m?.emotions.slice(0, 3).join(" · ") || "Отметьте, как вы"}</div>

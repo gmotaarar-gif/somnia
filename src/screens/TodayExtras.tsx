@@ -1,9 +1,9 @@
 import { AnimatePresence, motion } from "framer-motion"
 import { Check, ChevronRight } from "lucide-react"
-import { cn } from "@/lib/cn"
 import { dayPlan, type PlanItem } from "@/lib/features"
 import { DUR, EASE_OUT } from "@/lib/motion"
 import { useStore } from "@/store/store"
+import { DotTrack } from "@/ui/charts"
 import { SectionHead } from "@/ui/controls"
 import { WATER_GOAL_ML } from "@/widgets/catalog"
 
@@ -28,11 +28,9 @@ export function DayPlan() {
   return (
     <section aria-label="План дня">
       <SectionHead title="План дня" hint={open.length ? `${done} из ${plan.length} выполнено` : "Всё выполнено"} />
-      <div className="glass mt-4 rounded-[30px] p-5">
-        <div className="flex gap-1.5" role="img" aria-label={`Выполнено ${done} из ${plan.length}`}>
-          {plan.map((p) => (
-            <span key={p.id} className={cn("h-1.5 flex-1 rounded-full transition-colors duration-350", p.done ? "bg-lime" : "bg-white/12")} />
-          ))}
+      <div className="card mt-4 p-5">
+        <div className="-mx-5" role="img" aria-label={`Выполнено ${done} из ${plan.length}`}>
+          <DotTrack value={done / plan.length} count={44} />
         </div>
         {open.length === 0 ? (
           <div className="mt-5 flex items-center gap-3">

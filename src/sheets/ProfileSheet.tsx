@@ -6,11 +6,13 @@ import { requestReminderPermission } from "@/lib/notifications"
 import { saveJsonFile } from "@/lib/saveFile"
 import { durationRu, pluralRu, spanMinutes } from "@/lib/time"
 import { useStore, type Chronotype } from "@/store/store"
-import { Button, Segmented, Slider, TimeField, Toggle } from "@/ui/controls"
+import { Button, Segmented, TimeField, Toggle } from "@/ui/controls"
 import { Field, Sheet } from "@/ui/Sheet"
 import { SubscriptionCard } from "@/ui/SubscriptionCard"
 import { LocalAccountCard } from "@/account/LocalAccountCard"
 import { AppearancePicker } from "@/ui/AppearancePicker"
+import { SlideToConfirm } from "@/ui/dissolve/slide-to-confirm"
+import CometDial from "@/ui/CometDial"
 
 function Row({
   icon,
@@ -68,6 +70,16 @@ export function ProfileSheet() {
     setConfirm(null)
     trigger.current?.focus({ preventScroll: true })
   }
+  // The slider holds its done state for a moment before the confirmation folds away.
+  const [wiped, setWiped] = React.useState(false)
+  React.useEffect(() => {
+    if (!wiped) return
+    const id = window.setTimeout(() => {
+      setWiped(false)
+      cancelConfirmation()
+    }, 1400)
+    return () => window.clearTimeout(id)
+  }, [wiped])
 
   const close = () => {
     setConfirm(null)
@@ -174,8 +186,18 @@ export function ProfileSheet() {
         />
       </Field>
 
-      <Field label="Громкость звуков" hint={`${s.volume}%`}>
-        <Slider label="Громкость звуков" value={s.volume} onChange={(volume) => s.patch({ volume })} />
+      <Field label="Громкость звуков" hint="поверните кольцо">
+        <div className="flex justify-center">
+          <CometDial
+            label="Громкость звуков"
+            value={s.volume}
+            onChange={(volume) => s.patch({ volume })}
+            size={196}
+            thickness={5}
+            accent="var(--color-accent)"
+            ink="var(--color-ink)"
+          />
+        </div>
       </Field>
 
       <Field label="Данные">
@@ -195,22 +217,42 @@ export function ProfileSheet() {
         {confirm && (
           <div key={confirm} role="group" aria-label={confirm === "widgets" ? "Восстановить виджеты?" : "Сбросить журнал?"} className="mt-3">
             <p className="px-1 text-[13px] leading-relaxed text-ink-2">{confirm === "widgets" ? "Порядок, размеры и оформление стандартных виджетов вернутся к начальным настройкам. Ваши привычки сохранятся." : "Все записи будут удалены, а настройки сброшены. Имя и локальный профиль сохранятся. Это нельзя отменить — сначала экспортируйте журнал."}</p>
-            <div className="mt-3 flex gap-2.5">
-              <Button autoFocus variant="glass" className="flex-1" onClick={cancelConfirmation}>
-                Отмена
-              </Button>
-              <Button
-                variant={confirm === "journal" ? "danger" : "primary"}
-                className="flex-1"
-                onClick={() => {
-                  if (confirm === "widgets") s.resetWidgets()
-                  else s.resetAll()
-                  cancelConfirmation()
-                }}
-              >
-                {confirm === "widgets" ? "Да, восстановить" : "Да, сбросить"}
-              </Button>
-            </div>
+            {confirm === "widgets" ? (
+              <div className="mt-3 flex gap-2.5">
+                <Button autoFocus variant="glass" className="flex-1" onClick={cancelConfirmation}>
+                  Отмена
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    s.resetWidgets()
+                    cancelConfirmation()
+                  }}
+                >
+                  Да, восстановить
+                </Button>
+              </div>
+            ) : (
+              <>
+                {/* Deleting every record is the one move here that cannot be undone:
+                    it takes a deliberate slide, not a tap. */}
+                <SlideToConfirm
+                  className="mt-4"
+                  style={{ "--dissolve-primary": "rgb(229 72 77)", "--dissolve-primary-foreground": "#fff", "--dissolve-success": "rgb(229 72 77)" } as React.CSSProperties}
+                  label="Сдвиньте, чтобы сбросить"
+                  doneLabel="Журнал сброшен"
+                  height={56}
+                  resetAfter={0}
+                  onConfirm={() => {
+                    s.resetAll()
+                    setWiped(true)
+                  }}
+                />
+                <Button autoFocus variant="ghost" className="mt-2 w-full" disabled={wiped} onClick={cancelConfirmation}>
+                  Отмена
+                </Button>
+              </>
+            )}
           </div>
         )}
       </Field>

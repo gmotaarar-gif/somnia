@@ -31,7 +31,22 @@ interface DotsProps {
   still?: boolean
 }
 
-/** Dot-matrix numerals drawn on a 5×7 grid; sized by font-size, coloured by `color`. */
+const n = (v: number) => +v.toFixed(3)
+
+/** Every dot of a numeral as one outline: a screen full of numerals stays a handful of nodes. */
+function outline(cells: { x: number; y: number }[], size: number, rx: number) {
+  const inset = (1 - size) / 2
+  const side = n(size - 2 * rx)
+  const r = n(rx)
+  return cells.map(({ x, y }) => rx >= size / 2
+    ? `M${n(x + inset)},${n(y + 0.5)}a${r},${r} 0 1,0 ${n(size)},0a${r},${r} 0 1,0 ${n(-size)},0`
+    : `M${n(x + inset + rx)},${n(y + inset)}h${side}a${r},${r} 0 0 1 ${r},${r}v${side}a${r},${r} 0 0 1 ${-r},${r}h${-side}a${r},${r} 0 0 1 ${-r},${-r}v${-side}a${r},${r} 0 0 1 ${r},${-r}z`
+  ).join("")
+}
+
+/** Dot-matrix numerals drawn on a 5×7 grid; sized by font-size, coloured by `color`.
+ * The dots pop in one by one when the value changes, not when the numeral first appears:
+ * whatever brings it on screen is its entrance. */
 export const Dots = React.memo(function Dots({ value, className, shape = "round", still }: DotsProps) {
   const text = String(value)
   const cells: { x: number; y: number }[] = []
@@ -47,6 +62,18 @@ export const Dots = React.memo(function Dots({ value, className, shape = "round"
   const size = shape === "square" ? 0.8 : 0.72
   const rx = shape === "square" ? 0.16 : size / 2
 
+  const drawn = React.useRef(text)
+  const [popping, setPopping] = React.useState(false)
+  const count = cells.length
+  React.useLayoutEffect(() => {
+    if (drawn.current === text) return
+    drawn.current = text
+    if (still) return
+    setPopping(true)
+    const id = window.setTimeout(() => setPopping(false), 560 + count * 9)
+    return () => window.clearTimeout(id)
+  }, [text, still, count])
+
   return (
     <svg
       key={still ? undefined : text}
@@ -55,18 +82,18 @@ export const Dots = React.memo(function Dots({ value, className, shape = "round"
       role="img"
       aria-label={text}
     >
-      {cells.map((c, i) => (
+      {popping && !still ? cells.map((c, i) => (
         <rect
           key={i}
-          className={still ? undefined : "d"}
-          style={still ? undefined : ({ "--i": i } as React.CSSProperties)}
+          className="d"
+          style={{ "--i": i } as React.CSSProperties}
           x={c.x + (1 - size) / 2}
           y={c.y + (1 - size) / 2}
           width={size}
           height={size}
           rx={rx}
         />
-      ))}
+      )) : <path d={outline(cells, size, rx)} />}
     </svg>
   )
 })

@@ -85,12 +85,12 @@ export function CyclesSheet() {
                 }}
                 className={cn(
                   "press flex w-full items-center justify-between gap-4 rounded-[26px] px-5 py-4 text-left",
-                  o.best ? "bg-lime text-lime-ink" : "glass"
+                  o.best ? "bg-white text-black" : "glass"
                 )}
               >
                 <span>
                   <Dots value={o.time} still className="text-[34px]" />
-                  <span className={cn("mt-2 block text-[12px]", o.best ? "text-lime-ink/70" : "text-ink-3")}>
+                  <span className={cn("mt-2 block text-[12px]", o.best ? "text-black/70" : "text-ink-3")}>
                     {o.cycles} циклов · {durationRu(o.sleepMin)} сна
                   </span>
                 </span>
@@ -98,7 +98,7 @@ export function CyclesSheet() {
                   {Array.from({ length: 6 }, (_, k) => (
                     <span
                       key={k}
-                      className={cn("h-7 w-2 rounded-full", k < o.cycles ? (o.best ? "bg-lime-ink" : "bg-white") : o.best ? "bg-lime-ink/20" : "bg-white/15")}
+                      className={cn("h-7 w-2 rounded-full", k < o.cycles ? (o.best ? "bg-black" : "bg-white") : o.best ? "bg-black/20" : "bg-white/15")}
                     />
                   ))}
                 </span>
@@ -161,7 +161,7 @@ function WellbeingTest({ onDone }: { onDone: () => void }) {
         ))}
       </div>
       <motion.div key={q} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.35, ease: EASE_OUT }}>
-        <div className="mt-6 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-3">За последние две недели</div>
+        <div className="mt-6 text-[12px] font-medium text-ink-3">За последние две недели</div>
         <h3 className="mt-2 min-h-[84px] text-[24px] font-semibold leading-[1.15] tracking-[-0.03em]">{WHO5[q]}</h3>
         <div className="mt-5 space-y-2">
           {WHO5_SCALE.map((label, v) => (
@@ -216,7 +216,7 @@ export function NightSheet() {
     >
       {night && totals && (
         <>
-          <Card className="sleep-hero">
+          <Card tone="nightfall">
             <div className="flex items-end justify-between p-5">
               <div>
                 <div className="text-[12px] text-ink-2">Сон</div>

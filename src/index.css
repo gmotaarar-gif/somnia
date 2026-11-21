@@ -5,8 +5,8 @@
 
   --color-bg: #080809;
   --color-ink: #ffffff;
-  --color-ink-2: rgb(255 255 255 / 0.64);
-  --color-ink-3: rgb(255 255 255 / 0.5);
+  --color-ink-2: rgb(255 255 255 / 0.72);
+  --color-ink-3: rgb(255 255 255 / 0.56);
   --color-hair: rgb(255 255 255 / 0.1);
   --color-lime: #d9f24a;
   --color-lime-ink: #151a02;
@@ -45,15 +45,39 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   color-scheme: dark;
-  --glass: rgb(255 255 255 / 0.055);
-  --glass-edge: rgb(255 255 255 / 0.055);
-  --glass-inset: rgb(255 255 255 / 0.13);
-  --chrome: rgb(14 14 20 / 0.62);
-  --chrome-edge: rgb(255 255 255 / 0.2);
-  --chrome-line: rgb(255 255 255 / 0.07);
+  --glass: rgb(255 255 255 / 0.08);
+  --glass-edge: rgb(255 255 255 / 0.1);
+  --glass-inset: rgb(255 255 255 / 0.14);
+  --chrome: rgb(7 7 10 / 0.78);
+  --chrome-edge: rgb(255 255 255 / 0.16);
+  --chrome-line: rgb(255 255 255 / 0.06);
   --chrome-shadow: rgb(0 0 0 / 0.75);
   --scrim: 7 7 12;
   --veil: 7 7 12;
+  --card-rim: 0.72;
+}
+
+/* ── Colour field ──────────────────────────────────────────────── */
+
+[data-tab="today"] {
+  --field: #18123f;
+  --scrim: 12 9 36;
+  --veil: 12 9 38;
+}
+[data-tab="sleep"] {
+  --field: #0b1240;
+  --scrim: 7 10 40;
+  --veil: 6 10 40;
+}
+[data-tab="mind"] {
+  --field: #0d2812;
+  --scrim: 7 22 11;
+  --veil: 6 22 10;
+}
+[data-tab="practices"] {
+  --field: #22152a;
+  --scrim: 19 12 22;
+  --veil: 20 11 22;
 }
 
 /* Page, sheets and chrome follow the theme; cards retain their original
@@ -79,6 +103,12 @@
   --chrome-shadow: rgb(60 50 110 / 0.28);
   --scrim: 242 241 246;
   --veil: 242 241 246;
+  --card-rim: 0.95;
+}
+:root[data-theme="light"] [data-tab] {
+  --field: var(--color-bg);
+  --scrim: 242 241 246;
+  --veil: 242 241 246;
 }
 :root[data-theme="light"] :is(.card, .on-dark) {
   color-scheme: dark;
@@ -90,9 +120,9 @@
   --color-black: #000000;
   --color-accent: #d9f24a;
   --color-danger: #ff8f8f;
-  --glass: rgb(255 255 255 / 0.055);
-  --glass-edge: rgb(255 255 255 / 0.055);
-  --glass-inset: rgb(255 255 255 / 0.13);
+  --glass: rgb(255 255 255 / 0.08);
+  --glass-edge: rgb(255 255 255 / 0.1);
+  --glass-inset: rgb(255 255 255 / 0.14);
   color: var(--color-ink);
 }
 
@@ -129,8 +159,37 @@ button:disabled {
   outline-offset: 3px;
 }
 
+/* A sheet that takes focus itself, when the control that had it is gone,
+   is not a control: the ring would only frame the whole sheet. */
+[role="dialog"]:focus-visible {
+  outline: none;
+}
+
 ::selection {
   background: rgb(217 242 74 / 0.3);
+}
+
+/* Tailwind resets every element to `border: 0 solid`. The screen wave pictures
+   the DOM from its computed styles, where a solid border with no width of its
+   own comes out medium: keep `none` until a border utility asks for one. */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-style: none;
+  }
+  /* Controls answer a tap at once and are never selected by a long press. */
+  button,
+  a,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+  button,
+  [role="button"] {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
 }
 
 /* ── Aurora backdrop ───────────────────────────────────────────── */
@@ -141,7 +200,7 @@ button:disabled {
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
-  background: var(--color-bg);
+  background: var(--field, var(--color-bg));
   transition:
     --a1 1.2s var(--ease-out-smooth),
     --a2 1.2s var(--ease-out-smooth),
@@ -149,27 +208,27 @@ button:disabled {
 }
 .aurora[data-tab="today"],
 .stage[data-tab="today"] {
-  --a1: #1b1a55;
-  --a2: #5c2a88;
-  --a3: #2433a0;
+  --a1: #241a5e;
+  --a2: #6a47c2;
+  --a3: #3b2584;
 }
 .aurora[data-tab="sleep"],
 .stage[data-tab="sleep"] {
-  --a1: #0e1650;
-  --a2: #2c3fc4;
-  --a3: #6d5bd0;
+  --a1: #111f63;
+  --a2: #2e44c0;
+  --a3: #6f7fe8;
 }
 .aurora[data-tab="mind"],
 .stage[data-tab="mind"] {
-  --a1: #0d3516;
-  --a2: #3f8f2c;
-  --a3: #a5b83a;
+  --a1: #15431a;
+  --a2: #2f7c28;
+  --a3: #8bb23d;
 }
 .aurora[data-tab="practices"],
 .stage[data-tab="practices"] {
-  --a1: #3b0f2b;
-  --a2: #b5446a;
-  --a3: #c2622a;
+  --a1: #48203f;
+  --a2: #8f3d5e;
+  --a3: #b86a3c;
 }
 .aurora[data-tab="onboarding"],
 .stage[data-tab="onboarding"] {
@@ -247,10 +306,13 @@ button:disabled {
 }
 /* The mesh palettes are already tuned per theme, so they need far less veil than the blobs. */
 .aurora[data-webgl] .aurora-veil {
-  opacity: 0.45;
+  opacity: 0.32;
 }
 :root[data-theme="light"] .aurora-blob {
   filter: saturate(0.7) brightness(1.9);
+}
+:root[data-theme="light"] .aurora:not([data-tab="onboarding"]) .aurora-blob {
+  opacity: 0.18;
 }
 :root[data-theme="light"] .aurora-dots {
   background-image: radial-gradient(rgb(21 21 28 / 0.05) 1px, transparent 1.4px);
@@ -284,9 +346,14 @@ button:disabled {
   isolation: isolate;
   overflow: hidden;
   border-radius: var(--r);
-  background: #171719;
+  background: radial-gradient(
+    125% 85% at 50% 48%,
+    #050506 0%,
+    rgb(5 5 6 / 0.96) 36%,
+    rgb(5 5 6 / var(--card-rim)) 100%
+  );
   box-shadow:
-    inset 0 1px 0 0 rgb(255 255 255 / 0.045),
+    inset 0 1px 0 0 rgb(255 255 255 / 0.08),
     0 18px 40px -30px rgb(0 0 0 / 0.7);
 }
 .card[data-r="lg"] {
@@ -310,7 +377,7 @@ button:disabled {
   pointer-events: none;
   background-image: url("./assets/grain-160.png");
   mix-blend-mode: overlay;
-  opacity: 0.08;
+  opacity: 0.12;
 }
 
 .card[data-tone] {
@@ -416,18 +483,44 @@ button:disabled {
   --core-h: 54%;
 }
 
-/* Color is reserved for the primary story; analytics sit on quiet surfaces. */
-.aurora:not([data-tab="onboarding"]) .aurora-blob {
-  opacity: 0.18;
+.card[data-tone="nightfall"] {
+  --c1: #c2409a;
+  --c2: #3b2cd2;
+  --core: #06041a;
+  --core-y: 40%;
+  --core-h: 56%;
+  --core-w: 140%;
 }
+
 .aurora:not([data-tab="onboarding"]) .grain {
-  opacity: 0.08;
+  opacity: 0.16;
 }
-.card.sleep-hero {
+
+/* ── Check-in ──────────────────────────────────────────────────── */
+
+@property --mood {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #34d399;
+}
+.mood-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
   background:
-    radial-gradient(ellipse at 8% 40%, #7045ff 0%, transparent 58%),
-    radial-gradient(ellipse at 108% 100%, #ff4db8 0%, transparent 60%),
-    linear-gradient(145deg, #35208a, #17112d 65%, #753b86);
+    radial-gradient(70% 34% at 50% 46%, color-mix(in srgb, var(--mood) 24%, transparent), transparent 100%),
+    radial-gradient(120% 40% at 50% 0%, color-mix(in srgb, var(--mood) 14%, transparent), transparent 100%);
+  transition: --mood var(--duration-fast) linear;
+}
+
+/* ── Nested tiles ──────────────────────────────────────────────── */
+
+.tile {
+  --r: 26px;
+  position: relative;
+  border-radius: var(--r);
+  background: rgb(255 255 255 / 0.1);
+  box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.14);
 }
 .card.recap-emotions {
   background:
@@ -459,7 +552,7 @@ button:disabled {
 .appearance-mini-header { display: flex; justify-content: space-between; align-items: center; }
 .appearance-mini-header > span:first-child { width: 28px; height: 4px; border-radius: 4px; background: #9a91b4; }
 .appearance-mini-header > span:last-child { width: 8px; height: 8px; border-radius: 50%; background: #9a91b4; }
-.appearance-mini-hero { height: 35px; border-radius: 8px; background: linear-gradient(120deg, #7045ff, #35208a 55%, #ff4db8); }
+.appearance-mini-hero { height: 35px; border-radius: 8px; background: radial-gradient(120% 70% at 50% 45%, #06041a 20%, transparent 100%), linear-gradient(#c2409a, #3b2cd2); }
 .appearance-mini-cards { display: flex; gap: 5px; }
 .appearance-mini-cards > span { flex: 1; height: 15px; border-radius: 5px; background: #25202f; }
 .appearance-check { position: absolute; display: none; place-items: center; right: 4px; bottom: 4px; width: 18px; height: 18px; border-radius: 50%; background: var(--color-accent); color: var(--color-bg); }
@@ -497,9 +590,41 @@ button:disabled {
     inset 0 0 0 1px var(--chrome-line),
     0 24px 50px -20px var(--chrome-shadow);
 }
+/* Glass made opaque against the field: for rows that slide over something. */
+.glass-solid {
+  background: linear-gradient(var(--glass), var(--glass)), var(--field, var(--color-bg));
+  box-shadow: inset 0 1px 0 0 var(--glass-edge);
+}
 .glass-inset {
   background: var(--glass-inset);
   box-shadow: inset 0 1px 0 0 var(--glass-edge);
+}
+
+/* ── LED columns and rulers ────────────────────────────────────── */
+
+.led {
+  --d: 6px;
+  --p: 10px;
+  width: var(--d);
+  background-image: radial-gradient(circle closest-side, currentColor 88%, transparent 100%);
+  background-size: var(--d) var(--p);
+  background-position: 50% 100%;
+  background-repeat: repeat-y;
+}
+.led-up,
+.led-near {
+  height: 100%;
+}
+@supports (height: round(up, 100%, 1px)) {
+  .led-up {
+    height: round(up, 100%, var(--p));
+  }
+  .led-near {
+    height: round(nearest, 100%, var(--p));
+  }
+}
+.ruler {
+  background-image: repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 4px);
 }
 
 /* ── Dot-matrix digits ─────────────────────────────────────────── */
@@ -537,7 +662,7 @@ button:disabled {
 .press {
   transition: transform var(--duration-quick) var(--ease-out-smooth);
 }
-.press:active {
+.press:not(:disabled):active {
   transform: scale(0.96);
 }
 
@@ -565,7 +690,7 @@ button:disabled {
     transition: none !important;
     scroll-behavior: auto !important;
   }
-  .press:active {
+  .press:not(:disabled):active {
     transform: none;
   }
   .jiggle,
@@ -687,19 +812,60 @@ button:disabled {
   }
 }
 
-.track-dot {
-  animation: track-in var(--duration-medium) var(--ease-out-smooth) both;
+/* One dotted ruler is three boxes, not a span per dot: the screen wave
+   pictures every node, and a screen can hold several of these. */
+.dot-track {
+  position: relative;
+  height: 16px;
+  container-type: inline-size;
 }
-@keyframes track-in {
-  from {
-    opacity: 0;
-    transform: scale(0.2);
-  }
+.dot-track > span {
+  --p: calc((100cqw - 5px) / var(--n));
+  position: absolute;
+  top: 0;
+  bottom: 0;
 }
-@media (prefers-reduced-motion: reduce) {
-  .track-dot {
-    animation: none;
-  }
+.dot-track > .dot-track-rest {
+  left: 0;
+  right: 0;
+  background: radial-gradient(circle at 2.5px 50%, color-mix(in srgb, var(--color-white) 35%, transparent) 1px, transparent 1.5px) 0 0 / var(--p) 100% repeat-x;
+}
+.dot-track > .dot-track-done {
+  left: 0;
+  width: calc(var(--at) * var(--p));
+  background: radial-gradient(circle at 2.5px 50%, var(--color-white) 2.25px, transparent 2.75px) 0 0 / var(--p) 100% repeat-x;
+}
+.night-line {
+  position: relative;
+  height: 16px;
+  container-type: inline-size;
+}
+.night-line > .night-line-rest,
+.night-line > .night-line-lit {
+  --p: calc((100cqw - 3px) / 47);
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.night-line > .night-line-rest {
+  left: 0;
+  right: 0;
+  background: radial-gradient(circle at 1.5px 50%, rgb(255 255 255 / 0.3) 1.25px, transparent 1.75px) 0 0 / var(--p) 100% repeat-x;
+}
+.night-line > .night-line-lit {
+  left: calc(var(--a) * var(--p));
+  width: calc((var(--k) - 1) * var(--p) + 3px);
+  background:
+    radial-gradient(circle at 1.5px 1.5px, #fff 1.25px, transparent 1.75px) 0 0 / var(--p) 100% repeat-x,
+    radial-gradient(circle at 1.5px calc(100% - 1.5px), #fff 1.25px, transparent 1.75px) 0 0 / var(--p) 100% repeat-x,
+    linear-gradient(90deg, #fff 3px, transparent 3px) 0 1.5px / var(--p) calc(100% - 3px) repeat-x;
+}
+.dot-track > .dot-track-mark {
+  left: calc(var(--at) * var(--p));
+  width: 5px;
+  border-radius: 2px;
+  background: var(--color-lime);
+  box-shadow: 0 0 12px rgb(217 242 74 / 0.8);
 }
 
 /* Keeps scrolled content from colliding with the status bar */
@@ -746,10 +912,7 @@ button:disabled {
   gap: 8px;}
 
 .tms-label {
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 12px;
   color: var(--tms-dim);}
 
 .tms-time {
@@ -847,6 +1010,21 @@ button:disabled {
   .tms-strip { transition: none; animation: none !important; }
 }
 
+/* Inside the night card the ruler has no surface of its own. */
+.tms.night-ruler {
+  padding: 14px 0 6px;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.night-ruler .tms-label {
+  font-size: 13px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: rgb(255 255 255 / 0.72);
+}
+
 /* ══ Lens ruler ══════════════════════════════════════════ */
 .lens {
   position: relative;
@@ -894,3 +1072,45 @@ button:disabled {
 
 /* under the pill the value takes the pill's ink */
 .lens-item[data-on] { color: var(--color-black); }
+
+/* dissolve:theme:start */
+/* dissolve theme: the dissolve components read these. They point at the app's own tokens, so
+   they follow data-theme rather than the system setting. */
+:root {
+  --dissolve-background: var(--color-bg);
+  --dissolve-surface: var(--glass-inset);
+  --dissolve-surface-2: var(--glass);
+  --dissolve-foreground: var(--color-ink);
+  --dissolve-muted: var(--color-ink-3);
+  --dissolve-primary: var(--color-white);
+  --dissolve-primary-foreground: var(--color-black);
+  --dissolve-success: var(--color-accent);
+  --dissolve-danger: rgb(229 72 77);
+  --dissolve-danger-foreground: rgb(255 255 255);
+  --dissolve-accent: var(--color-accent);
+  --dissolve-border: var(--color-hair);
+  --dissolve-chart-1: rgb(255 79 152);
+  --dissolve-chart-2: rgb(142 114 255);
+  --dissolve-chart-3: rgb(255 210 51);
+}
+
+@layer theme {
+  @theme inline {
+    --color-dissolve-background: var(--dissolve-background);
+    --color-dissolve-surface: var(--dissolve-surface);
+    --color-dissolve-surface-2: var(--dissolve-surface-2);
+    --color-dissolve-foreground: var(--dissolve-foreground);
+    --color-dissolve-muted: var(--dissolve-muted);
+    --color-dissolve-primary: var(--dissolve-primary);
+    --color-dissolve-primary-foreground: var(--dissolve-primary-foreground);
+    --color-dissolve-success: var(--dissolve-success);
+    --color-dissolve-danger: var(--dissolve-danger);
+    --color-dissolve-danger-foreground: var(--dissolve-danger-foreground);
+    --color-dissolve-accent: var(--dissolve-accent);
+    --color-dissolve-border: var(--dissolve-border);
+    --color-dissolve-chart-1: var(--dissolve-chart-1);
+    --color-dissolve-chart-2: var(--dissolve-chart-2);
+    --color-dissolve-chart-3: var(--dissolve-chart-3);
+  }
+}
+/* dissolve:theme:end */

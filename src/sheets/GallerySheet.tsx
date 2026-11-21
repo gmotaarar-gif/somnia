@@ -141,7 +141,7 @@ export function GallerySheet() {
         <div className="mt-5">
           <div className="glass flex h-12 items-center gap-2 rounded-full px-4 focus-within:ring-2 focus-within:ring-lime">
             <Search aria-hidden className="size-[18px] shrink-0 text-ink-2" />
-            <input type="search" aria-label="Найти виджет" placeholder="Найти виджет" value={query} onChange={(event) => setQuery(event.target.value)} className="min-w-0 flex-1 bg-transparent text-[14px] outline-none placeholder:text-ink-2 [&::-webkit-search-cancel-button]:appearance-none" />
+            <input type="search" aria-label="Найти виджет" placeholder="Найти виджет" value={query} onChange={(event) => setQuery(event.target.value)} className="min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-ink-2 [&::-webkit-search-cancel-button]:appearance-none" />
             {query && <button type="button" aria-label="Очистить поиск" onClick={() => setQuery("")} className="grid size-8 shrink-0 place-items-center rounded-full text-ink-2"><X className="size-4" /></button>}
           </div>
           <div role="group" aria-label="Категория виджетов" className="mt-3 flex flex-wrap gap-2">
@@ -203,7 +203,7 @@ export function GallerySheet() {
               maxLength={18}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Например, чтение"
-              className="glass h-12 w-full rounded-full px-5 text-[15px] placeholder:text-ink-3"
+              className="glass h-12 w-full rounded-full px-5 text-[16px] placeholder:text-ink-3"
             />
           </Field>
 

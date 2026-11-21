@@ -45,8 +45,8 @@ export function Dock() {
         )}
       </AnimatePresence>
 
-      {/* Inline so the wave library's unlayered overlay rule cannot make the
-          empty dock padding intercept scroll/taps; controls opt back in. */}
+      {/* Inline so the screen wave's overlay rule, which gives its children
+          taps, cannot make the empty dock padding intercept them; controls opt back in. */}
       <div style={{ pointerEvents: "none" }} className="fixed inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-[max(var(--safe-bottom),16px)]">
         <div className="pointer-events-auto relative flex items-center gap-2">
           <nav aria-label="Разделы" className="glass-dark flex items-center gap-0.5 rounded-full p-1.5">
@@ -61,18 +61,18 @@ export function Dock() {
                   onClick={() => {
                     setEditing(false)
                     setTab(id)
-                    document.querySelector<HTMLElement>('[data-active-screen="true"] .app-scroll')?.scrollTo({ top: 0 })
+                    if (active) document.querySelector<HTMLElement>(`[data-screen="${id}"] .app-scroll`)?.scrollTo({ top: 0 })
                   }}
                   className={cn(
-                    "relative flex h-12 min-w-12 items-center justify-center gap-2 rounded-full px-3.5 transition-colors duration-250",
-                    active ? "text-lime-ink" : "text-ink-2 hover:text-ink"
+                    "relative flex h-12 min-w-12 items-center justify-center gap-2 rounded-full px-3.5 transition-colors duration-250 [&_svg]:[stroke-width:1.75]",
+                    active ? "text-black" : "text-ink-2 hover:text-ink"
                   )}
                 >
                   {active && (
                     <motion.span
                       layoutId="dock-pill"
                       transition={SPRING}
-                      className="absolute inset-0 rounded-full bg-lime shadow-[0_8px_28px_-8px_rgb(217_242_74/0.75)]"
+                      className="absolute inset-0 rounded-full bg-white"
                     />
                   )}
                   <Icon className="relative size-5 shrink-0" />
@@ -80,7 +80,7 @@ export function Dock() {
                     {active && (
                       <motion.span
                         key="label"
-                        className="dock-label relative overflow-hidden whitespace-nowrap text-[14px] font-semibold tracking-[-0.01em] max-[380px]:hidden"
+                        className="dock-label relative overflow-hidden whitespace-nowrap text-[14px] font-medium tracking-[-0.01em] max-[380px]:hidden"
                         initial={{ width: 0, opacity: 0 }}
                         animate={{ width: "auto", opacity: 1 }}
                         exit={{ width: 0, opacity: 0 }}
@@ -116,10 +116,10 @@ export function Dock() {
               aria-label="Добавить запись"
               aria-expanded={menu}
               onClick={() => setMenu((v) => !v)}
-              className="press glass-dark grid size-[60px] place-items-center rounded-full text-ink"
+              className="press grid size-[60px] place-items-center rounded-full bg-white text-black shadow-[0_18px_40px_-18px_rgb(0_0_0/0.8)]"
             >
               <motion.span animate={{ rotate: menu ? 45 : 0 }} transition={SPRING}>
-                <Plus className="size-6" />
+                <Plus className="size-6" strokeWidth={1.75} />
               </motion.span>
             </button>
           </div>

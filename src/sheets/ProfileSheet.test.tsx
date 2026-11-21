@@ -3,7 +3,7 @@
 import type { ReactNode } from "react"
 import { Blob as NodeBlob } from "node:buffer"
 import { Capacitor } from "@capacitor/core"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { StoreProvider, useStore } from "@/store/store"
 import { SubscriptionProvider } from "@/store/subscription"
@@ -43,6 +43,7 @@ function openProfile() {
 
 afterEach(() => {
   cleanup()
+  vi.useRealTimers()
   localStorage.clear()
   vi.clearAllMocks()
   vi.restoreAllMocks()
@@ -126,7 +127,7 @@ describe("ProfileSheet", () => {
     expect(screen.getByRole("switch", { name: "Напоминать об отбое" }).getAttribute("aria-checked")).toBe("false")
   })
 
-  it("never resets records on cancel or close, and requires fresh confirmation after reopening", () => {
+  it("never resets records on cancel or close, and requires fresh confirmation after reopening", async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ userName: "Мира", nights: [savedNight], bedGoal: "01:00" }))
     openProfile()
     const startReset = () => fireEvent.click(screen.getByRole("button", { name: /Сбросить журнал/ }))
@@ -141,13 +142,22 @@ describe("ProfileSheet", () => {
     fireEvent.click(screen.getByRole("button", { name: /Сбросить журнал/ }))
     fireEvent.click(screen.getByRole("button", { name: "Закрыть" }))
     fireEvent.click(screen.getByText("Открыть профиль"))
-    expect(screen.queryByRole("button", { name: "Да, сбросить" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Сдвиньте, чтобы сбросить" })).toBeNull()
     startReset()
-    fireEvent.click(screen.getByRole("button", { name: "Да, сбросить" }))
+    // A tap is not enough: the slider runs to its end from the keyboard, then resets.
+    const slide = screen.getByRole("button", { name: "Сдвиньте, чтобы сбросить" })
+    fireEvent.click(slide)
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).nights).toEqual([savedNight])
+    // The slide runs on animation frames: play it on a clock the test owns.
+    vi.useFakeTimers({ toFake: ["requestAnimationFrame", "cancelAnimationFrame", "performance", "setTimeout", "clearTimeout"] })
+    fireEvent.keyDown(slide, { key: "Enter" })
+    await act(async () => { await vi.advanceTimersByTimeAsync(1500) })
+    vi.useRealTimers()
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).bedGoal).toBe("23:30")
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
     expect(saved.userName).toBe("Мира")
-    expect(saved.bedGoal).toBe("23:30")
     expect(saved.nights.some((night: { id: string }) => night.id === savedNight.id)).toBe(false)
+    expect(screen.getByRole("button", { name: "Журнал сброшен" })).toBeTruthy()
   })
 
   it("exports journal records and the schedule without changing stored data", async () => {
@@ -204,7 +214,7 @@ describe("ProfileSheet", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Сбросить журнал/ }))
     fireEvent.click(screen.getByRole("button", { name: "Виджеты по умолчанию" }))
-    expect(screen.queryByRole("button", { name: "Да, сбросить" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Сдвиньте, чтобы сбросить" })).toBeNull()
     expect(screen.getByRole("group", { name: "Восстановить виджеты?" })).toBeTruthy()
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Отмена" }))
     fireEvent.click(screen.getByRole("button", { name: "Да, восстановить" }))
