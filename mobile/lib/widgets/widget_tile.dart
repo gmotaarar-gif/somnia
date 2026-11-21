@@ -428,13 +428,15 @@ class WidgetTile extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _Figure('${sum.accuracy}%', size: wide ? 40 : 32),
-                  _note('ночей вовремя'),
-                ],
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _Figure('${sum.accuracy}%', size: wide ? 40 : 32),
+                    _note('ночей вовремя'),
+                  ],
+                ),
               ),
               if (wide) ...[
                 const SizedBox(width: 20),
@@ -581,28 +583,27 @@ class _Figure extends StatelessWidget {
   final double size;
   const _Figure(this.value, {this.unit, this.square = false, this.size = 32});
   @override
-  Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.end,
-    children: [
-      if (value == null)
-        Text('—', style: TextStyle(fontSize: size, height: 1))
-      else
-        Flexible(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.bottomLeft,
-            child: Dots(value: value!, size: size, square: square),
+  Widget build(BuildContext context) => FittedBox(
+    fit: BoxFit.scaleDown,
+    alignment: Alignment.bottomLeft,
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (value == null)
+          Text('—', style: TextStyle(fontSize: size, height: 1))
+        else
+          Dots(value: value!, size: size, square: square),
+        if (value != null && unit != null) ...[
+          const SizedBox(width: 8),
+          Text(
+            unit!,
+            maxLines: 1,
+            style: const TextStyle(fontSize: 12, height: 1, color: _ink2),
           ),
-        ),
-      if (value != null && unit != null) ...[
-        const SizedBox(width: 8),
-        Text(
-          unit!,
-          maxLines: 1,
-          style: const TextStyle(fontSize: 12, height: 1, color: _ink2),
-        ),
+        ],
       ],
-    ],
+    ),
   );
 }
 

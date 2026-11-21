@@ -10,6 +10,10 @@ import 'package:somna/widgets/widget_grid.dart';
 import 'package:somna/widgets/gallery_sheet.dart';
 import 'package:somna/widgets/recap_sheet.dart';
 import 'package:somna/widgets/catalog.dart';
+import 'package:somna/widgets/kit.dart';
+import 'package:somna/widgets/lucide.dart';
+import 'package:somna/widgets/lucide_data.dart';
+import 'package:somna/logic/time.dart';
 import 'package:somna/shell/app.dart';
 
 void main() {
@@ -27,12 +31,16 @@ void main() {
     );
   });
   tearDown(() => store.dispose());
-  Future<void> boot(WidgetTester t, Widget child) async {
+  Future<void> boot(
+    WidgetTester t,
+    Widget child, {
+    Brightness brightness = Brightness.dark,
+  }) async {
     await t.pumpWidget(
       SomnaScope(
         store: store,
         child: MaterialApp(
-          theme: somnaTheme(Brightness.dark),
+          theme: somnaTheme(brightness),
           home: Scaffold(
             body: ListenableBuilder(
               listenable: store,
@@ -136,8 +144,8 @@ void main() {
     await t.pumpAndSettle();
     expect(
       t
-          .widget<FilledButton>(
-            find.widgetWithText(FilledButton, 'Добавить на главный'),
+          .widget<SomnaButton>(
+            find.widgetWithText(SomnaButton, 'Добавить на главный'),
           )
           .onPressed,
       isNull,
@@ -283,6 +291,214 @@ void main() {
       await t.pumpWidget(const SizedBox());
     },
   );
+  void seedWeek() {
+    final now = DateTime.now();
+    for (var i = 6; i >= 0; i--) {
+      store.addNight(
+        SleepNight(
+          dateKey: dateKey(now.subtract(Duration(days: i))),
+          bedtime: i.isEven ? '23:10' : '00:40',
+          wakeTime: '07:20',
+          durationMin: i.isEven ? 490 : 400,
+          quality: 60.0 + i * 5,
+          awakenings: i % 3,
+        ),
+      );
+    }
+    store.addMood(
+      const MoodEntry(valence: .4, emotions: ['Спокойствие', 'Радость']),
+    );
+  }
+
+  test('every lucide icon parses into a drawable path', () {
+    for (final entry in lucideIcons.entries) {
+      for (final d in entry.value) {
+        final bounds = parseSvgPath(d).getBounds();
+        expect(bounds.isEmpty && bounds.longestSide == 0, isFalse);
+        expect(
+          const Rect.fromLTWH(
+            0,
+            0,
+            24,
+            24,
+          ).inflate(.01).contains(bounds.center),
+          isTrue,
+          reason: entry.key,
+        );
+      }
+    }
+  });
+  testWidgets('Today hero shows the night line and opens sleep, mood, recap', (
+    t,
+  ) async {
+    seedWeek();
+    await boot(t, const TodayScreen());
+    expect(find.byType(NightLine), findsOneWidget);
+    expect(find.text('Прошлая ночь'), findsOneWidget);
+    expect(find.bySemanticsLabel('Прошлая ночь. Открыть сон'), findsOneWidget);
+    await t.tap(find.text('Прошлая ночь'));
+    await t.pump();
+    expect(store.tab, 'sleep');
+    await t.tap(find.text('Состояние').first);
+    await t.pump();
+    expect(store.sheet, 'mood');
+    await t.tap(find.text('Неделя'));
+    await t.pump();
+    expect(store.sheet, 'recap');
+    expect(t.takeException(), isNull);
+  });
+  testWidgets('empty Today offers to record sleep and a check-in', (t) async {
+    await boot(t, const TodayScreen());
+    expect(find.byType(NightLine), findsNothing);
+    expect(find.text('Сделайте чек-ин'), findsOneWidget);
+    expect(find.text('Пока нет данных'), findsOneWidget);
+    await t.tap(find.text('Записать сон').first);
+    await t.pump();
+    expect(store.sheet, 'sleep');
+  });
+  testWidgets('day plan steps act and collapse when everything is done', (
+    t,
+  ) async {
+    await boot(t, const TodayScreen());
+    expect(find.textContaining('из 4 выполнено'), findsOneWidget);
+    final water = find.byKey(const ValueKey('plan-water'));
+    await t.ensureVisible(water);
+    await t.pump();
+    await t.tap(water);
+    await t.pump();
+    expect(store.water.ml, 250);
+    store.addWater(2000);
+    await t.pump();
+    expect(find.byKey(const ValueKey('plan-water')), findsNothing);
+  });
+  testWidgets('widgets header toggles editing and opens the gallery', (
+    t,
+  ) async {
+    await boot(t, const TodayScreen());
+    await t.scrollUntilVisible(
+      find.text('Изменить'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await t.ensureVisible(find.text('Изменить'));
+    await t.pump();
+    await t.tap(find.text('Изменить'));
+    await t.pump();
+    expect(store.editing, isTrue);
+    expect(find.text('Перетащите, смените размер или цвет'), findsOneWidget);
+    await t.tap(find.text('Готово'));
+    await t.pump();
+    expect(store.editing, isFalse);
+    await t.tap(find.bySemanticsLabel('Добавить виджет').first);
+    await t.pump();
+    expect(store.sheet, 'gallery');
+    await t.pumpWidget(const SizedBox());
+  });
+  testWidgets('Today renders in the light theme on a narrow phone', (t) async {
+    t.view.physicalSize = const Size(360, 780);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    seedWeek();
+    store.setWidgets([
+      for (final w in store.widgets) w.copyWith(visible: true),
+    ]);
+    await boot(t, const TodayScreen(), brightness: Brightness.light);
+    await t.drag(find.byType(ListView), const Offset(0, -900));
+    await t.pump(const Duration(seconds: 1));
+    await t.drag(find.byType(ListView), const Offset(0, -1500));
+    await t.pump(const Duration(seconds: 1));
+    expect(t.takeException(), isNull);
+  });
+  testWidgets('gallery search, empty state and restore prompt', (t) async {
+    await boot(t, const SingleChildScrollView(child: GallerySheet()));
+    await t.enterText(find.byType(TextField).first, 'вода');
+    await t.pump();
+    expect(find.textContaining('Найдено: 1'), findsOneWidget);
+    await t.enterText(find.byType(TextField).first, 'ъъъ');
+    await t.pump();
+    expect(find.text('Ничего не нашлось'), findsOneWidget);
+    await t.ensureVisible(find.text('Показать все'));
+    await t.tap(find.text('Показать все'));
+    await t.pump();
+    expect(find.text('Ничего не нашлось'), findsNothing);
+    await t.tap(find.text('Привычки'));
+    await t.pump();
+    expect(find.textContaining('Найдено: 2'), findsOneWidget);
+    store.updateWidget(store.widgets.first.id, {'tone': 'rose'});
+    await t.tap(find.bySemanticsLabel('Вернуть стандартный набор'));
+    await t.pump();
+    expect(find.text('Вернуть стандартный набор?'), findsOneWidget);
+    await t.tap(find.text('Восстановить'));
+    await t.pump();
+    expect(store.widgets.first.tone, isNot('rose'));
+    await t.pump(const Duration(seconds: 3));
+  });
+  testWidgets('recap is honest when empty and steps back and forth', (t) async {
+    await boot(t, const SingleChildScrollView(child: RecapSheet()));
+    expect(find.text('Начнём с одной ночи'), findsOneWidget);
+    expect(find.text('Без записей — без выводов'), findsOneWidget);
+    await t.tap(find.text('Посмотреть неделю'));
+    await t.pumpAndSettle();
+    expect(find.text('ещё нет записей'), findsOneWidget);
+    await t.tap(find.bySemanticsLabel('Предыдущий раздел'));
+    await t.pumpAndSettle();
+    expect(find.text('Ваша неделя'), findsOneWidget);
+    await t.tap(find.bySemanticsLabel('3. Состояние'));
+    await t.pumpAndSettle();
+    expect(find.text('Каждое чувство\nимеет значение'), findsOneWidget);
+    await t.tap(find.text('Состояние по дням'));
+    await t.pumpAndSettle();
+    expect(find.textContaining('Один короткий чек-ин'), findsOneWidget);
+    expect(t.takeException(), isNull);
+    await t.pump(const Duration(seconds: 3));
+  });
+  testWidgets('recap stories fit a phone with a full week of records', (
+    t,
+  ) async {
+    t.view.physicalSize = const Size(360, 780);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    seedWeek();
+    await boot(t, const SingleChildScrollView(child: RecapSheet()));
+    for (var i = 0; i < 4; i++) {
+      expect(t.takeException(), isNull);
+      await t.tap(find.text(i == 0 ? 'Посмотреть неделю' : 'Дальше'));
+      await t.pumpAndSettle();
+    }
+    expect(t.takeException(), isNull);
+    await t.pump(const Duration(seconds: 3));
+  });
+  for (final kind in [...widgetMeta.keys, 'custom']) {
+    testWidgets('$kind fits a narrow phone with records', (t) async {
+      seedWeek();
+      for (final size in ['1x1', '2x1']) {
+        await boot(
+          t,
+          Center(
+            child: SizedBox(
+              width: size == '1x1' ? 154 : 320,
+              height: 178,
+              child: WidgetTile(
+                widget: SomnaWidget(
+                  id: kind,
+                  kind: kind,
+                  size: size,
+                  tone: 'cobalt',
+                  visible: true,
+                  title: 'Медитация вечером',
+                  unit: 'шагов',
+                  target: 12000,
+                  step: 500,
+                  value: 4500,
+                ),
+              ),
+            ),
+          ),
+        );
+        expect(t.takeException(), isNull, reason: '$kind $size');
+      }
+    });
+  }
   for (final kind in [...widgetMeta.keys, 'custom']) {
     testWidgets('$kind supports absent and zero records', (t) async {
       for (final size in ['1x1', '2x1']) {

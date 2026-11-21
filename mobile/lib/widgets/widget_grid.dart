@@ -213,9 +213,7 @@ class _EditButton extends StatelessWidget {
     ),
     child: Tooltip(
       message: label,
-      excludeFromSemantics: true,
       child: PressScale(
-        label: label,
         onPressed: onPressed,
         child: Container(
           width: 32,

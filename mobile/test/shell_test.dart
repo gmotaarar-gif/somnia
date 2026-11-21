@@ -101,7 +101,7 @@ void main() {
       expect(find.text('Как вы сейчас?'), findsNothing);
       await tester.tap(find.bySemanticsLabel('Добавить запись'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Записать сон'));
+      await tester.tap(find.text('Записать сон').last);
       await tester.pumpAndSettle();
       expect(s.sheet, 'sleep');
       await tester.binding.handlePopRoute();
