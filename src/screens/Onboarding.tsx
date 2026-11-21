@@ -12,7 +12,8 @@ import { getValenceLabel, sampleValencePalette } from "@/lib/valence"
 import { DEFAULT_WIDGETS, useStore, type Chronotype, type Widget } from "@/store/store"
 import { Card, type CardTone } from "@/ui/Card"
 import { Orbits, Ring } from "@/ui/charts"
-import { Button, IconButton, Segmented, Slider, TimeField, Toggle } from "@/ui/controls"
+import { Button, IconButton, Segmented, Slider, Toggle } from "@/ui/controls"
+import { TimeScrubber } from "@/ui/TimeScrubber"
 import { Dots, DotsCount } from "@/ui/Dots"
 import { usePrefersReducedMotion } from "@/ui/MotionProvider"
 import { WIDGET_META } from "@/widgets/catalog"
@@ -398,9 +399,9 @@ export function Onboarding() {
                 <SleepDial bed={bedGoal} wake={wakeGoal} />
               </div>
               <Segmented id="chrono" label="Хронотип" className="mt-5 flex w-full" value={chronotype} onChange={pickChrono} options={CHRONO.map(({ value, label }) => ({ value, label }))} />
-              <div className="mt-3 flex gap-3">
-                <TimeField label="Отбой" value={bedGoal} onChange={setBedGoal} />
-                <TimeField label="Подъём" value={wakeGoal} onChange={setWakeGoal} />
+              <div className="mt-3 space-y-3">
+                <TimeScrubber label="Отбой" value={bedGoal} onChange={setBedGoal} />
+                <TimeScrubber label="Подъём" value={wakeGoal} onChange={setWakeGoal} />
               </div>
               <p className="mt-3 text-center text-[12px] text-ink-3">
                 {target < 420 ? "Меньше 7 часов: взрослым обычно нужно 7–9." : `Лучший подъём по циклам: ${wakeOptions(bedGoal).find((o) => o.best)!.time}`}
