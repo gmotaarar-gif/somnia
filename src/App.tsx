@@ -5,6 +5,8 @@ import { Onboarding } from "@/screens/Onboarding"
 import { PracticesScreen } from "@/screens/Practices"
 import { SleepScreen } from "@/screens/Sleep"
 import { TodayScreen } from "@/screens/Today"
+import { AwardsSheet, CyclesSheet, NightSheet, WellbeingSheet } from "@/sheets/Extras"
+import { BodyScanSheet, GroundingSheet, WorrySheet } from "@/sheets/PracticeSheets"
 import { GallerySheet } from "@/sheets/GallerySheet"
 import { MoodSheet } from "@/sheets/MoodSheet"
 import { ProfileSheet } from "@/sheets/ProfileSheet"
@@ -57,6 +59,13 @@ function Shell() {
           <GallerySheet />
           <RecapSheet />
           <ProfileSheet />
+          <CyclesSheet />
+          <WellbeingSheet />
+          <NightSheet />
+          <AwardsSheet />
+          <GroundingSheet />
+          <BodyScanSheet />
+          <WorrySheet />
           <NightMode />
         </>
       )}
