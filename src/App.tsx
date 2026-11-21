@@ -1,5 +1,5 @@
-import { AnimatePresence, MotionConfig, motion } from "framer-motion"
-import { screenVariants } from "@/lib/motion"
+import { MotionProvider } from "@/ui/MotionProvider"
+import { ScreenTransition } from "@/ui/ScreenTransition"
 import { MindScreen } from "@/screens/Mind"
 import { Onboarding } from "@/screens/Onboarding"
 import { PracticesScreen } from "@/screens/Practices"
@@ -39,11 +39,9 @@ function Shell() {
       <div id="app-scroll" className="app-scroll">
         {onboarded ? (
           <div className="px-4 pb-[var(--dock-space)] pt-[max(var(--safe-top),14px)]">
-            <AnimatePresence mode="wait" initial={false} custom={tabDir}>
-              <motion.main key={tab} custom={tabDir} variants={screenVariants} initial="enter" animate="center" exit="exit">
-                <Screen />
-              </motion.main>
-            </AnimatePresence>
+            <ScreenTransition screenKey={tab} direction={tabDir}>
+              <Screen />
+            </ScreenTransition>
           </div>
         ) : (
           <Onboarding />
@@ -75,10 +73,10 @@ function Shell() {
 
 export default function App() {
   return (
-    <MotionConfig reducedMotion="user">
+    <MotionProvider>
       <StoreProvider>
         <Shell />
       </StoreProvider>
-    </MotionConfig>
+    </MotionProvider>
   )
 }

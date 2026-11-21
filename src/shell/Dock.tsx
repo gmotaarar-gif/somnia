@@ -38,8 +38,8 @@ export function Dock() {
             className="fixed inset-0 z-20 cursor-default bg-black/40 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: DUR.fast }}
+            exit={{ opacity: 0, transition: { duration: DUR.quick } }}
+            transition={{ duration: DUR.fast, ease: EASE_OUT }}
             onClick={() => setMenu(false)}
           />
         )}
@@ -99,10 +99,10 @@ export function Dock() {
                 <motion.div
                   role="menu"
                   className="glass-dark absolute bottom-[calc(100%+12px)] right-0 w-[236px] origin-bottom-right rounded-[28px] p-2"
-                  initial={{ opacity: 0, scale: 0.9, y: 8 }}
+                  initial={{ opacity: 0, scale: 0.97, y: 8 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.94, y: 6, transition: { duration: DUR.quick } }}
-                  transition={SPRING}
+                  exit={{ opacity: 0, scale: 0.99, y: 4, transition: { duration: DUR.quick, ease: EASE_OUT } }}
+                  transition={{ duration: DUR.fast, ease: EASE_OUT }}
                 >
                   <MenuItem icon={<Smile />} title="Чек-ин состояния" sub="Как вы сейчас?" onClick={() => pick("mood")} />
                   <MenuItem icon={<BedDouble />} title="Записать сон" sub="Отбой, подъём, бодрость" onClick={() => pick("sleep")} />
