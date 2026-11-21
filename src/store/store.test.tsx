@@ -2,7 +2,7 @@
 
 import { act, cleanup, renderHook } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { StoreProvider, useStore } from "./store"
+import { StoreProvider, readSavedDataCopy, useStore } from "./store"
 import { listenForReminders } from "@/lib/notifications"
 
 vi.mock("@/lib/notifications", () => ({
@@ -298,5 +298,34 @@ describe("StoreProvider", () => {
     const { result } = renderHook(useStore, { wrapper: StoreProvider })
 
     expect(result.current.ritual).toEqual({ day: "2030-01-02", done: ["dim"] })
+  })
+})
+
+describe("damaged save backup", () => {
+  const raw = JSON.stringify({ onboarded: true, nights: [{ id: "broken" }] })
+
+  it("removes the backup when the journal is reset", () => {
+    localStorage.setItem(STORAGE_KEY, raw)
+    const { result } = renderHook(useStore, { wrapper: StoreProvider })
+    expect(localStorage.getItem(`${STORAGE_KEY}-backup`)).toBe(raw)
+    act(() => result.current.resetAll())
+    expect(localStorage.getItem(`${STORAGE_KEY}-backup`)).toBeNull()
+    expect(readSavedDataCopy()).not.toBe(raw)
+  })
+
+  it("still offers the original for download when storage has no room for a backup", () => {
+    localStorage.setItem(STORAGE_KEY, raw)
+    const setItem = Storage.prototype.setItem
+    const spy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key: string, value: string) {
+      if (key === `${STORAGE_KEY}-backup`) throw new DOMException("full", "QuotaExceededError")
+      setItem.call(this, key, value)
+    })
+    try {
+      renderHook(useStore, { wrapper: StoreProvider })
+      expect(localStorage.getItem(STORAGE_KEY)).not.toBe(raw)
+      expect(readSavedDataCopy()).toBe(raw)
+    } finally {
+      spy.mockRestore()
+    }
   })
 })

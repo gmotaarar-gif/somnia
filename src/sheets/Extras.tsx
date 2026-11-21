@@ -20,7 +20,8 @@ import { useStore } from "@/store/store"
 import { Card, type CardTone } from "@/ui/Card"
 import { Ring } from "@/ui/charts"
 import { Hypnogram, stageMinutes } from "@/ui/SleepStages"
-import { Button, Segmented, TimeField } from "@/ui/controls"
+import { Button, Segmented } from "@/ui/controls"
+import { TimeScrubber } from "@/ui/TimeScrubber"
 import { Dots, DotsCount } from "@/ui/Dots"
 import { Field, Sheet } from "@/ui/Sheet"
 
@@ -53,16 +54,16 @@ export function CyclesSheet() {
           { value: "wake", label: "Встану в…" },
         ]}
       />
-      <div className="mt-3 flex gap-3">
+      <div className="mt-3 space-y-3">
         {mode === "bed" ? (
           <>
-            <TimeField label="Отбой" value={bed} onChange={setBed} />
-            <Button variant="glass" className="h-auto flex-1 rounded-[22px]" onClick={() => setBed(nowStr)}>
+            <TimeScrubber key="bed" label="Отбой" value={bed} onChange={setBed} step={1} />
+            <Button variant="glass" className="w-full" onClick={() => setBed(nowStr)}>
               Лечь сейчас
             </Button>
           </>
         ) : (
-          <TimeField label="Подъём" value={wake} onChange={setWake} />
+          <TimeScrubber key="wake" label="Подъём" value={wake} onChange={setWake} step={1} />
         )}
       </div>
 

@@ -8,7 +8,7 @@ import type { SoundMode } from "@/lib/audio"
 import { nightScore, qualityLabel } from "@/lib/metrics"
 import { DUR, EASE_OUT } from "@/lib/motion"
 import { useRiseIn } from "@/ui/MotionProvider"
-import { dateKey, dayMonthShort, daysAgo, durationRu, hm, parseKey, pluralRu, relativeDay, timeToMinutes, weekdayShort } from "@/lib/time"
+import { dateKey, dayMonthShort, daysAgo, durationRu, hm, parseKey, pluralRu, relativeDay, spanMinutes, timeToMinutes, weekdayShort } from "@/lib/time"
 import { useSummary } from "@/store/derived"
 import { useStore, type SleepNight } from "@/store/store"
 import { TopBar } from "@/shell/TopBar"
@@ -16,6 +16,7 @@ import { Card } from "@/ui/Card"
 import { Bars } from "@/ui/charts"
 import { Button, Chip, SectionHead, Segmented } from "@/ui/controls"
 import { Dots } from "@/ui/Dots"
+import { Mascot } from "@/ui/Mascot"
 
 export const SOUNDS: { id: SoundMode; label: string }[] = [
   { id: "off", label: "Тишина" },
@@ -24,26 +25,39 @@ export const SOUNDS: { id: SoundMode; label: string }[] = [
   { id: "drone", label: "Дрон" },
 ]
 
-const AXIS_START = 21 * 60
-const AXIS_SPAN = 14 * 60
-const axisPos = (hhmm: string) => (((timeToMinutes(hhmm) - AXIS_START + 1440) % 1440) / AXIS_SPAN) * 100
+const AXIS_START = -3 * 60
+const AXIS_END = 11 * 60
+const MIN_BAR_HEIGHT = 4
 
-/** Bedtime-to-wake span for every night on a 21:00–11:00 axis. */
+/** Endpoints in minutes relative to midnight on the wake date. */
+function sleepWindow(bedtime: string, wakeTime: string) {
+  const wake = timeToMinutes(wakeTime)
+  return { bed: wake - (bedtime === wakeTime ? 0 : spanMinutes(bedtime, wakeTime)), wake }
+}
+
 function SleepWindows({ nights, bedGoal, wakeGoal }: { nights: SleepNight[]; bedGoal: string; wakeGoal: string }) {
+  const goal = sleepWindow(bedGoal, wakeGoal)
+  const windows = nights.map((night) => ({ night, ...sleepWindow(night.bedtime, night.wakeTime) }))
+  const start = Math.min(AXIS_START, goal.bed, ...windows.map(({ bed }) => bed))
+  const end = Math.max(AXIS_END, goal.wake, ...windows.map(({ wake }) => wake))
+  const latestBed = Math.max(...windows.map(({ bed }) => bed))
+  const span = Math.max(end - start, (latestBed - start) / (1 - MIN_BAR_HEIGHT / 100))
+  const axisPos = (minutes: number) => ((minutes - start) / span) * 100
+
   return (
     <div className="relative flex h-full gap-[5px] pl-9">
       {[
-        [bedGoal, axisPos(bedGoal)],
-        [wakeGoal, axisPos(wakeGoal)],
+        [bedGoal, axisPos(goal.bed)],
+        [wakeGoal, axisPos(goal.wake)],
       ].map(([label, top]) => (
         <div key={label} className="pointer-events-none absolute inset-x-0" style={{ top: `${top}%` }}>
           <span className="absolute -top-[6px] left-0 text-[10px] leading-none text-ink-3">{label}</span>
           <div className="ml-9 border-t border-dashed border-white/25" />
         </div>
       ))}
-      {nights.map((n, i) => {
-        const top = axisPos(n.bedtime)
-        const bottom = axisPos(n.wakeTime)
+      {windows.map(({ night: n, bed, wake }, i) => {
+        const top = axisPos(bed)
+        const bottom = axisPos(wake)
         return (
           <div key={n.id} className="relative min-w-0 flex-1">
             <div
@@ -52,7 +66,7 @@ function SleepWindows({ nights, bedGoal, wakeGoal }: { nights: SleepNight[]; bed
                 "absolute inset-x-0 mx-auto max-w-[22px] rounded-full",
                 i === nights.length - 1 ? "bg-lime shadow-[0_0_22px_-4px_rgb(217_242_74/0.8)]" : "bg-white/24"
               )}
-              style={{ top: `${top}%`, height: `${Math.max(4, bottom - top)}%` }}
+              style={{ top: `${top}%`, height: `${Math.max(MIN_BAR_HEIGHT, bottom - top)}%` }}
             />
           </div>
         )
@@ -148,7 +162,7 @@ export function SleepScreen() {
               {last && <span className="rounded-full bg-white/16 px-3 py-1.5 text-[12px] font-medium">{qualityLabel(last.quality)}</span>}
             </div>
             <div className="mt-8 flex items-end gap-3">
-              {last ? <Dots value={hm(last.durationMin)} shape="square" className="text-[64px]" /> : <span className="text-[64px] leading-none">—</span>}
+              {last ? <Dots value={hm(last.durationMin)} shape="square" className="text-[64px]" /> : <Mascot size={80} />}
               {last && <span className="pb-0.5 text-[17px] text-white/65">ч</span>}
             </div>
             {last ? (

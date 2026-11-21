@@ -63,7 +63,7 @@ it.each(["write", "share", "cancel"])('does not report success after native %s f
   if (failure === "write") expect(Share.share).not.toHaveBeenCalled()
 })
 
-it("keeps the browser JSON download without calling native plugins", () => {
+it("keeps the browser JSON download without calling native plugins", async () => {
   vi.spyOn(Capacitor, "isNativePlatform").mockReturnValue(false)
   const createObjectURL = vi.fn(() => "blob:export")
   const revokeObjectURL = vi.fn()
@@ -75,5 +75,5 @@ it("keeps the browser JSON download without calling native plugins", () => {
   expect(revokeObjectURL).toHaveBeenCalledWith("blob:export")
   expect(Filesystem.writeFile).not.toHaveBeenCalled()
   expect(Share.share).not.toHaveBeenCalled()
-  expect(state.notify).toHaveBeenCalledWith("Данные выгружены")
+  await waitFor(() => expect(state.notify).toHaveBeenCalledWith("Данные выгружены"))
 })
