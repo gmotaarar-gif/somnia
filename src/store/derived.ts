@@ -1,10 +1,12 @@
 import * as React from "react"
 import { summarize, type Summary } from "@/lib/metrics"
 import { useStore } from "@/store/store"
+import { dateKey } from "@/lib/time"
 
 export function useSummary(span = 7): Summary {
   const { nights, moods, bedGoal, wakeGoal } = useStore()
-  return React.useMemo(() => summarize(nights, moods, bedGoal, wakeGoal, span), [nights, moods, bedGoal, wakeGoal, span])
+  const today = dateKey(new Date())
+  return React.useMemo(() => summarize(nights, moods, bedGoal, wakeGoal, span), [nights, moods, bedGoal, wakeGoal, span, today])
 }
 
 /** Re-render on a wall-clock interval (countdowns, greetings). */
