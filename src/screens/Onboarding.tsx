@@ -33,7 +33,7 @@ const CHRONO: { value: Chronotype; label: string; bed: string; wake: string }[] 
 ]
 
 const TIRED = ["Редко", "Иногда", "Часто", "Почти всегда"]
-const STARTER: Widget["id"][] = ["w-streak", "w-sleep", "w-evening", "w-water", "w-breath", "w-mood", "w-plan", "w-cycle"]
+const STARTER: Widget["id"][] = ["w-streak", "w-evening", "w-water", "w-breath", "w-cycle", "w-rhythm", "w-debt", "w-wellbeing"]
 const BUILD = ["Считаем цель сна", "Подбираем окно отбоя", "Собираем главный экран", "Настраиваем напоминание"]
 const STEPS = 9
 

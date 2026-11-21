@@ -43,6 +43,24 @@ describe("StoreProvider", () => {
     })
   })
 
+  it("hides widgets the home screen already covers once for older installs", () => {
+    const widgets = [
+      { id: "w-sleep", kind: "sleep", size: "1x1", tone: "plum", visible: true },
+      { id: "w-water", kind: "water", size: "1x1", tone: "lime", visible: true },
+    ]
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ widgets }))
+
+    const first = renderHook(useStore, { wrapper: StoreProvider })
+    const shown = () => first.result.current.widgets.filter((w) => w.visible).map((w) => w.id)
+    expect(shown()).toEqual(["w-water"])
+
+    act(() => first.result.current.updateWidget("w-sleep", { visible: true }))
+    first.unmount()
+
+    const { result } = renderHook(useStore, { wrapper: StoreProvider })
+    expect(result.current.widgets.filter((w) => w.visible).map((w) => w.id)).toEqual(["w-sleep", "w-water"])
+  })
+
   it("falls back to the default schedule when saved JSON is invalid", () => {
     localStorage.setItem(STORAGE_KEY, "{invalid")
 

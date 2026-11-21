@@ -204,19 +204,23 @@ const DEFAULT_SPECTRUM: SpectrumAxis[] = [
 
 export const DEFAULT_WIDGETS: Widget[] = [
   { id: "w-streak", kind: "streak", size: "1x1", tone: "ink", visible: true },
-  { id: "w-sleep", kind: "sleep", size: "1x1", tone: "plum", visible: true },
+  { id: "w-sleep", kind: "sleep", size: "1x1", tone: "plum", visible: false },
   { id: "w-evening", kind: "evening", size: "2x1", tone: "cobalt", visible: true },
   { id: "w-water", kind: "water", size: "1x1", tone: "lime", visible: true },
-  { id: "w-breath", kind: "breath", size: "1x1", tone: "coral", visible: true },
-  { id: "w-week", kind: "week", size: "2x1", tone: "forest", visible: true },
-  { id: "w-mood", kind: "mood", size: "1x1", tone: "moss", visible: true },
-  { id: "w-energy", kind: "energy", size: "1x1", tone: "ember", visible: true },
-  { id: "w-rhythm", kind: "rhythm", size: "2x1", tone: "dusk", visible: true },
+  { id: "w-breath", kind: "breath", size: "1x1", tone: "coral", visible: false },
+  { id: "w-week", kind: "week", size: "2x1", tone: "forest", visible: false },
+  { id: "w-mood", kind: "mood", size: "1x1", tone: "moss", visible: false },
+  { id: "w-energy", kind: "energy", size: "1x1", tone: "ember", visible: false },
+  { id: "w-rhythm", kind: "rhythm", size: "2x1", tone: "dusk", visible: false },
   { id: "w-debt", kind: "debt", size: "1x1", tone: "rose", visible: false },
   { id: "w-plan", kind: "plan", size: "2x1", tone: "ink", visible: false },
   { id: "w-cycle", kind: "cycle", size: "1x1", tone: "cobalt", visible: false },
   { id: "w-wellbeing", kind: "wellbeing", size: "1x1", tone: "moss", visible: false },
 ]
+
+const HOME_LAYOUT = 2
+/** Built-in widgets whose numbers the home screen already shows. */
+const REDUNDANT_WIDGETS = new Set<WidgetKind>(["sleep", "mood", "week", "energy", "plan"])
 
 interface Persisted {
   onboarded: boolean
@@ -243,6 +247,8 @@ interface Persisted {
   wellbeing: WellbeingResult[]
   /** Minutes after which night sounds fade out; 0 keeps them on */
   soundTimer: number
+  /** Home layout generation; older installs get the calmer set once */
+  layout: number
 }
 
 const today = () => dateKey(new Date())
@@ -272,6 +278,7 @@ function defaults(): Persisted {
     worries: [],
     wellbeing: [{ at: daysAgo(6).toISOString(), score: 64 }],
     soundTimer: 30,
+    layout: HOME_LAYOUT,
   }
 }
 
@@ -306,9 +313,14 @@ function load(): Persisted {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return base
-    const saved = rollDay({ ...base, ...(JSON.parse(raw) as Partial<Persisted>) }, today())
+    const parsed = JSON.parse(raw) as Partial<Persisted>
+    const saved = rollDay({ ...base, ...parsed }, today())
     saved.localAccount = normalizeLocalAccount(saved.localAccount)
     saved.nights = normalizeNights(saved.nights)
+    if (parsed.layout !== HOME_LAYOUT) {
+      if (parsed.widgets) saved.widgets = saved.widgets.map((w) => (REDUNDANT_WIDGETS.has(w.kind) ? { ...w, visible: false } : w))
+      saved.layout = HOME_LAYOUT
+    }
     // widgets added in later versions appear in the gallery of existing installs
     const missing = DEFAULT_WIDGETS.filter((w) => !saved.widgets.some((x) => x.id === w.id))
     if (missing.length) saved.widgets = [...saved.widgets, ...missing.map((w) => ({ ...w, visible: false }))]

@@ -1,15 +1,13 @@
-import { motion } from "framer-motion"
-import { Award as AwardIcon, Check, ChevronRight } from "lucide-react"
+import { AnimatePresence, motion } from "framer-motion"
+import { Check, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/cn"
 import { dayPlan, type PlanItem } from "@/lib/features"
-import { EASE_OUT } from "@/lib/motion"
-import { useAwards } from "@/store/awards"
+import { DUR, EASE_OUT } from "@/lib/motion"
 import { useStore } from "@/store/store"
-import { Ring } from "@/ui/charts"
 import { SectionHead } from "@/ui/controls"
 import { WATER_GOAL_ML } from "@/widgets/catalog"
 
-/** Five small steps for today; tapping an open step takes the user to where it is done. */
+/** Today's small steps: finished ones fold into the progress bar, open ones stay as actions. */
 export function DayPlan() {
   const s = useStore()
   const plan = dayPlan({
@@ -21,6 +19,7 @@ export function DayPlan() {
     ritualDone: s.ritual.done.length,
   })
   const done = plan.filter((p) => p.done).length
+  const open = plan.filter((p) => !p.done)
   const run = (id: PlanItem["id"]) => {
     if (id === "sleep") s.openSheet("sleep")
     else if (id === "mood") s.openSheet("mood")
@@ -29,46 +28,43 @@ export function DayPlan() {
   }
   return (
     <section aria-label="План дня">
-      <SectionHead title="План дня" hint={done === plan.length ? "Всё выполнено" : `${done} из ${plan.length} шагов`}>
-        <Ring value={done / plan.length} size={36} stroke={7}>
-          <span className="text-[11px] font-semibold tabular-nums">{done}</span>
-        </Ring>
-      </SectionHead>
-      <ul className="glass mt-4 divide-y divide-white/8 rounded-[30px] px-2">
-        {plan.map((p, i) => (
-          <motion.li key={p.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.35, ease: EASE_OUT, delay: 0.05 * i }}>
-            <button type="button" disabled={p.done} onClick={() => run(p.id)} className="press flex w-full items-center gap-3 px-2 py-3 text-left">
-              <span className={cn("grid size-7 shrink-0 place-items-center rounded-full transition-colors duration-250", p.done ? "bg-lime text-lime-ink" : "text-transparent ring-1 ring-inset ring-white/30")}>
-                <Check className="size-4" strokeWidth={3} />
-              </span>
-              <span className={cn("min-w-0 flex-1 text-[15px] transition-opacity duration-250", p.done && "text-ink-3 line-through")}>{p.label}</span>
-              <span className="shrink-0 text-[12px] text-ink-3">{p.hint}</span>
-              {!p.done && <ChevronRight className="size-4 shrink-0 text-ink-3" />}
-            </button>
-          </motion.li>
-        ))}
-      </ul>
+      <SectionHead title="План дня" hint={open.length ? `${done} из ${plan.length} выполнено` : "Всё выполнено"} />
+      <div className="glass mt-4 rounded-[30px] p-5">
+        <div className="flex gap-1.5" role="img" aria-label={`Выполнено ${done} из ${plan.length}`}>
+          {plan.map((p) => (
+            <span key={p.id} className={cn("h-1.5 flex-1 rounded-full transition-colors duration-350", p.done ? "bg-lime" : "bg-white/12")} />
+          ))}
+        </div>
+        {open.length === 0 ? (
+          <div className="mt-5 flex items-center gap-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-lime text-lime-ink">
+              <Check className="size-4" strokeWidth={3} />
+            </span>
+            <p className="text-[15px] leading-snug text-ink-2">Все шаги на сегодня сделаны. Хорошего вечера.</p>
+          </div>
+        ) : (
+          <ul className="-mx-2 -mb-2 mt-3">
+            <AnimatePresence initial={false}>
+              {open.map((p) => (
+                <motion.li
+                  key={p.id}
+                  layout
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: DUR.fast, ease: EASE_OUT }}
+                  className="overflow-hidden"
+                >
+                  <button type="button" onClick={() => run(p.id)} className="press flex w-full items-center gap-3 rounded-[18px] px-2 py-3 text-left hover:bg-white/5">
+                    <span className="size-[22px] shrink-0 rounded-full ring-[1.5px] ring-inset ring-white/30" />
+                    <span className="min-w-0 flex-1 truncate text-[15px]">{p.label}</span>
+                    <span className="shrink-0 text-[12px] text-ink-3">{p.hint}</span>
+                    <ChevronRight className="size-4 shrink-0 text-ink-3" />
+                  </button>
+                </motion.li>
+              ))}
+            </AnimatePresence>
+          </ul>
+        )}
+      </div>
     </section>
-  )
-}
-
-export function AwardsStrip() {
-  const { openSheet } = useStore()
-  const awards = useAwards()
-  const done = awards.filter((a) => a.done).length
-  const next = awards.find((a) => !a.done)
-  return (
-    <button type="button" onClick={() => openSheet("awards")} className="press glass flex w-full items-center gap-4 rounded-[30px] p-3 pr-4 text-left">
-      <Ring value={done / awards.length} size={48} stroke={7}>
-        <AwardIcon className="size-[18px]" />
-      </Ring>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[15px] font-semibold tracking-[-0.01em]">Достижения: {done} из {awards.length}</span>
-        <span className="mt-0.5 block truncate text-[13px] text-ink-2">
-          {next ? `Дальше: ${next.title.toLowerCase()} · ${Math.round(next.progress * 100)}%` : "Все открыты"}
-        </span>
-      </span>
-      <ChevronRight className="size-5 shrink-0 text-ink-3" />
-    </button>
   )
 }
