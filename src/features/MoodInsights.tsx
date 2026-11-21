@@ -120,10 +120,11 @@ function InsightsContent() {
 
 export function MoodInsights() {
   const [open, setOpen] = React.useState(false)
+  const opener = React.useRef<HTMLButtonElement>(null)
   return <>
-    <button type="button" onClick={() => setOpen(true)} className="press mb-4 flex w-full items-center gap-4 rounded-[26px] bg-gradient-to-br from-[#333a27] to-[#171e23] p-5 text-left ring-1 ring-inset ring-white/10">
+    <button ref={opener} type="button" onClick={() => setOpen(true)} className="press mb-4 flex w-full items-center gap-4 rounded-[26px] bg-gradient-to-br from-[#333a27] to-[#171e23] p-5 text-left ring-1 ring-inset ring-white/10">
       <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white/10"><Activity className="size-5 text-[#c6e788]" /></span><span className="min-w-0 flex-1"><span className="block text-[16px] font-semibold">Ваша картина состояния</span><span className="mt-1 block text-[12px] text-ink-2">Эмоции, энергия, стресс и связь со сном</span></span><ArrowUpRight className="size-5 shrink-0 text-ink-2" />
     </button>
-    <Sheet open={open} onClose={() => setOpen(false)} title="Картина состояния" description="Замечайте свои закономерности"><InsightsContent /></Sheet>
+    <Sheet open={open} onClose={() => setOpen(false)} onCloseAutoFocus={(event) => { event.preventDefault(); opener.current?.focus() }} title="Картина состояния" description="Замечайте свои закономерности"><InsightsContent /></Sheet>
   </>
 }

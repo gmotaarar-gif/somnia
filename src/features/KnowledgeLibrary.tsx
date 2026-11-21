@@ -106,10 +106,11 @@ function LibraryContent({ initialTopic, onPractice }: { initialTopic: Topic; onP
 
 export function KnowledgeLibrary({ topic = "mind" }: { topic?: Topic }) {
   const [open, setOpen] = React.useState(false)
+  const opener = React.useRef<HTMLButtonElement>(null)
   return <>
     <Card tone={topic === "sleep" ? "violet" : "mint"} className="my-4">
-      <button type="button" onClick={() => setOpen(true)} className="press flex w-full items-center gap-4 p-5 text-left"><span className="grid size-11 shrink-0 place-items-center rounded-full bg-white/10"><BookOpen className="size-5" /></span><span className="flex-1"><span className="block text-[16px] font-semibold">{topic === "sleep" ? "Узнать свой сон" : "Понять своё состояние"}</span><span className="mt-1 block text-[12px] text-ink-2">{topic === "sleep" ? "Фазы сна и привычки, которые помогают" : "Короткие материалы о дыхании и отдыхе"}</span></span><ArrowUpRight className="size-5 shrink-0 text-ink-2" /></button>
+      <button ref={opener} type="button" onClick={() => setOpen(true)} className="press flex w-full items-center gap-4 p-5 text-left"><span className="grid size-11 shrink-0 place-items-center rounded-full bg-white/10"><BookOpen className="size-5" /></span><span className="flex-1"><span className="block text-[16px] font-semibold">{topic === "sleep" ? "Узнать свой сон" : "Понять своё состояние"}</span><span className="mt-1 block text-[12px] text-ink-2">{topic === "sleep" ? "Фазы сна и привычки, которые помогают" : "Короткие материалы о дыхании и отдыхе"}</span></span><ArrowUpRight className="size-5 shrink-0 text-ink-2" /></button>
     </Card>
-    <Sheet open={open} onClose={() => setOpen(false)} title="Библиотека спокойствия" description="Меньше загадок, больше заботы о себе"><LibraryContent initialTopic={topic} onPractice={() => setOpen(false)} /></Sheet>
+    <Sheet open={open} onClose={() => setOpen(false)} onCloseAutoFocus={(event) => { event.preventDefault(); opener.current?.focus() }} title="Библиотека спокойствия" description="Меньше загадок, больше заботы о себе"><LibraryContent initialTopic={topic} onPractice={() => setOpen(false)} /></Sheet>
   </>
 }

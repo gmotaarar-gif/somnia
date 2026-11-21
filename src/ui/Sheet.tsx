@@ -10,6 +10,7 @@ import { IconButton } from "@/ui/controls"
 interface SheetProps {
   open: boolean
   onClose: () => void
+  onCloseAutoFocus?: (event: Event) => void
   title: string
   description?: string
   children: React.ReactNode
@@ -22,7 +23,7 @@ interface SheetProps {
 }
 
 /** Bottom sheet rendered inside the phone screen. */
-export function Sheet({ open, onClose, title, description, children, footer, bare, form, className }: SheetProps) {
+export function Sheet({ open, onClose, onCloseAutoFocus, title, description, children, footer, bare, form, className }: SheetProps) {
   const drag = useDragControls()
   const container = useScreenEl()
   return (
@@ -40,7 +41,7 @@ export function Sheet({ open, onClose, title, description, children, footer, bar
               />
             </Dialog.Overlay>
             <div className="pointer-events-none fixed inset-0 z-50 flex items-end justify-center">
-            <Dialog.Content asChild forceMount aria-describedby={undefined}>
+            <Dialog.Content asChild forceMount aria-describedby={undefined} onCloseAutoFocus={onCloseAutoFocus}>
               <motion.div
                 className={cn(
                   "pointer-events-auto relative flex max-h-[93%] w-full flex-col overflow-hidden rounded-t-[40px] bg-[#0d0d13] shadow-[inset_0_1px_0_rgb(255_255_255/0.16),0_-30px_80px_rgb(0_0_0/0.6)] outline-none",
