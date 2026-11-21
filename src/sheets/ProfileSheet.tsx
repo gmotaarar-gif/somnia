@@ -15,6 +15,9 @@ const CHRONOTYPES: { value: Chronotype; label: string; hint: string; icon: Lucid
 export function ProfileSheet() {
   const s = useStore()
   const [confirm, setConfirm] = React.useState<"widgets" | "journal" | null>(null)
+  const widgetActionRef = React.useRef<HTMLDivElement>(null)
+  const journalActionRef = React.useRef<HTMLDivElement>(null)
+  const restoreFocus = React.useRef<"widgets" | "journal" | null>(null)
   const open = s.sheet === "profile"
   const nameId = React.useId()
   const chronoId = React.useId()
@@ -25,6 +28,20 @@ export function ProfileSheet() {
   React.useEffect(() => {
     if (!open) setConfirm(null)
   }, [open])
+
+  React.useLayoutEffect(() => {
+    const action = restoreFocus.current
+    if (confirm || !action) return
+    restoreFocus.current = null
+    if (!open) return
+    const container = action === "widgets" ? widgetActionRef.current : journalActionRef.current
+    container?.querySelector("button")?.focus({ preventScroll: true })
+  }, [confirm, open])
+
+  const cancelConfirmation = () => {
+    restoreFocus.current = confirm
+    setConfirm(null)
+  }
 
   const close = () => {
     setConfirm(null)
@@ -139,13 +156,15 @@ export function ProfileSheet() {
               Дополнительные настройки <ChevronDown aria-hidden className="size-4 text-ink-2 group-open:rotate-180" />
             </summary>
             <div className="space-y-2 border-t border-hair px-3 pb-3 pt-2">
-              {confirm === "widgets" ? (
-                <ConfirmAction title="Восстановить виджеты?" description="Порядок, размеры и оформление стандартных виджетов вернутся к начальным настройкам." label="Да, восстановить" onCancel={() => setConfirm(null)} onConfirm={() => { s.resetWidgets(); setConfirm(null); s.notify("Виджеты восстановлены") }} />
-              ) : <ProfileRow icon={LayoutGrid} title="Восстановить виджеты" description="Вернуть стандартный набор и порядок" onClick={() => setConfirm("widgets")} />}
+              <div ref={widgetActionRef}>
+                {confirm === "widgets" ? (
+                  <ConfirmAction title="Восстановить виджеты?" description="Порядок, размеры и оформление стандартных виджетов вернутся к начальным настройкам." label="Да, восстановить" onCancel={cancelConfirmation} onConfirm={() => { s.resetWidgets(); setConfirm(null); s.notify("Виджеты восстановлены") }} />
+                ) : <ProfileRow icon={LayoutGrid} title="Восстановить виджеты" description="Вернуть стандартный набор и порядок" onClick={() => setConfirm("widgets")} />}
+              </div>
               <ProfileRow icon={RotateCcw} title="Пройти знакомство заново" description="Ещё раз настроить свой ритм" onClick={() => { s.patch({ onboarded: false }); close() }} />
-              <div className="px-1 pt-3">
+              <div ref={journalActionRef} className="px-1 pt-3">
                 {confirm === "journal" ? (
-                  <ConfirmAction title="Заменить журнал демо-данными?" description="Ваши записи и настройки будут заменены. Имя сохранится. Это нельзя отменить — сначала экспортируйте журнал." label="Да, заменить" danger onCancel={() => setConfirm(null)} onConfirm={() => { s.resetAll(); setConfirm(null); s.notify("Демо-данные восстановлены") }} />
+                  <ConfirmAction title="Заменить журнал демо-данными?" description="Ваши записи и настройки будут заменены. Имя сохранится. Это нельзя отменить — сначала экспортируйте журнал." label="Да, заменить" danger onCancel={cancelConfirmation} onConfirm={() => { s.resetAll(); setConfirm(null); s.notify("Демо-данные восстановлены") }} />
                 ) : <Button variant="danger" className="h-auto min-h-12 w-full py-3 text-[13px]" onClick={() => setConfirm("journal")}>Сбросить журнал к демо-данным</Button>}
               </div>
             </div>
