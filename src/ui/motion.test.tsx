@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
-import { MotionGlobalConfig, motion } from "framer-motion"
+import { MotionConfig, MotionGlobalConfig, motion } from "framer-motion"
 import { useState } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { Island } from "@/shell/Island"
