@@ -497,7 +497,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setWidgets,
       finishOnboarding: async (p: Partial<Persisted>) => {
         const granted = !p.reminder || await requestReminderPermission()
-        React.startTransition(() => setData((d) => ({ ...d, ...p, ...(p.reminder && { reminder: granted }), onboarded: true })))
+        const next = { ...latestData.current, ...p, ...(p.reminder && { reminder: granted }), onboarded: true }
+        React.startTransition(() => setData(next))
+        void syncReminders(next).catch(() => notify("Не удалось обновить напоминания. Попробуйте ещё раз."))
         if (!granted) notify("Разрешите уведомления для Somna в настройках телефона")
         return granted
       },

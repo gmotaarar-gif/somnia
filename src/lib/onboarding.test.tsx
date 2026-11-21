@@ -4,7 +4,7 @@ import { act, cleanup, renderHook } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { DEFAULT_WIDGETS, StoreProvider, useStore, type Widget } from "@/store/store"
 import { onboardingWidgets } from "./onboarding"
-import { requestReminderPermission } from "./notifications"
+import { requestReminderPermission, syncReminders } from "./notifications"
 
 vi.mock("./notifications", () => ({
   requestReminderPermission: vi.fn().mockResolvedValue(true),
@@ -53,6 +53,12 @@ describe("onboardingWidgets", () => {
 })
 
 describe("redoing onboarding", () => {
+  it("schedules unchanged default reminders after onboarding grants permission", async () => {
+    const { result } = renderHook(useStore, { wrapper: StoreProvider })
+    vi.mocked(syncReminders).mockClear()
+    await act(async () => { await result.current.finishOnboarding({ reminder: true, reminderTime: result.current.reminderTime }) })
+    expect(syncReminders).toHaveBeenCalledWith(expect.objectContaining({ reminder: true, reminderTime: "22:30", onboarded: true }))
+  })
   it.each([true, false])("requests permission before saving an enabled bedtime reminder (granted: %s)", async (granted) => {
     vi.mocked(requestReminderPermission).mockResolvedValueOnce(granted)
     const { result } = renderHook(useStore, { wrapper: StoreProvider })
