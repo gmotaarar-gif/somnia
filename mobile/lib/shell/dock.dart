@@ -112,7 +112,7 @@ class _DockState extends State<Dock> {
                             padding: const EdgeInsets.all(6),
                             child: LayoutBuilder(
                               builder: (context, constraints) {
-                                final labels = constraints.maxWidth >= 270;
+                          final labels = constraints.maxWidth >= 270;
                                 Widget tab(int i) {
                                   final (id, label, icon) = dockTabs[i];
                                   final active = store.tab == id;
