@@ -5,7 +5,7 @@ import { MotionConfig, motion } from "framer-motion"
 import { useState } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { Island } from "@/shell/Island"
-import { MotionProvider } from "./MotionProvider"
+import { MotionProvider, usePrefersReducedMotion } from "./MotionProvider"
 import { ScreenTransition } from "./ScreenTransition"
 
 const { store } = vi.hoisted(() => ({
@@ -122,4 +122,22 @@ it("retains the mobile toast during its exit rather than unmounting it abruptly"
   rerender(<MotionConfig reducedMotion="never"><Island /></MotionConfig>)
   expect(screen.queryByRole("status")).not.toBeNull()
   await waitFor(() => expect(screen.queryByRole("status")).toBeNull())
+})
+
+it("restarts a decorative loop when clearing reduced motion", async () => {
+  function Pulse() {
+    const reduce = usePrefersReducedMotion()
+    return <motion.div key={String(reduce)} data-testid="pulse" animate={{ scale: reduce ? 1 : [1, 1.2, 1] }} transition={{ duration: 0.5, repeat: Infinity }} />
+  }
+  render(<MotionProvider><Pulse /></MotionProvider>)
+  act(() => {
+    reduced = true
+    listeners.forEach((notify) => notify())
+  })
+  await waitFor(() => expect(screen.getByTestId("pulse").style.transform).toBe("none"))
+  act(() => {
+    reduced = false
+    listeners.forEach((notify) => notify())
+  })
+  await waitFor(() => expect(screen.getByTestId("pulse").style.transform).toMatch(/scale\(1\.\d+/))
 })

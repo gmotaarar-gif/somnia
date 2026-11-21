@@ -1,5 +1,5 @@
 import { MotionConfig, MotionGlobalConfig } from "framer-motion"
-import { useLayoutEffect, useSyncExternalStore, type ReactNode } from "react"
+import { useInsertionEffect, useSyncExternalStore, type ReactNode } from "react"
 
 const QUERY = "(prefers-reduced-motion: reduce)"
 const snapshot = () => window.matchMedia(QUERY).matches
@@ -18,9 +18,10 @@ export function usePrefersReducedMotion() {
 /** MotionConfig's reducedMotion flag alone still animates opacity, SVGs and delays. */
 export function MotionProvider({ children }: { children: ReactNode }) {
   const reduce = usePrefersReducedMotion()
-  useLayoutEffect(() => {
+  useInsertionEffect(() => {
     // This is the sole app root. Unlike per-element MotionConfig flags, the
     // public global switch is read on every animation, including mounted nodes.
+    // Set it before child layout effects start or restart their animations.
     const previous = MotionGlobalConfig.skipAnimations
     MotionGlobalConfig.skipAnimations = reduce
     return () => { MotionGlobalConfig.skipAnimations = previous }
