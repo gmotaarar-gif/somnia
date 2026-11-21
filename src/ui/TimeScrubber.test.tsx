@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { useState } from "react"
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { TimeScrubber } from "@/ui/TimeScrubber"
 
@@ -42,4 +42,29 @@ it("follows a value set from outside without reporting it back", () => {
   fireEvent.click(screen.getByText("preset"))
   expect(screen.getByRole("slider", { name: "Отбой" }).getAttribute("aria-valuetext")).toBe("07:30")
   expect(onChange).not.toHaveBeenCalled()
+})
+
+it("reports the snapped time when the value starts between steps", () => {
+  const onChange = vi.fn()
+  render(<Host initial="23:32" onChange={onChange} />)
+  const ruler = screen.getByRole("slider", { name: "Отбой" })
+  fireEvent.pointerDown(ruler, { clientX: 100 })
+  fireEvent.pointerUp(ruler, { clientX: 100 })
+  expect(ruler.getAttribute("aria-valuetext")).toBe("23:30")
+  expect(onChange).toHaveBeenLastCalledWith("23:30")
+})
+
+it("does not report the times it passes while turning to an outside value", () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: false, addEventListener() {}, removeEventListener() {} }))
+  vi.useFakeTimers()
+  try {
+    const onChange = vi.fn()
+    render(<Host initial="23:30" onChange={onChange} />)
+    fireEvent.click(screen.getByText("preset"))
+    act(() => { vi.advanceTimersByTime(5000) })
+    expect(screen.getByRole("slider", { name: "Отбой" }).getAttribute("aria-valuetext")).toBe("07:30")
+    expect(onChange).not.toHaveBeenCalled()
+  } finally {
+    vi.useRealTimers()
+  }
 })
