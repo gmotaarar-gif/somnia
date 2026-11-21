@@ -1,4 +1,5 @@
 import * as React from "react"
+import { Capacitor } from "@capacitor/core"
 import { BatteryFull, Signal, Wifi } from "lucide-react"
 import { clockOf } from "@/lib/time"
 import { useNow } from "@/store/derived"
@@ -17,15 +18,17 @@ export function useScreenEl() {
 }
 
 function useFramed() {
+  const native = Capacitor.isNativePlatform()
   const query = "(min-width: 520px) and (min-height: 560px)"
-  const [framed, setFramed] = React.useState(() => window.matchMedia(query).matches)
+  const [framed, setFramed] = React.useState(() => !native && window.matchMedia(query).matches)
   React.useEffect(() => {
+    if (native) return
     const mq = window.matchMedia(query)
     const on = () => setFramed(mq.matches)
     mq.addEventListener("change", on)
     return () => mq.removeEventListener("change", on)
-  }, [])
-  return framed
+  }, [native])
+  return !native && framed
 }
 
 function StatusBar() {

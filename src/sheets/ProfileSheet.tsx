@@ -1,4 +1,7 @@
 import * as React from "react"
+import { Capacitor } from "@capacitor/core"
+import { Directory, Encoding, Filesystem } from "@capacitor/filesystem"
+import { Share } from "@capacitor/share"
 import { Award as AwardIcon, ChevronRight, Download, LayoutGrid, RotateCcw, Sparkles, Trash2 } from "lucide-react"
 import { cn } from "@/lib/cn"
 import { durationRu, pluralRu, spanMinutes } from "@/lib/time"
@@ -60,16 +63,29 @@ export function ProfileSheet() {
   }
 
   const practiceMin = Math.round(s.sessions.reduce((a, x) => a + x.min, 0))
-  const exportData = () => {
+  const exportData = async () => {
     const { nights, moods, sessions, worries, wellbeing, bedGoal, wakeGoal } = s
-    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), bedGoal, wakeGoal, nights, moods, sessions, worries, wellbeing }, null, 2)], { type: "application/json" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "somna-export.json"
-    a.click()
-    URL.revokeObjectURL(url)
-    s.notify("Данные выгружены")
+    try {
+      const data = JSON.stringify({ exportedAt: new Date().toISOString(), bedGoal, wakeGoal, nights, moods, sessions, worries, wellbeing }, null, 2)
+      if (Capacitor.isNativePlatform()) {
+        const { uri } = await Filesystem.writeFile({ path: "somna-export.json", data, directory: Directory.Cache, encoding: Encoding.UTF8 })
+        const result = await Share.share({ title: "Somna", dialogTitle: "Экспорт данных", files: [uri] })
+        if (!result.activityType) throw new Error("Share cancelled")
+      } else {
+        const blob = new Blob([data], { type: "application/json" })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = "somna-export.json"
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+      s.notify("Данные выгружены")
+      return true
+    } catch {
+      s.notify("Не удалось выгрузить данные")
+      return false
+    }
   }
 
   return (
