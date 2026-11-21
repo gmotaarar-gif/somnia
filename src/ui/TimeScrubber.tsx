@@ -219,14 +219,14 @@ export function TimeScrubber({
     set(p.current.x + dm);
   };
 
-  const onUp = (e: React.PointerEvent<HTMLDivElement>) => {
+  const onUp = (e: React.PointerEvent<HTMLDivElement>, thrown = true) => {
     const g = drag.current;
     drag.current = null;
     try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* never captured */ }
     if (!g) return;
     /* a hand that stopped before letting go threw nothing */
     /* capped, so a flick spins it hours, never days */
-    const v = performance.now() - g.t > 80 ? 0 : clamp(g.v, -14, 14);
+    const v = !thrown || performance.now() - g.t > 80 ? 0 : clamp(g.v, -14, 14);
     const s = knobs.current.step;
     const carry = 6 + (clamp(knobs.current.momentum, 0, 100) / 100) * 30;
     const land = Math.round((p.current.x + v * carry) / s) * s;
@@ -295,8 +295,9 @@ export function TimeScrubber({
         aria-valuemax={DAY - 1}
         onPointerDown={onDown}
         onPointerMove={onMove}
-        onPointerUp={onUp}
-        onPointerCancel={onUp}
+        onPointerUp={(e) => onUp(e)}
+        /* the browser took the gesture for a scroll: settle, never fling */
+        onPointerCancel={(e) => onUp(e, false)}
         onKeyDown={(e) => {
           const d = e.key === "ArrowRight" || e.key === "ArrowUp" ? s : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -s : 0;
           if (!d) return;
