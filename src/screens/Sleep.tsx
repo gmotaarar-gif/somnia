@@ -148,8 +148,8 @@ export function SleepScreen() {
               {last && <span className="rounded-full bg-white/16 px-3 py-1.5 text-[12px] font-medium">{qualityLabel(last.quality)}</span>}
             </div>
             <div className="mt-8 flex items-end gap-3">
-              <Dots value={last ? hm(last.durationMin) : "--"} shape="square" className="text-[64px]" />
-              <span className="pb-0.5 text-[17px] text-white/65">ч</span>
+              {last ? <Dots value={hm(last.durationMin)} shape="square" className="text-[64px]" /> : <span className="text-[64px] leading-none">—</span>}
+              {last && <span className="pb-0.5 text-[17px] text-white/65">ч</span>}
             </div>
             {last ? (
               <>
@@ -279,7 +279,7 @@ export function SleepScreen() {
             <div className="flex items-end justify-between gap-3">
               <div>
                 <div className="flex items-end gap-1.5">
-                  <Dots value={!shown.length ? "--" : chart === "hours" ? hm(sum.avgDuration) : `${sum.accuracy}%`} className="text-[28px]" />
+                  {shown.length ? <Dots value={chart === "hours" ? hm(sum.avgDuration) : `${sum.accuracy}%`} className="text-[28px]" /> : <span className="text-[28px] leading-none">—</span>}
                 </div>
                 <div className="mt-2.5 text-[12px] text-ink-2">
                   {chart === "hours" ? `в среднем · цель ${durationRu(sum.target)}` : "ночей в пределах ±30 мин"}
@@ -304,9 +304,9 @@ export function SleepScreen() {
               )}
             </div>
             <div className="mt-6 grid grid-cols-3 gap-4 border-t border-white/8 pt-5">
-              <Stat label="Индекс" value={shown.length ? sum.index : "--"} note={!shown.length ? "Пока нет данных" : sum.indexDelta ? `${sum.indexDelta > 0 ? "+" : ""}${sum.indexDelta} к прошлому` : "без изменений"} />
-              <Stat label="Долг сна" value={shown.length ? hm(sum.debt) : "--"} note={!shown.length ? "Пока нет данных" : sum.debt > 90 ? "лягте раньше" : "в норме"} />
-              <Stat label="Спокойных" value={shown.length ? `${sum.calmNights}/${shown.length}` : "--"} note="без пробуждений" />
+              <Stat label="Индекс" value={shown.length ? sum.index : "—"} note={!shown.length ? "Пока нет данных" : sum.indexDelta ? `${sum.indexDelta > 0 ? "+" : ""}${sum.indexDelta} к прошлому` : "без изменений"} />
+              <Stat label="Долг сна" value={shown.length ? hm(sum.debt) : "—"} note={!shown.length ? "Пока нет данных" : sum.debt > 90 ? "лягте раньше" : "в норме"} />
+              <Stat label="Спокойных" value={shown.length ? `${sum.calmNights}/${shown.length}` : "—"} note="без пробуждений" />
             </div>
           </div>
         </Card>

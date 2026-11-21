@@ -36,7 +36,7 @@ function start() {
 
 async function finish() {
   for (let i = 0; i < 5; i++) await act(async () => { vi.advanceTimersByTime(620) })
-  fireEvent.click(screen.getByRole("button", { name: "Продолжить без регистрации" }))
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Продолжить без регистрации" })) })
   return JSON.parse(screen.getByTestId("journal").textContent!)
 }
 

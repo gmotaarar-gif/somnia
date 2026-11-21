@@ -66,4 +66,7 @@ it("does not label an empty journal as a disrupted sleep rhythm", () => {
   expect(screen.getByText("Пока нет данных")).toBeTruthy()
   expect(screen.queryByText("Режим сбит")).toBeNull()
   expect(screen.queryByText("0:00")).toBeNull()
+  expect(screen.queryByRole("img", { name: "--" })).toBeNull()
+  expect(screen.queryByText("ч", { exact: true })).toBeNull()
+  expect(screen.getAllByText("—", { exact: true })).toHaveLength(3)
 })

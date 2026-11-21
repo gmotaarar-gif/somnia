@@ -26,3 +26,24 @@ To run on an emulator or a USB device with debugging enabled:
 ```sh
 adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 ```
+
+## App icon
+
+`public/app-icon.png` is the user's cloud-and-black-sparkle artwork, with its
+baked-in outer checkerboard removed. Its corners extend to a square so each
+platform can apply its own mask. After editing it, regenerate the Android
+launcher PNGs, themed icon, favicon fallbacks, and Apple touch icon:
+
+```sh
+python -m pip install Pillow==12.0.0
+python scripts/generate_icons.py
+```
+
+Python is only needed to update the artwork, not for web or Android builds.
+API 26+ uses the supplied artwork as a flat adaptive background with a
+transparent foreground (no artificial parallax). The symbol fits Android's
+central safe area; edge pixels extend beyond the nominal 72dp viewport to
+cover launcher masks. API 33+ also provides the isolated monochrome symbol for
+launchers with themed icons enabled. Older devices use the density-specific
+square/round PNGs. Vite rewrites the web icon links for its configured base,
+including the GitHub Pages project path.
