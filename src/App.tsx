@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react"
+import { lazy, Suspense, useCallback, useLayoutEffect, useState, type ReactNode } from "react"
 import { MotionConfig } from "framer-motion"
 import { Aurora } from "@/shell/Aurora"
 import { Island } from "@/shell/Island"
@@ -9,8 +9,15 @@ import { StoreProvider, useStore } from "@/store/store"
 const Workspace = lazy(() => import("@/shell/Workspace"))
 const Onboarding = lazy(() => import("@/screens/Onboarding").then((module) => ({ default: module.Onboarding })))
 
+function InitialContent({ onReady, children }: { onReady: () => void; children: ReactNode }) {
+  useLayoutEffect(onReady, [onReady])
+  return children
+}
+
 function Shell() {
   const { onboarded, tab } = useStore()
+  const [ready, setReady] = useState(false)
+  const markReady = useCallback(() => setReady(true), [])
 
   const where = onboarded ? tab : "onboarding"
 
@@ -18,14 +25,16 @@ function Shell() {
     <PhoneFrame tab={where}>
       <Aurora tab={where} />
       <Suspense fallback={null}>
-        {onboarded ? <Workspace /> : (
-          <div id="app-scroll" className="app-scroll">
-            <Onboarding />
-          </div>
-        )}
+        <InitialContent onReady={markReady}>
+          {onboarded ? <Workspace /> : (
+            <div id="app-scroll" className="app-scroll">
+              <Onboarding />
+            </div>
+          )}
+        </InitialContent>
       </Suspense>
       <Island />
-      <Splash />
+      <Splash ready={ready} />
     </PhoneFrame>
   )
 }
