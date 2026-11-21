@@ -5,11 +5,13 @@ import { useImperativeHandle, useState, type Ref } from "react"
 import { motion } from "framer-motion"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import type { DistortionWaveHandle, DistortionWaveProps } from "distortion-waves"
-import { ScreenTransition } from "./ScreenTransition"
+import { ScreenTransition as AdaptiveScreenTransition, WaveScreenTransition as ScreenTransition } from "./ScreenTransition"
 
 // Exercise app lifecycle independently of WebGL; the package owns rendering
 // and its no-WebGL crossfade. Retain both views until it reports completion.
 const wave = vi.hoisted(() => ({ props: {} as DistortionWaveProps, prepare: vi.fn<() => Promise<void>>() }))
+const gpu = vi.hoisted(() => ({ ready: true }))
+vi.mock("./wavePerformance", () => ({ useWavePerformance: () => gpu.ready }))
 vi.mock("distortion-waves", () => ({
   DistortionWave: ({ ref, ...props }: DistortionWaveProps & { ref: Ref<DistortionWaveHandle> }) => {
     useImperativeHandle(ref, () => ({
@@ -26,6 +28,7 @@ let reduced = false
 const listeners = new Set<() => void>()
 beforeEach(() => {
   reduced = false
+  gpu.ready = true
   wave.prepare.mockReset().mockResolvedValue(undefined)
   listeners.clear()
   vi.stubGlobal("matchMedia", () => ({
@@ -224,4 +227,67 @@ it("reveals the live destination if playback never completes and skips later slo
   expect(screen.getByRole("main").textContent).toBe("practices")
   await act(async () => { vi.advanceTimersByTime(5000) })
   expect(screen.getByRole("main").textContent).toBe("practices")
+})
+
+it("never prepares or captures on an unverified or slow GPU, including the first switch", async () => {
+  gpu.ready = false
+  wave.prepare.mockImplementation(() => { throw new Error("Must not initialize WebGL") })
+  const view = (key: string) => <AdaptiveScreenTransition screenKey={key}>{key}</AdaptiveScreenTransition>
+  const { rerender } = render(view("today"))
+  for (const key of ["sleep", "mind", "practices", "today"]) {
+    rerender(view(key))
+    await ready()
+    expect(screen.getByRole("main").textContent).toBe(key)
+    expect(screen.queryByTestId("wave")).toBeNull()
+  }
+  expect(wave.prepare).not.toHaveBeenCalled()
+})
+
+it("does not remount the current screen when the background GPU check succeeds", () => {
+  gpu.ready = false
+  function Counter() {
+    const [count, setCount] = useState(0)
+    return <button onClick={() => setCount(count + 1)}>Count {count}</button>
+  }
+  const content = <AdaptiveScreenTransition screenKey="today"><Counter /></AdaptiveScreenTransition>
+  const { rerender } = render(content)
+  fireEvent.click(screen.getByText("Count 0"))
+  const button = screen.getByText("Count 1")
+  gpu.ready = true
+  rerender(<AdaptiveScreenTransition screenKey="today"><Counter /></AdaptiveScreenTransition>)
+  expect(screen.getByText("Count 1")).toBe(button)
+  expect(screen.queryByTestId("wave")).toBeNull()
+})
+
+it("does not upgrade a live navigation session when the GPU check arrives late", () => {
+  gpu.ready = false
+  const view = (key: string) => <AdaptiveScreenTransition screenKey={key}>{key}</AdaptiveScreenTransition>
+  const { rerender } = render(view("today"))
+  rerender(view("sleep"))
+  gpu.ready = true
+  rerender(view("mind"))
+  expect(screen.getByRole("main").textContent).toBe("mind")
+  expect(screen.queryByTestId("wave")).toBeNull()
+  expect(wave.prepare).not.toHaveBeenCalled()
+})
+
+it("mounts live fallback content visibly without waiting for entrance animation frames", () => {
+  gpu.ready = false
+  const { rerender } = render(<AdaptiveScreenTransition screenKey="today">Today</AdaptiveScreenTransition>)
+  rerender(<AdaptiveScreenTransition screenKey="sleep">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>Live sleep chart</motion.div>
+  </AdaptiveScreenTransition>)
+  expect(screen.getByText("Live sleep chart").style.opacity).toBe("1")
+})
+
+it("shows the first destination immediately and reserves verified waves for later switches", async () => {
+  const view = (key: string) => <AdaptiveScreenTransition screenKey={key}>{key}</AdaptiveScreenTransition>
+  const { rerender } = render(view("today"))
+  rerender(view("sleep"))
+  expect(screen.getByRole("main").textContent).toBe("sleep")
+  expect(wave.prepare).not.toHaveBeenCalled()
+  rerender(view("mind"))
+  await ready()
+  expect(wave.prepare).toHaveBeenCalled()
+  expect(wave.props.revealed).toBe(true)
 })

@@ -3,6 +3,7 @@ import { AnimatePresence } from "framer-motion"
 import { DistortionWave, type DistortionWaveHandle, type WaveStyleInput, type WaveType } from "distortion-waves"
 import { usePrefersReducedMotion } from "./MotionProvider"
 import { createWaveCapture } from "./waveCapture"
+import { useWavePerformance } from "./wavePerformance"
 
 // A short section change, not a full-screen celebration on every tap.
 const WAVE: WaveStyleInput = {
@@ -35,15 +36,46 @@ const CAPTURE_BUDGET = 1200
 // Include playback too: a software GPU can prepare quickly but draw very slowly.
 const NAVIGATION_BUDGET = 2500
 
-/** Two real DOM views; only the destination is interactive or exposed to AT.
- * Alternate slots so settling a wave never remounts the destination screen.
- */
-export function ScreenTransition({ screenKey, children, overlay }: {
+type ScreenTransitionProps = {
   screenKey: string
   direction?: number
   children: ReactNode
   overlay?: ReactNode
-}) {
+}
+
+function LiveScreen({ screenKey, children, overlay }: ScreenTransitionProps) {
+  return (
+    <div className="absolute inset-0 z-10 overflow-hidden rounded-[inherit]">
+      <main className="relative h-full min-h-0 overflow-hidden bg-bg" data-active-screen="true">
+        <AnimatePresence key={screenKey} initial={false}>
+          <Fragment key={screenKey}>{children}</Fragment>
+        </AnimatePresence>
+      </main>
+      {overlay}
+    </div>
+  )
+}
+
+/** Never put the first tab change behind capture or the library's visibility
+ * controller. Opt into waves only at a screen boundary, after a successful
+ * off-thread probe; a late result cannot remount an in-progress local edit.
+ */
+export function ScreenTransition(props: ScreenTransitionProps) {
+  const reduce = usePrefersReducedMotion()
+  const fastRenderer = useWavePerformance(!reduce)
+  const [mode, setMode] = useState({ initialKey: props.screenKey, value: "checking" as "checking" | "live" | "wave" })
+  if (mode.value === "checking" && props.screenKey !== mode.initialKey) {
+    // Conservative for the whole session if the user gets here before the
+    // probe. Even reducedMotion/capture=false still lets the library hide DOM.
+    setMode({ ...mode, value: fastRenderer && !reduce ? "wave" : "live" })
+  }
+  return mode.value === "wave" ? <WaveScreenTransition {...props} /> : <LiveScreen {...props} />
+}
+
+/** Two real DOM views on a verified renderer; only the destination is
+ * interactive or exposed to AT. Settling never remounts the destination.
+ */
+export function WaveScreenTransition({ screenKey, children, overlay }: ScreenTransitionProps) {
   const reduce = usePrefersReducedMotion()
   const wave = useRef<DistortionWaveHandle>(null)
   const preparation = useRef(Promise.resolve())
@@ -151,16 +183,7 @@ export function ScreenTransition({ screenKey, children, overlay }: {
 
   // Exceptional recovery: release the slow renderer and mount the current
   // screen visibly. Further section changes use ordinary DOM navigation.
-  if (skipPlayback) return (
-    <div className="absolute inset-0 z-10 overflow-hidden rounded-[inherit]">
-      <main className="relative h-full min-h-0 overflow-hidden bg-bg" data-active-screen="true">
-        <AnimatePresence initial={false}>
-          <Fragment key={screenKey}>{children}</Fragment>
-        </AnimatePresence>
-      </main>
-      {overlay}
-    </div>
-  )
+  if (skipPlayback) return <LiveScreen screenKey={screenKey} overlay={overlay}>{children}</LiveScreen>
 
   return (
     <DistortionWave
@@ -175,7 +198,8 @@ export function ScreenTransition({ screenKey, children, overlay }: {
       palette="colorful"
       waveStyle={WAVE}
       resolution={1}
-      capture={pictures.capture}
+      // A reduced-motion/capture-timeout fallback must not start new captures.
+      capture={crossfade ? false : pictures.capture}
       prewarm={false}
       live={false}
       reducedMotion={crossfade ? "always" : "system"}

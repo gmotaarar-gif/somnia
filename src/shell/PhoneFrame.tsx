@@ -3,6 +3,8 @@ import { Capacitor } from "@capacitor/core"
 import { BatteryFull, Signal, Wifi } from "lucide-react"
 import { clockOf } from "@/lib/time"
 import { useNow } from "@/store/derived"
+import { usePrefersReducedMotion } from "@/ui/MotionProvider"
+import { useWavePerformance } from "@/ui/wavePerformance"
 
 const ScreenContext = React.createContext<HTMLElement | null>(null)
 const FramedContext = React.createContext(false)
@@ -51,6 +53,8 @@ function StatusBar() {
  */
 export function PhoneFrame({ tab, children }: { tab: string; children: React.ReactNode }) {
   const framed = useFramed()
+  const reduce = usePrefersReducedMotion()
+  const fullEffects = useWavePerformance(!reduce)
   const [el, setEl] = React.useState<HTMLElement | null>(null)
 
   const screen = (
@@ -71,7 +75,7 @@ export function PhoneFrame({ tab, children }: { tab: string; children: React.Rea
   // Keep the screen at the same tree position across breakpoints: remounting
   // resets lazy navigation, open sheets and any in-progress local edits.
   return (
-    <div className={framed ? "stage" : "contents"} data-tab={tab}>
+    <div className={framed ? "stage" : "contents"} data-tab={tab} data-render-effects={fullEffects ? "full" : "simple"}>
       <div className={framed ? "phone" : "contents"}>
         {framed && (
           <>
