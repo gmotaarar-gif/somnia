@@ -48,6 +48,9 @@ class SomnaCard extends StatelessWidget {
                 painter: _CardPainter(
                   tone: cardTones[tone],
                   sleepHero: sleepHero,
+                  rim: Theme.of(context).brightness == Brightness.dark
+                      ? .72
+                      : .95,
                 ),
                 foregroundPainter: _HighlightPainter(radius),
                 child: Stack(
@@ -86,7 +89,8 @@ class SomnaCard extends StatelessWidget {
 class _CardPainter extends CustomPainter {
   final CardTone? tone;
   final bool sleepHero;
-  const _CardPainter({this.tone, required this.sleepHero});
+  final double rim;
+  const _CardPainter({this.tone, required this.sleepHero, this.rim = .72});
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
@@ -139,7 +143,18 @@ class _CardPainter extends CustomPainter {
         const [1, .88, .42, 0],
       );
     } else {
-      canvas.drawRect(rect, Paint()..color = const Color(0xff171719));
+      // The web's plain `.card`: smoked black that lets the field through at the rim.
+      _ellipse(
+        canvas,
+        size,
+        const Color(0xff050506),
+        .5,
+        .48,
+        1.25,
+        .85,
+        const [0, .36, 1],
+        [1, .96, rim],
+      );
     }
   }
 
@@ -171,7 +186,7 @@ class _CardPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_CardPainter old) =>
-      old.tone != tone || old.sleepHero != sleepHero;
+      old.tone != tone || old.sleepHero != sleepHero || old.rim != rim;
 }
 
 class _HighlightPainter extends CustomPainter {
