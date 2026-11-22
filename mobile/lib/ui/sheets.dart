@@ -5,6 +5,8 @@ import 'package:material_ui/material_ui.dart';
 import '../data/store.dart';
 import '../mind/mood_sheet.dart';
 import '../mind/wellbeing_sheet.dart';
+import '../sheets/article_sheet.dart';
+import '../sheets/practice_sheets.dart';
 import '../theme/theme.dart';
 import '../theme/tokens.dart';
 
@@ -18,6 +20,19 @@ class SheetRegistry extends ChangeNotifier {
       darkSurface: moodSheetSurface,
     );
     register('wellbeing', (context, arg) => const WellbeingSheet());
+    register('article', (context, arg) => ArticleSheet(id: arg));
+    register('grounding', (context, arg) => const GroundingSheet());
+    register('worry', (context, arg) => const WorrySheet());
+    // Without Plus the body scan hands over to the Plus sheet once that is
+    // registered (web: SubscriptionSheet opens for a locked practice).
+    register(
+      'bodyscan',
+      (context, arg) => BodyScanSheet(
+        locked: (context) => contains('subscription')
+            ? build(context, 'subscription', arg)
+            : const PlusGate(),
+      ),
+    );
   }
   final Map<String, SomnaSheetBuilder> _builders = {};
   final Map<String, Color> _darkSurfaces = {};
@@ -53,7 +68,6 @@ class SheetRegistry extends ChangeNotifier {
             Text(switch (id) {
               'sleep' => 'Записать сон',
               'mood' => 'Чек-ин состояния',
-              'bodyscan' => 'Сканирование тела',
               _ => 'Скоро здесь',
             }, style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 16),
