@@ -8,7 +8,7 @@ Android uses `app.somna`, label `Somna`, version `1.0.0+2`.
 - `lib/data/models.dart`: persisted contracts with the web's JSON field names.
   `SomnaWidget` avoids Flutter's `Widget` name. String aliases retain web enum
   values (including legacy `breath` practice sessions).
-- `lib/data/defaults.dart`: current web demo data and default widget gallery.
+- `lib/data/defaults.dart`: empty fresh-install state and default widget gallery.
 - `lib/data/store.dart`: `SomnaStore`, normalization, actions and `SomnaScope`.
   Initialize with `await SomnaStore.load()`, then wrap the app in
   `SomnaScope(store: store, child: ...)`. Read with `SomnaScope.of(context)`.

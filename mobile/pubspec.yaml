@@ -68,6 +68,9 @@ flutter:
   assets:
     - assets/images/grain-160.png
     - assets/fonts/OFL.txt
+  shaders:
+    - shaders/mesh_drift.frag
+    - shaders/wave.frag
   fonts:
     - family: Onest
       fonts:

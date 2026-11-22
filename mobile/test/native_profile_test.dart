@@ -37,15 +37,16 @@ void main() {
       await tester.pumpAndSettle();
       store.openSheet('profile');
       await tester.pumpAndSettle();
-      for (var i = 0; i < 2; i++) {
-        final toggle = find.byType(SwitchListTile).at(i);
+      for (final label in ['Напоминать об отбое', 'Утренний чек-ин']) {
+        final toggle = find.bySemanticsLabel(label);
         await tester.ensureVisible(toggle);
         await tester.tap(toggle);
         await tester.pumpAndSettle();
       }
       expect(store.reminder, true);
       expect(store.morningReminder, true);
-      final time = find.text('Время вечером');
+      expect(find.text('Время чек-ина'), findsOneWidget);
+      final time = find.text('Время');
       await tester.ensureVisible(time);
       await tester.tap(time);
       await tester.pumpAndSettle();
