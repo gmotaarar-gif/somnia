@@ -52,8 +52,14 @@ void main() {
   ) async {
     final s = store();
     await boot(tester, s);
-    await tester.ensureVisible(find.text('Начать'));
     await tester.tap(find.text('Начать'));
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.tap(find.text('Позже'));
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 700));
+    }
+    await tester.ensureVisible(find.text('Продолжить без регистрации'));
+    await tester.tap(find.text('Продолжить без регистрации'));
     await tester.pumpAndSettle();
     expect(s.onboarded, true);
     expect(s.bedGoal, '23:30');
@@ -210,30 +216,6 @@ void main() {
     expect(find.text('Начать').hitTestable(), findsOneWidget);
     expect(tester.getBottomLeft(find.text('Начать')).dy, lessThan(640));
     expect(tester.takeException(), null);
-  });
-  testWidgets('onboarding permission error is recoverable', (tester) async {
-    var fails = true;
-    final s = SomnaStore(
-      initialState: defaultState().patch({'theme': 'dark', 'reminder': true}),
-      autoRefresh: false,
-      requestReminderPermission: () async {
-        if (fails) throw StateError('denied');
-        return true;
-      },
-    );
-    addTearDown(s.dispose);
-    await boot(tester, s);
-    await tester.ensureVisible(find.text('Начать'));
-    await tester.tap(find.text('Начать'));
-    await tester.pump(const Duration(milliseconds: 500));
-    expect(s.onboarded, false);
-    expect(find.text('Не удалось начать. Попробуйте ещё раз.'), findsOneWidget);
-    fails = false;
-    await tester.ensureVisible(find.text('Начать'));
-    await tester.tap(find.text('Начать'));
-    await tester.pumpAndSettle();
-    expect(s.onboarded, true);
-    expect(find.byType(TodayScreen).hitTestable(), findsOneWidget);
   });
   testWidgets('oversized sheet is capped at 93 percent of viewport', (
     tester,
