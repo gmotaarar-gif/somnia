@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:somna/data/defaults.dart';
@@ -253,6 +254,54 @@ void main() {
       await tester.pumpAndSettle();
     }
     expect(find.text('1 / $total'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('mood slider is reachable and adjustable from a keyboard', (
+    tester,
+  ) async {
+    final s = store();
+    await bootApp(tester, s);
+    s.openSheet('mood');
+    await tester.pumpAndSettle();
+    expect(find.text('Слегка приятно'), findsOneWidget);
+    var reached = false;
+    for (var i = 0; i < 12 && !reached; i++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      final focus = FocusManager.instance.primaryFocus?.context;
+      reached =
+          focus != null &&
+          find
+              .descendant(
+                of: find.byWidget(focus.widget),
+                matching: find.bySemanticsLabel(
+                  'Насколько приятно ваше состояние',
+                ),
+              )
+              .evaluate()
+              .isNotEmpty &&
+          find
+              .ancestor(
+                of: find.byWidget(focus.widget),
+                matching: find.byType(MoodSheet),
+              )
+              .evaluate()
+              .isNotEmpty;
+    }
+    expect(reached, isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.home);
+    await tester.pumpAndSettle();
+    expect(find.text('Очень неприятно'), findsWidgets);
+    await tester.sendKeyEvent(LogicalKeyboardKey.end);
+    await tester.pumpAndSettle();
+    expect(find.text('Очень приятно'), findsWidgets);
+    for (var i = 0; i < 20; i++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+      await tester.pump();
+    }
+    await tester.pumpAndSettle();
+    expect(find.text('Нейтрально'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

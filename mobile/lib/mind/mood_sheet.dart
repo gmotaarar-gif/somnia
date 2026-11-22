@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../data/models.dart';
@@ -696,77 +697,123 @@ class _GlowPainter extends CustomPainter {
   bool shouldRepaint(_GlowPainter old) => old.color != color;
 }
 
-class _ValenceSlider extends StatelessWidget {
+class _ValenceSlider extends StatefulWidget {
   final double value;
   final ValueChanged<double> onChanged;
   const _ValenceSlider({required this.value, required this.onChanged});
   @override
-  Widget build(BuildContext context) => Semantics(
-    slider: true,
-    label: 'Насколько приятно ваше состояние',
-    value: '${jsRound(value * 100)}',
-    increasedValue: '${jsRound((value + .05).clamp(-1, 1) * 100)}',
-    decreasedValue: '${jsRound((value - .05).clamp(-1, 1) * 100)}',
-    onIncrease: () => onChanged(value + .05),
-    onDecrease: () => onChanged(value - .05),
-    child: LayoutBuilder(
-      builder: (context, box) {
-        final span = math.max(1.0, box.maxWidth - 28);
-        void place(double dx) =>
-            onChanged(((dx - 14) / span).clamp(0, 1) * 2 - 1);
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapDown: (d) => place(d.localPosition.dx),
-          onHorizontalDragStart: (d) => place(d.localPosition.dx),
-          onHorizontalDragUpdate: (d) => place(d.localPosition.dx),
-          child: SizedBox(
-            height: 44,
-            child: Stack(
-              alignment: Alignment.centerLeft,
-              children: [
-                Container(
-                  height: 14,
+  State<_ValenceSlider> createState() => _ValenceSliderState();
+}
+
+class _ValenceSliderState extends State<_ValenceSlider> {
+  bool _ring = false;
+
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is KeyUpEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    final value = widget.value;
+    final next = switch (key) {
+      LogicalKeyboardKey.arrowRight ||
+      LogicalKeyboardKey.arrowUp => value + .05,
+      LogicalKeyboardKey.arrowLeft ||
+      LogicalKeyboardKey.arrowDown => value - .05,
+      LogicalKeyboardKey.home => -1.0,
+      LogicalKeyboardKey.end => 1.0,
+      _ => null,
+    };
+    if (next == null) return KeyEventResult.ignored;
+    widget.onChanged(next.clamp(-1.0, 1.0));
+    return KeyEventResult.handled;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final value = widget.value;
+    final onChanged = widget.onChanged;
+    return Focus(
+      onKeyEvent: _onKey,
+      onFocusChange: (on) => setState(
+        () => _ring =
+            on &&
+            FocusManager.instance.highlightMode ==
+                FocusHighlightMode.traditional,
+      ),
+      child: Semantics(
+        slider: true,
+        label: 'Насколько приятно ваше состояние',
+        value: '${jsRound(value * 100)}',
+        increasedValue: '${jsRound((value + .05).clamp(-1, 1) * 100)}',
+        decreasedValue: '${jsRound((value - .05).clamp(-1, 1) * 100)}',
+        onIncrease: () => onChanged(value + .05),
+        onDecrease: () => onChanged(value - .05),
+        child: _track(value, onChanged),
+      ),
+    );
+  }
+
+  Widget _track(double value, ValueChanged<double> onChanged) => LayoutBuilder(
+    builder: (context, box) {
+      final span = math.max(1.0, box.maxWidth - 28);
+      void place(double dx) =>
+          onChanged(((dx - 14) / span).clamp(0, 1) * 2 - 1);
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (d) => place(d.localPosition.dx),
+        onHorizontalDragStart: (d) => place(d.localPosition.dx),
+        onHorizontalDragUpdate: (d) => place(d.localPosition.dx),
+        child: Container(
+          height: 44,
+          foregroundDecoration: _ring
+              ? BoxDecoration(
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: SomnaColors.lime, width: 2),
+                )
+              : null,
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              Container(
+                height: 14,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(7),
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xff622ed7),
+                      Color(0xff2563eb),
+                      Color(0xff14948a),
+                      Color(0xff5fa830),
+                      Color(0xffea761c),
+                    ],
+                    stops: [0, .28, .5, .71, 1],
+                  ),
+                ),
+              ),
+              Positioned(
+                left: span * (value + 1) / 2,
+                child: Container(
+                  width: 28,
+                  height: 28,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(7),
-                    gradient: const LinearGradient(
-                      colors: [
-                        Color(0xff622ed7),
-                        Color(0xff2563eb),
-                        Color(0xff14948a),
-                        Color(0xff5fa830),
-                        Color(0xffea761c),
-                      ],
-                      stops: [0, .28, .5, .71, 1],
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    border: Border.all(
+                      color: const Color.fromRGBO(0, 0, 0, .12),
                     ),
-                  ),
-                ),
-                Positioned(
-                  left: span * (value + 1) / 2,
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                      border: Border.all(
-                        color: const Color.fromRGBO(0, 0, 0, .12),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color.fromRGBO(0, 0, 0, .5),
+                        blurRadius: 14,
+                        offset: Offset(0, 4),
                       ),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color.fromRGBO(0, 0, 0, .5),
-                          blurRadius: 14,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-      },
-    ),
+        ),
+      );
+    },
   );
 }
 
