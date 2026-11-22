@@ -328,6 +328,16 @@ void main() {
       }
     }
   });
+  test('night line lights half-hour slots and wraps past 18:00', () {
+    List<int> lit(String bed, String wake) => [
+      for (final (i, on) in NightLine.litSlots(bed, wake).indexed)
+        if (on) i,
+    ];
+    expect(lit('23:00', '07:00'), [for (var i = 10; i < 26; i++) i]);
+    expect(lit('17:00', '01:00'), [for (var i = 0; i < 14; i++) i, 46, 47]);
+    expect(lit('23:10', '07:15'), [for (var i = 11; i < 27; i++) i]);
+    expect(lit('22:00', '22:00'), isEmpty);
+  });
   testWidgets('Today hero shows the night line and opens sleep, mood, recap', (
     t,
   ) async {

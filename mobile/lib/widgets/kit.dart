@@ -391,9 +391,23 @@ class NightLine extends StatelessWidget {
   static const _start = 18 * 60, _day = 24 * 60;
   static int _along(String time) =>
       ((timeToMinutes(time) - _start) % _day + _day) % _day;
+
+  /// The 48 half-hour slots from 18:00, true while asleep. A night still
+  /// going at 18:00 carries on from the start of the line.
+  static List<bool> litSlots(String bedtime, String wakeTime) {
+    const slots = 48;
+    final from = _along(bedtime);
+    final span = bedtime == wakeTime ? 0 : spanMinutes(bedtime, wakeTime);
+    final first = (from / 30).ceil();
+    final count = (((from + span) / 30).ceil() - first).clamp(0, slots);
+    return [
+      for (var i = 0; i < slots; i++)
+        (i - first % slots + slots) % slots < count,
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
-    final from = _along(bedtime), span = spanMinutes(bedtime, wakeTime);
     return Semantics(
       image: true,
       label: 'Сон с $bedtime до $wakeTime',
@@ -405,8 +419,7 @@ class NightLine extends StatelessWidget {
             height: 26,
             child: CustomPaint(
               painter: _NightLinePainter(
-                from: from,
-                span: span,
+                lit: litSlots(bedtime, wakeTime),
                 goals: [
                   if (bedGoal != null) _along(bedGoal!),
                   if (wakeGoal != null) _along(wakeGoal!),
@@ -437,30 +450,24 @@ class NightLine extends StatelessWidget {
 }
 
 class _NightLinePainter extends CustomPainter {
-  final int from, span;
+  final List<bool> lit;
   final List<int> goals;
-  const _NightLinePainter({
-    required this.from,
-    required this.span,
-    required this.goals,
-  });
+  const _NightLinePainter({required this.lit, required this.goals});
   @override
   void paint(Canvas canvas, Size size) {
     const slots = 48, top = 10.0, h = 16.0;
     final pitch = (size.width - 3) / (slots - 1);
-    final first = (from / 30).ceil(), last = ((from + span) / 30).floor();
     final rest = Paint()..color = const Color.fromRGBO(255, 255, 255, .3);
-    final lit = Paint()..color = Colors.white;
+    final on = Paint()..color = Colors.white;
     for (var i = 0; i < slots; i++) {
       final x = 1.5 + i * pitch;
-      final on = i >= first && i <= last && span > 0;
-      if (on) {
+      if (lit[i]) {
         canvas.drawRRect(
           RRect.fromRectAndRadius(
             Rect.fromLTWH(x - 1.5, top, 3, h),
             const Radius.circular(1.5),
           ),
-          lit,
+          on,
         );
       } else {
         canvas.drawCircle(Offset(x, top + h / 2), 1.25, rest);
@@ -480,7 +487,7 @@ class _NightLinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_NightLinePainter old) =>
-      old.from != from || old.span != span || old.goals.join() != goals.join();
+      old.lit.join() != lit.join() || old.goals.join() != goals.join();
 }
 
 /// Sheet body with the web sheet's header, a scrolling middle and a pinned footer.
