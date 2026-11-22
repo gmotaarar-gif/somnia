@@ -1,165 +1,415 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../data/store.dart';
-import '../theme/tokens.dart';
-import '../ui/press_scale.dart';
-import '../ui/surfaces.dart';
-import '../native/reminders.dart';
+import '../logic/time.dart';
 import '../native/export.dart';
+import '../native/reminders.dart';
+import '../profile/account.dart';
+import '../profile/appearance_picker.dart';
+import '../profile/comet_dial.dart';
+import '../profile/controls.dart';
+import '../profile/slide_to_confirm.dart';
+import '../profile/subscription_sheet.dart';
+import '../theme/tokens.dart';
+import '../ui/surfaces.dart';
 
-class ProfileSheet extends StatelessWidget {
+enum _Confirm { widgets, journal }
+
+class ProfileSheet extends StatefulWidget {
   final ReminderService? reminders;
   final DataExporter? exporter;
   const ProfileSheet({super.key, this.reminders, this.exporter});
   @override
+  State<ProfileSheet> createState() => _ProfileSheetState();
+}
+
+class _ProfileSheetState extends State<ProfileSheet> {
+  final _name = TextEditingController(), _confirmKey = GlobalKey();
+  _Confirm? _confirm;
+  bool _wiped = false;
+  Timer? _wipedTimer;
+
+  void _ask(_Confirm value) {
+    setState(() => _confirm = value);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = _confirmKey.currentContext;
+      if (target == null) return;
+      Scrollable.ensureVisible(
+        target,
+        alignment: 1,
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : SomnaMotion.fast,
+      );
+    });
+  }
+
+  void _reset(SomnaStore store) {
+    store.resetAll();
+    setState(() => _wiped = true);
+    // The slider holds its done state for a moment before it folds away.
+    _wipedTimer = Timer(const Duration(milliseconds: 1400), () {
+      if (mounted) {
+        setState(() {
+          _wiped = false;
+          _confirm = null;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _wipedTimer?.cancel();
+    _name.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final store = SomnaScope.of(context), c = SomnaColors.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+    final s = SomnaScope.of(context), c = SomnaColors.of(context);
+    if (_name.text != s.userName) _name.text = s.userName;
+    final practiceMin = s.sessions.fold<double>(0, (a, x) => a + x.min).round();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SheetHeader(
+          title: 'Профиль',
+          description: 'Данные хранятся только на этом устройстве',
+          onClose: () => s.openSheet(null),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _hero(s, practiceMin),
+              Field(
+                label: 'Оформление',
+                child: AppearancePicker(
+                  value: s.theme,
+                  onChanged: (theme) => s.patch({'theme': theme}),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SettingsGroup(
+                children: [
+                  SettingsRow(
+                    icon: Icons.workspace_premium_outlined,
+                    title: 'Достижения',
+                    sub: 'Серии, рекорды и первые шаги',
+                    onPressed: () => s.openSheet('awards'),
+                  ),
+                  if (s.weeklyGoal != null)
+                    SettingsRow(
+                      icon: Icons.auto_awesome_outlined,
+                      title: 'Цель недели',
+                      sub: s.weeklyGoal!.text,
+                      onPressed: () => s.openSheet('recap'),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const LocalAccountCard(),
+              const SizedBox(height: 12),
+              const SubscriptionCard(),
+              Field(
+                label: 'Цель сна',
+                hint: durationRu(spanMinutes(s.bedGoal, s.wakeGoal)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TimeField(
+                            label: 'Отбой',
+                            value: s.bedGoal,
+                            onChanged: (v) => s.patch({'bedGoal': v}),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TimeField(
+                            label: 'Подъём',
+                            value: s.wakeGoal,
+                            onChanged: (v) => s.patch({'wakeGoal': v}),
+                          ),
+                        ),
+                      ],
+                    ),
+                    ReminderControls(reminders: widget.reminders),
+                  ],
+                ),
+              ),
+              Field(
+                label: 'Хронотип',
+                child: Segmented<String>(
+                  label: 'Хронотип',
+                  value: s.chronotype,
+                  onChanged: (v) => s.patch({'chronotype': v}),
+                  options: const [
+                    ('early', 'Жаворонок'),
+                    ('balanced', 'Голубь'),
+                    ('night', 'Сова'),
+                  ],
+                ),
+              ),
+              Field(
+                label: 'Громкость звуков',
+                hint: 'поверните кольцо',
+                child: Center(
+                  child: CometDial(
+                    label: 'Громкость звуков',
+                    value: s.volume,
+                    onChanged: (volume) => s.patch({'volume': volume}),
+                  ),
+                ),
+              ),
+              Field(
+                label: 'Данные',
+                child: SettingsGroup(
+                  children: [
+                    SettingsRow(
+                      icon: Icons.file_download_outlined,
+                      title: 'Экспорт данных',
+                      sub: 'Файл JSON со всеми записями',
+                      onPressed: () =>
+                          (widget.exporter ?? DataExporter(CacheShareTarget()))
+                              .export(s),
+                    ),
+                    SettingsRow(
+                      icon: Icons.grid_view_outlined,
+                      title: 'Виджеты по умолчанию',
+                      onPressed: () => _ask(_Confirm.widgets),
+                    ),
+                    SettingsRow(
+                      icon: Icons.restart_alt,
+                      title: 'Пройти знакомство заново',
+                      onPressed: () {
+                        s.patch({'onboarded': false});
+                        s.openSheet(null);
+                      },
+                    ),
+                    SettingsRow(
+                      danger: true,
+                      icon: Icons.delete_outline,
+                      title: 'Сбросить журнал',
+                      sub: 'Удалит записи и сбросит настройки',
+                      onPressed: () => _ask(_Confirm.journal),
+                    ),
+                  ],
+                ),
+              ),
+              if (_confirm != null) _confirmation(s, c),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _hero(SomnaStore s, int practiceMin) {
+    const soft = Color.fromRGBO(255, 255, 255, .5);
+    final name = s.userName.trim();
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: RadialGradient(
+          center: Alignment.topRight,
+          radius: 1.6,
+          colors: [
+            Color.alphaBlend(
+              const Color.fromRGBO(174, 159, 240, .18),
+              const Color(0xff1a1921),
+            ),
+            const Color(0xff1a1921),
+          ],
+          stops: const [0, .7],
+        ),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
-              const Expanded(
-                child: Text(
-                  'Профиль',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -1,
+              ExcludeSemantics(
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: Color.fromRGBO(201, 185, 239, .15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    name.isEmpty ? 'S' : name.characters.first.toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xffded1fa),
+                    ),
                   ),
                 ),
               ),
-              IconButton(
-                tooltip: 'Закрыть',
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Semantics(
+                  label: 'Имя',
+                  child: TextField(
+                    key: const ValueKey('profile-name'),
+                    controller: _name,
+                    maxLength: 20,
+                    textCapitalization: TextCapitalization.words,
+                    autofillHints: const [AutofillHints.givenName],
+                    cursorColor: SomnaColors.lime,
+                    onChanged: (v) => s.patch({'userName': v}),
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -.84,
+                      color: Colors.white,
+                    ),
+                    decoration: const InputDecoration.collapsed(
+                      hintText: 'Ваше имя',
+                      hintStyle: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -.84,
+                        color: soft,
+                      ),
+                    ).copyWith(counterText: '', semanticCounterText: ''),
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          SomnaCard(
-            tone: 'ink',
-            radius: 24,
-            child: Row(
-              children: [
-                const CircleAvatar(
-                  backgroundColor: Color(0xff35333f),
-                  foregroundColor: Colors.white,
-                  child: Icon(Icons.person_outline),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        store.userName.isEmpty
-                            ? 'Ваше пространство'
-                            : store.userName,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      const Text(
-                        'Somna · в своём ритме',
-                        style: TextStyle(fontSize: 12, color: Colors.white60),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.only(top: 16),
+            decoration: const BoxDecoration(
+              border: Border(
+                top: BorderSide(color: Color.fromRGBO(255, 255, 255, .08)),
+              ),
             ),
-          ),
-          const SizedBox(height: 30),
-          const Text(
-            'Оформление',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Как вам комфортнее',
-            style: TextStyle(fontSize: 13, color: c.ink3),
-          ),
-          const SizedBox(height: 16),
-          GlassSurface(
-            radius: 24,
-            padding: const EdgeInsets.all(5),
             child: Row(
               children: [
-                for (final (id, label, icon) in const [
-                  ('system', 'Системная', Icons.brightness_auto_outlined),
-                  ('light', 'Светлая', Icons.light_mode_outlined),
-                  ('dark', 'Тёмная', Icons.dark_mode_outlined),
-                ])
+                for (final (i, (value, label)) in [
+                  (
+                    s.nights.length,
+                    pluralRu(s.nights.length, ['ночь', 'ночи', 'ночей']),
+                  ),
+                  (
+                    s.moods.length,
+                    pluralRu(s.moods.length, ['чек-ин', 'чек-ина', 'чек-инов']),
+                  ),
+                  (practiceMin, 'мин практик'),
+                ].indexed) ...[
+                  if (i > 0) const SizedBox(width: 12),
                   Expanded(
-                    child: PressScale(
-                      label: label,
-                      selected: store.theme == id,
-                      onPressed: () => store.patch({'theme': id}),
-                      child: AnimatedContainer(
-                        duration: SomnaMotion.fast,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: store.theme == id
-                              ? SomnaColors.lime
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(
-                              icon,
-                              size: 21,
-                              color: store.theme == id
-                                  ? SomnaColors.limeInk
-                                  : c.ink2,
+                    child: MergeSemantics(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$value',
+                            style: const TextStyle(
+                              fontSize: 22,
+                              height: 1,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: -.66,
+                              color: Colors.white,
+                              fontFeatures: [FontFeature.tabularFigures()],
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              label,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: store.theme == id
-                                    ? SomnaColors.limeInk
-                                    : c.ink2,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            label,
+                            style: const TextStyle(fontSize: 12, color: soft),
+                          ),
+                        ],
                       ),
                     ),
                   ),
+                ],
               ],
             ),
-          ),
-          const SizedBox(height: 24),
-          ReminderControls(reminders: reminders),
-          const SizedBox(height: 24),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.ios_share),
-            title: const Text('Экспорт данных'),
-            subtitle: const Text('Файл JSON со всеми записями'),
-            onTap: () =>
-                (exporter ?? DataExporter(CacheShareTarget())).export(store),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Настройки профиля скоро появятся здесь.\nВсё важное остаётся с вами.',
-            style: TextStyle(fontSize: 13, height: 1.6, color: c.ink3),
           ),
         ],
       ),
     );
   }
+
+  Widget _confirmation(SomnaStore s, SomnaColors c) {
+    final widgets = _confirm == _Confirm.widgets;
+    return Semantics(
+      key: _confirmKey,
+      container: true,
+      label: widgets ? 'Восстановить виджеты?' : 'Сбросить журнал?',
+      child: Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                widgets
+                    ? 'Порядок, размеры и оформление стандартных виджетов вернутся к начальным настройкам. Ваши привычки сохранятся.'
+                    : 'Все записи будут удалены, а настройки сброшены. Имя и локальный профиль сохранятся. Это нельзя отменить — сначала экспортируйте журнал.',
+                style: TextStyle(fontSize: 13, height: 1.625, color: c.ink2),
+              ),
+            ),
+            if (widgets) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: SomnaButton(
+                      label: 'Отмена',
+                      variant: SomnaButtonVariant.glass,
+                      onPressed: () => setState(() => _confirm = null),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: SomnaButton(
+                      label: 'Да, восстановить',
+                      onPressed: () {
+                        s.resetWidgets();
+                        setState(() => _confirm = null);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
+              const SizedBox(height: 16),
+              SlideToConfirm(
+                label: 'Сдвиньте, чтобы сбросить',
+                doneLabel: 'Журнал сброшен',
+                onConfirm: () => _reset(s),
+              ),
+              const SizedBox(height: 8),
+              SomnaButton(
+                label: 'Отмена',
+                variant: SomnaButtonVariant.ghost,
+                onPressed: _wiped
+                    ? null
+                    : () => setState(() => _confirm = null),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
 
+/// Bedtime and morning check-in reminders with their own times.
 class ReminderControls extends StatefulWidget {
   final ReminderService? reminders;
   const ReminderControls({super.key, this.reminders});
@@ -170,6 +420,7 @@ class ReminderControls extends StatefulWidget {
 class _ReminderControlsState extends State<ReminderControls> {
   bool _busy = false;
   Future<void> _toggle(bool morning, bool enabled) async {
+    if (_busy) return;
     final store = SomnaScope.of(context);
     setState(() => _busy = true);
     try {
@@ -183,63 +434,46 @@ class _ReminderControlsState extends State<ReminderControls> {
     }
   }
 
-  Future<void> _time(bool morning) async {
-    final store = SomnaScope.of(context),
-        value = morning
-            ? SomnaScope.of(context).morningReminderTime
-            : SomnaScope.of(context).reminderTime;
-    final valid = validReminderTime(value);
-    final time = await showTimePicker(
-      context: context,
-      initialTime: valid
-          ? TimeOfDay(
-              hour: int.parse(value.substring(0, 2)),
-              minute: int.parse(value.substring(3)),
-            )
-          : const TimeOfDay(hour: 22, minute: 30),
-      helpText: morning ? 'Утреннее напоминание' : 'Вечернее напоминание',
-      cancelText: 'Отмена',
-      confirmText: 'Сохранить',
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-        child: child!,
-      ),
-    );
-    if (!mounted || time == null) return;
-    store.patch({
-      morning ? 'morningReminderTime' : 'reminderTime':
-          '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final s = SomnaScope.of(context);
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          'Напоминания',
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-        ),
         for (final morning in [false, true]) ...[
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(
-              morning ? 'Утреннее напоминание' : 'Вечернее напоминание',
+          const SizedBox(height: 12),
+          GlassSurface(
+            radius: 22,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ExcludeSemantics(
+                    child: Text(
+                      morning ? 'Утренний чек-ин' : 'Напоминать об отбое',
+                      style: const TextStyle(fontSize: 15),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                SomnaToggle(
+                  label: morning ? 'Утренний чек-ин' : 'Напоминать об отбое',
+                  value: morning ? s.morningReminder : s.reminder,
+                  onChanged: _busy ? null : (v) => _toggle(morning, v),
+                ),
+              ],
             ),
-            value: morning ? s.morningReminder : s.reminder,
-            onChanged: _busy ? null : (v) => _toggle(morning, v),
           ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(
-              morning ? Icons.wb_sunny_outlined : Icons.bedtime_outlined,
+          if (morning ? s.morningReminder : s.reminder) ...[
+            const SizedBox(height: 12),
+            TimeField(
+              label: morning ? 'Время чек-ина' : 'Время',
+              value: morning ? s.morningReminderTime : s.reminderTime,
+              onChanged: (v) => s.patch({
+                morning ? 'morningReminderTime' : 'reminderTime': v,
+              }),
             ),
-            title: Text(morning ? 'Время утром' : 'Время вечером'),
-            trailing: Text(morning ? s.morningReminderTime : s.reminderTime),
-            onTap: () => _time(morning),
-          ),
+          ],
         ],
       ],
     );

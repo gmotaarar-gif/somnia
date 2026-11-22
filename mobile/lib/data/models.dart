@@ -313,13 +313,25 @@ class Membership {
   JsonMap toJson() => {'plan': plan, 'startedAt': startedAt, 'endsAt': endsAt};
 }
 
+enum ToastVariant { success, error }
+
 class SomnaToast {
   final int id;
   final String text;
-  const SomnaToast({required this.id, required this.text});
-  factory SomnaToast.fromJson(JsonMap j) =>
-      SomnaToast(id: j['id'], text: j['text']);
-  JsonMap toJson() => {'id': id, 'text': text};
+  final ToastVariant variant;
+  const SomnaToast({
+    required this.id,
+    required this.text,
+    this.variant = ToastVariant.success,
+  });
+  factory SomnaToast.fromJson(JsonMap j) => SomnaToast(
+    id: j['id'],
+    text: j['text'],
+    variant: j['variant'] == 'error'
+        ? ToastVariant.error
+        : ToastVariant.success,
+  );
+  JsonMap toJson() => {'id': id, 'text': text, 'variant': variant.name};
 }
 
 /// Flat web state fields; membership is the native envelope's only extra field.

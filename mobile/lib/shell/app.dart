@@ -9,6 +9,9 @@ import '../ui/sheets.dart';
 import '../native/android_reminders.dart';
 import '../native/reminders.dart';
 import '../native/export.dart';
+import '../profile/awards_sheet.dart';
+import '../profile/subscription_sheet.dart';
+import 'island.dart';
 import 'onboarding.dart';
 import 'profile_sheet.dart';
 import 'splash.dart';
@@ -47,6 +50,15 @@ class _SomnaAppState extends State<SomnaApp> {
         'profile',
         (context, arg) =>
             ProfileSheet(reminders: _reminders, exporter: _exporter),
+      );
+    }
+    if (!_registry.contains('awards')) {
+      _registry.register('awards', (context, arg) => const AwardsSheet());
+    }
+    if (!_registry.contains('subscription')) {
+      _registry.register(
+        'subscription',
+        (context, arg) => SubscriptionSheet(arg: arg),
       );
     }
     _store = widget.store;
@@ -105,40 +117,7 @@ class _SomnaAppState extends State<SomnaApp> {
           fit: StackFit.expand,
           children: [
             child!,
-            if (store?.toast != null)
-              Positioned(
-                left: 20,
-                right: 20,
-                bottom: 100,
-                child: IgnorePointer(
-                  child: SafeArea(
-                    child: Center(
-                      child: Material(
-                        color: Theme.of(context).colorScheme.inverseSurface,
-                        borderRadius: BorderRadius.circular(24),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 14,
-                          ),
-                          child: Semantics(
-                            liveRegion: true,
-                            child: Text(
-                              store!.toast!.text,
-                              style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onInverseSurface,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+            Island(toast: store?.toast),
           ],
         ),
       );

@@ -459,48 +459,62 @@ class _DayPlan extends StatelessWidget {
                               horizontal: 8,
                               vertical: 12,
                             ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 22,
-                                  height: 22,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      width: 1.5,
-                                      color: const Color.fromRGBO(
-                                        255,
-                                        255,
-                                        255,
-                                        .3,
+                            child: LayoutBuilder(
+                              builder: (context, box) => Row(
+                                children: [
+                                  Container(
+                                    width: 22,
+                                    height: 22,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        width: 1.5,
+                                        color: const Color.fromRGBO(
+                                          255,
+                                          255,
+                                          255,
+                                          .3,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    p.label,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 15),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      p.label,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 15),
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  p.hint,
-                                  style: const TextStyle(
-                                    fontSize: 12,
+                                  const SizedBox(width: 8),
+                                  ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      maxWidth: box.maxWidth * .45,
+                                    ),
+                                    child: Text(
+                                      p.hint,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color.fromRGBO(
+                                          255,
+                                          255,
+                                          255,
+                                          .5,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Lucide(
+                                    'chevronRight',
+                                    size: 16,
                                     color: Color.fromRGBO(255, 255, 255, .5),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                const Lucide(
-                                  'chevronRight',
-                                  size: 16,
-                                  color: Color.fromRGBO(255, 255, 255, .5),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),

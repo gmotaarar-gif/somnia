@@ -65,6 +65,15 @@ SomnaState rollDay(SomnaState state, String day) {
   });
 }
 
+List _withoutDemo(Object? entries, String kind) {
+  final demoId = RegExp('^demo-$kind-\\d+\$');
+  return (entries as List)
+      .where(
+        (e) => !(e is Map && e['id'] is String && demoId.hasMatch(e['id'])),
+      )
+      .toList();
+}
+
 SomnaState loadState(String? raw, {DateTime? now}) {
   final at = now ?? DateTime.now(), base = defaultState(now);
   if (raw == null || raw.isEmpty) return base;
@@ -104,8 +113,11 @@ SomnaState loadState(String? raw, {DateTime? now}) {
         .where((id) => id != 'breath')
         .toList();
     merged['ritual'] = ritual;
+    // Earlier builds seeded a demo journal; drop those entries from saved data.
+    merged['moods'] = _withoutDemo(merged['moods'], 'm');
+    merged['sessions'] = _withoutDemo(merged['sessions'], 's');
     merged['nights'] = normalizeNights(
-      (merged['nights'] as List)
+      _withoutDemo(merged['nights'], 'n')
           .where(
             (n) =>
                 n is Map &&
@@ -120,6 +132,9 @@ SomnaState loadState(String? raw, {DateTime? now}) {
     return base;
   }
 }
+
+const saveFailureToast =
+    'Не удалось сохранить данные. Проверьте свободное место.';
 
 /// The web's flat state JSON, with its separately stored membership in one native
 /// envelope. Transient navigation/night-session fields never enter persistence.
@@ -295,7 +310,8 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
     try {
       await _write();
     } catch (_) {
-      /* Keep the live journal usable. */
+      // The live journal stays usable; say that it is not on disk.
+      if (!_disposed) notify(saveFailureToast, variant: ToastVariant.error);
     }
   }
 
@@ -343,9 +359,13 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
-  void notify(String text) {
+  void notify(String text, {ToastVariant variant = ToastVariant.success}) {
     _toastTimer?.cancel();
-    _toast = SomnaToast(id: _now().millisecondsSinceEpoch, text: text);
+    _toast = SomnaToast(
+      id: _now().millisecondsSinceEpoch,
+      text: text,
+      variant: variant,
+    );
     _toastTimer = Timer(const Duration(milliseconds: 2600), () {
       _toast = null;
       notifyListeners();

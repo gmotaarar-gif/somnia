@@ -1,32 +1,37 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
+import 'package:flutter/scheduler.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'shaders.dart';
+
+/// Mesh colours per screen, low → high (Aurora.tsx).
 const auroraPalettes = <Brightness, Map<String, List<Color>>>{
   Brightness.dark: {
     'today': [
-      Color(0xff080809),
-      Color(0xff15143a),
-      Color(0xff3a2063),
-      Color(0xff5a3fa8),
+      Color(0xff18123f),
+      Color(0xff261c63),
+      Color(0xff40288c),
+      Color(0xff6a47c2),
     ],
     'sleep': [
-      Color(0xff080809),
-      Color(0xff0c1440),
-      Color(0xff22318f),
-      Color(0xff5a4fc0),
+      Color(0xff0b1240),
+      Color(0xff13226b),
+      Color(0xff2639a6),
+      Color(0xff6f7fe8),
     ],
     'mind': [
-      Color(0xff080809),
-      Color(0xff0b2a14),
-      Color(0xff2c6a24),
-      Color(0xff8a9c36),
+      Color(0xff0d2812),
+      Color(0xff184c1d),
+      Color(0xff2f7a28),
+      Color(0xff8bb23d),
     ],
     'practices': [
-      Color(0xff080809),
-      Color(0xff30102a),
-      Color(0xff8a3656),
-      Color(0xffb05a2c),
+      Color(0xff22152a),
+      Color(0xff4c2143),
+      Color(0xff8a3b5b),
+      Color(0xffb86a3c),
     ],
     'onboarding': [
       Color(0xff0a0a24),
@@ -69,7 +74,47 @@ const auroraPalettes = <Brightness, Map<String, List<Color>>>{
   },
 };
 
-/// Native soft radial blobs; palettes come from Aurora.tsx, no WebView/shader.
+/// The blobs that stand in for the mesh where the shader cannot run
+/// (`--a1`…`--a3` in index.css).
+const _blobColors = <String, List<Color>>{
+  'today': [Color(0xff241a5e), Color(0xff6a47c2), Color(0xff3b2584)],
+  'sleep': [Color(0xff111f63), Color(0xff2e44c0), Color(0xff6f7fe8)],
+  'mind': [Color(0xff15431a), Color(0xff2f7c28), Color(0xff8bb23d)],
+  'practices': [Color(0xff48203f), Color(0xff8f3d5e), Color(0xffb86a3c)],
+  'onboarding': [Color(0xff141447), Color(0xff7a3aa8), Color(0xff3a52d8)],
+};
+
+const _veils = <String, Color>{
+  'today': Color(0xff0c0926),
+  'sleep': Color(0xff060a28),
+  'mind': Color(0xff06160a),
+  'practices': Color(0xff140b16),
+};
+const _darkVeil = Color(0xff07070c), _lightVeil = Color(0xfff2f1f6);
+
+const _settle = Duration(milliseconds: 2600);
+const _timeScale = .73;
+
+final _grain = ValueNotifier<ui.Image?>(null);
+bool _grainAsked = false;
+void _loadGrain() {
+  if (_grainAsked) return;
+  _grainAsked = true;
+  const AssetImage('assets/images/grain-160.png')
+      .resolve(ImageConfiguration.empty)
+      .addListener(
+        ImageStreamListener(
+          (info, _) => _grain.value = info.image,
+          onError: (_, _) {},
+        ),
+      );
+}
+
+/// Backdrop behind every screen: the mesh-drift shader in the screen's
+/// colours, under a veil, a dot grid and grain. Behind the tabs it rests on
+/// one frame (the tab wave carries it, and a perpetual drift would re-blur
+/// the glass above on every frame); onboarding drifts. Until the shader has
+/// loaded, and wherever it cannot run, soft blobs carry the same job.
 class Aurora extends StatefulWidget {
   final String tab;
   const Aurora({super.key, required this.tab});
@@ -77,154 +122,239 @@ class Aurora extends StatefulWidget {
   State<Aurora> createState() => _AuroraState();
 }
 
-class _AuroraState extends State<Aurora> with SingleTickerProviderStateMixin {
-  late final AnimationController _drift = AnimationController(
+class _AuroraState extends State<Aurora> with TickerProviderStateMixin {
+  late final AnimationController _ease = AnimationController(
     vsync: this,
-    duration: const Duration(seconds: 18),
+    duration: _settle,
+    value: 1,
   );
+  late final Ticker _ticker = createTicker(_tick);
+  final _clock = ValueNotifier<double>(0);
+  Duration _last = Duration.zero;
+  List<Color>? _from, _to;
+  ui.FragmentShader? _shader;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGrain();
+    _useProgram(meshDriftShader.program);
+    if (_shader == null) {
+      meshDriftShader.load().then((program) {
+        if (mounted && program != null) setState(() => _useProgram(program));
+      });
+    }
+  }
+
+  void _useProgram(ui.FragmentProgram? program) {
+    try {
+      _shader = program?.fragmentShader();
+    } catch (_) {
+      _shader = null;
+    }
+  }
+
+  void _tick(Duration elapsed) {
+    final dt = (elapsed - _last).inMicroseconds / 1e6;
+    _last = elapsed;
+    _clock.value += math.min(.05, dt);
+  }
+
+  List<Color> get _shown {
+    final t = Curves.easeOutCubic.transform(_ease.value);
+    return [for (var i = 0; i < 4; i++) Color.lerp(_from![i], _to![i], t)!];
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _animate();
+    _retarget();
   }
 
   @override
   void didUpdateWidget(Aurora old) {
     super.didUpdateWidget(old);
-    _animate();
+    _retarget();
   }
 
-  void _animate() {
-    if (widget.tab == 'onboarding' &&
-        !MediaQuery.disableAnimationsOf(context)) {
-      _drift.repeat(reverse: true);
-    } else {
-      _drift.stop();
+  void _retarget() {
+    final palettes = auroraPalettes[Theme.of(context).brightness]!;
+    final target = palettes[widget.tab] ?? palettes['today']!;
+    final live =
+        widget.tab == 'onboarding' && !MediaQuery.disableAnimationsOf(context);
+    if (!live || _to == null) {
+      _from = _to = target;
+      _ease.value = 1;
+    } else if (!identical(target, _to)) {
+      _from = _shown;
+      _to = target;
+      _ease.forward(from: 0);
+    }
+    if (live && !_ticker.isActive) {
+      _last = Duration.zero;
+      _ticker.start();
+    } else if (!live && _ticker.isActive) {
+      _ticker.stop();
     }
   }
 
   @override
   void dispose() {
-    _drift.dispose();
+    _ticker.dispose();
+    _ease.dispose();
+    _clock.dispose();
+    _shader?.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final palette =
-        auroraPalettes[brightness]![widget.tab] ??
-        auroraPalettes[brightness]!['today']!;
-    final phase = switch (widget.tab) {
-      'sleep' => .8,
-      'mind' => 1.8,
-      'practices' => 2.6,
-      _ => 0.0,
-    };
-    return IgnorePointer(
-      child: RepaintBoundary(
-        child: TweenAnimationBuilder<_AuroraScene>(
-          tween: _SceneTween(end: _AuroraScene(palette, phase)),
-          duration: MediaQuery.disableAnimationsOf(context)
-              ? Duration.zero
-              : const Duration(milliseconds: 2600),
-          curve: Curves.easeOutCubic,
-          builder: (context, scene, _) => AnimatedBuilder(
-            animation: _drift,
-            builder: (context, _) => CustomPaint(
-              painter: _AuroraPainter(
-                scene,
-                widget.tab,
-                _drift.value,
-                brightness,
-              ),
-            ),
-          ),
+  Widget build(BuildContext context) => IgnorePointer(
+    child: RepaintBoundary(
+      child: CustomPaint(
+        size: Size.infinite,
+        painter: _AuroraPainter(
+          this,
+          widget.tab,
+          Theme.of(context).brightness,
+          _shader,
         ),
       ),
-    );
-  }
-}
-
-class _AuroraScene {
-  final List<Color> colors;
-  final double phase;
-  const _AuroraScene(this.colors, this.phase);
-}
-
-class _SceneTween extends Tween<_AuroraScene> {
-  _SceneTween({required _AuroraScene end}) : super(begin: end, end: end);
-  @override
-  _AuroraScene lerp(double t) => _AuroraScene(
-    List.generate(4, (i) => Color.lerp(begin!.colors[i], end!.colors[i], t)!),
-    begin!.phase + (end!.phase - begin!.phase) * t,
+    ),
   );
 }
 
 class _AuroraPainter extends CustomPainter {
-  final _AuroraScene scene;
+  final _AuroraState state;
   final String tab;
-  final double drift;
   final Brightness brightness;
-  const _AuroraPainter(this.scene, this.tab, this.drift, this.brightness);
+  final ui.FragmentShader? shader;
+  _AuroraPainter(this.state, this.tab, this.brightness, this.shader)
+    : super(repaint: Listenable.merge([state._ease, state._clock, _grain]));
+
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size, palette = scene.colors;
-    canvas.drawRect(rect, Paint()..color = palette[0]);
-    final phase = scene.phase;
-    final move = math.sin(drift * math.pi);
-    for (var i = 0; i < 3; i++) {
-      final center = Offset(
-        size.width * (.25 + i * .28 + math.sin(phase + i) * .12 + move * .06),
-        size.height * (.12 + i * .28 + move * .05),
-      );
-      final radius = size.width * (i == 0 ? 1.3 : 1.1);
-      final alpha = tab == 'onboarding'
-          ? .8
-          : brightness == Brightness.light
-          ? .65
-          : .32;
-      canvas.drawCircle(
-        center,
-        radius,
+    if (size.isEmpty) return;
+    final rect = Offset.zero & size, colors = state._shown;
+    final dark = brightness == Brightness.dark;
+    final shader = this.shader;
+    canvas.drawRect(rect, Paint()..color = colors[0]);
+    if (shader != null) {
+      shader
+        ..setFloat(0, size.width)
+        ..setFloat(1, size.height)
+        ..setFloat(2, state._clock.value * _timeScale);
+      for (var i = 0; i < 4; i++) {
+        shader
+          ..setFloat(3 + i * 3, colors[i].r)
+          ..setFloat(4 + i * 3, colors[i].g)
+          ..setFloat(5 + i * 3, colors[i].b);
+      }
+      canvas.drawRect(rect, Paint()..shader = shader);
+    } else {
+      _blobs(canvas, size, dark);
+    }
+    _veil(canvas, size, dark, shader != null ? .32 : 1);
+    _dots(canvas, size, dark);
+    final grain = _grain.value;
+    if (grain != null) {
+      canvas.drawRect(
+        rect,
         Paint()
-          ..shader = RadialGradient(
-            colors: [
-              palette[i + 1].withValues(alpha: alpha),
-              palette[i + 1].withValues(alpha: 0),
-            ],
-          ).createShader(Rect.fromCircle(center: center, radius: radius)),
+          ..shader = ImageShader(
+            grain,
+            TileMode.repeated,
+            TileMode.repeated,
+            (Matrix4.identity()..scaleByDouble(1.125, 1.125, 1, 1)).storage,
+          )
+          ..blendMode = BlendMode.overlay
+          ..color = Color.fromRGBO(
+            255,
+            255,
+            255,
+            tab == 'onboarding' ? .32 : .16,
+          ),
       );
     }
+  }
+
+  void _blobs(Canvas canvas, Size size, bool dark) {
+    final blobs = _blobColors[tab] ?? _blobColors['today']!;
+    final w = size.width, h = size.height;
+    // .b1, .b2, .b3: the rectangle each ellipse fills, its colour, opacity.
+    final spec = [
+      (Rect.fromLTRB(-.2 * w, -.3 * h, 1.2 * w, .8 * h), blobs[1], .75),
+      (Rect.fromLTRB(.2 * w, .25 * h, 1.35 * w, 1.35 * h), blobs[2], .5),
+      (Rect.fromLTRB(-.4 * w, .3 * h, .75 * w, 1.4 * h), blobs[0], .9),
+    ];
+    for (final (box, base, opacity) in spec) {
+      final color = dark ? base : Color.lerp(base, Colors.white, .45)!;
+      final alpha = dark || tab == 'onboarding' ? opacity : .18;
+      canvas.save();
+      canvas.translate(box.center.dx, box.center.dy);
+      canvas.scale(box.width / 2, box.height / 2);
+      canvas.drawCircle(
+        Offset.zero,
+        1,
+        Paint()
+          ..shader = ui.Gradient.radial(Offset.zero, 1, [
+            color.withValues(alpha: alpha),
+            color.withValues(alpha: 0),
+          ]),
+      );
+      canvas.restore();
+    }
+  }
+
+  void _veil(Canvas canvas, Size size, bool dark, double opacity) {
+    final rect = Offset.zero & size;
+    final veil = dark ? (_veils[tab] ?? _darkVeil) : _lightVeil;
+    Color a(double alpha) => veil.withValues(alpha: alpha * opacity);
     canvas.drawRect(
       rect,
       Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            palette[0].withValues(alpha: .05),
-            palette[0].withValues(alpha: .7),
-          ],
-        ).createShader(rect),
+        ..shader = ui.Gradient.linear(Offset.zero, Offset(0, size.height), [
+          a(.1),
+          a(.55),
+        ]),
     );
-    final dot = Paint()
-      ..color =
-          (brightness == Brightness.dark
-                  ? Colors.white
-                  : const Color(0xff15151c))
-              .withValues(alpha: .035);
-    for (var x = 0.0; x < size.width; x += 22) {
-      for (var y = 0.0; y < size.height * .8; y += 22) {
-        canvas.drawCircle(Offset(x, y), .7, dot);
+    // radial-gradient(120% 80% at 50% 0%, …)
+    canvas.save();
+    canvas.translate(size.width / 2, 0);
+    canvas.scale(1.2 * size.width, .8 * size.height);
+    canvas.drawRect(
+      Rect.fromLTRB(-.5 / 1.2, 0, .5 / 1.2, 1 / .8),
+      Paint()
+        ..shader = ui.Gradient.radial(
+          Offset.zero,
+          1,
+          [a(0), a(.35), a(.82)],
+          [0, .6, 1],
+        ),
+    );
+    canvas.restore();
+  }
+
+  void _dots(Canvas canvas, Size size, bool dark) {
+    final base = dark ? Colors.white : const Color(0xff15151c);
+    final strength = dark ? .035 : .05;
+    final cx = size.width / 2, cy = size.height * .3;
+    final rx = .9 * size.width, ry = .7 * size.height;
+    final paint = Paint();
+    for (var y = 11.0; y < size.height; y += 22) {
+      for (var x = 11.0; x < size.width; x += 22) {
+        // mask: radial-gradient(90% 70% at 50% 30%, black, transparent 85%)
+        final d = math.sqrt(
+          math.pow((x - cx) / rx, 2) + math.pow((y - cy) / ry, 2),
+        );
+        final mask = 1 - d / .85;
+        if (mask <= 0) continue;
+        paint.color = base.withValues(alpha: strength * mask);
+        canvas.drawCircle(Offset(x, y), 1.2, paint);
       }
     }
   }
 
   @override
   bool shouldRepaint(_AuroraPainter old) =>
-      old.scene != scene ||
-      old.tab != tab ||
-      old.drift != drift ||
-      old.brightness != brightness;
+      old.tab != tab || old.brightness != brightness || old.shader != shader;
 }
