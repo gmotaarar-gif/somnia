@@ -107,7 +107,7 @@ void main() {
       expect(find.text('Как вы сейчас?'), findsNothing);
       await tester.tap(find.bySemanticsLabel('Добавить запись'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Записать сон'));
+      await tester.tap(find.text('Записать сон').last);
       await tester.pumpAndSettle();
       expect(s.sheet, 'sleep');
       await tester.binding.handlePopRoute();
@@ -181,7 +181,7 @@ void main() {
     (tester) async {
       final s = store(onboarded: true);
       await boot(tester, s);
-      s.openSheet('gallery');
+      s.openSheet('unknown');
       await tester.pumpAndSettle();
       expect(find.text('Скоро здесь'), findsOneWidget);
       s.openSheet('profile');

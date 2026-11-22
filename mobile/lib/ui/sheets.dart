@@ -9,11 +9,19 @@ import '../sheets/article_sheet.dart';
 import '../sheets/practice_sheets.dart';
 import '../theme/theme.dart';
 import '../theme/tokens.dart';
+import '../widgets/gallery_sheet.dart';
+import '../widgets/recap_sheet.dart';
 
 typedef SomnaSheetBuilder = Widget Function(BuildContext context, String? arg);
 
 class SheetRegistry extends ChangeNotifier {
   SheetRegistry() {
+    register('gallery', (context, arg) => const GallerySheet());
+    register(
+      'recap',
+      (context, arg) => const RecapSheet(),
+      darkSurface: SomnaColors.dark.sheet,
+    );
     register(
       'mood',
       (context, arg) => const MoodSheet(),
