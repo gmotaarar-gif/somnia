@@ -205,6 +205,21 @@ void main() {
       expect(data.getInt16(48, Endian.little), -32767);
       expect(data.getInt16(50, Endian.little), 32767);
     });
+    test('picking the playing sound again does not restart its timer', () {
+      fakeAsync((async) {
+        final s = SomnaStore(
+          initialState: defaultState().patch({'soundTimer': 15}),
+          autoRefresh: false,
+        );
+        s.setNightSound('rain');
+        s.startNight();
+        async.elapse(const Duration(minutes: 10));
+        s.setNightSound('rain');
+        async.elapse(const Duration(minutes: 6));
+        expect(s.nightSound, 'off');
+        s.endNight(false);
+      });
+    });
     test(
       'plays only during the night, follows the picked sound, volume and timer',
       () {

@@ -420,6 +420,7 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void setNightSound(String sound) {
+    if (sound == _nightSound) return;
     _nightSound = sound;
     _scheduleSoundTimer();
     notifyListeners();
