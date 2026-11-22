@@ -12,6 +12,8 @@ import '../native/export.dart';
 import '../profile/awards_sheet.dart';
 import '../profile/subscription_sheet.dart';
 import 'island.dart';
+import '../sleep/night_mode.dart';
+import '../sleep/sheets.dart';
 import 'onboarding.dart';
 import 'profile_sheet.dart';
 import 'splash.dart';
@@ -52,6 +54,7 @@ class _SomnaAppState extends State<SomnaApp> {
             ProfileSheet(reminders: _reminders, exporter: _exporter),
       );
     }
+    registerSleepSheets(_registry);
     if (!_registry.contains('awards')) {
       _registry.register('awards', (context, arg) => const AwardsSheet());
     }
@@ -117,6 +120,7 @@ class _SomnaAppState extends State<SomnaApp> {
           fit: StackFit.expand,
           children: [
             child!,
+            if (store != null) const NightModeHost(),
             Island(toast: store?.toast),
           ],
         ),
