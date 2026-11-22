@@ -19,6 +19,14 @@ class _IslandState extends State<Island> with SingleTickerProviderStateMixin {
     reverseDuration: SomnaMotion.quick,
     value: widget.toast == null ? 0 : 1,
   )..addStatusListener(_settled);
+  late final CurvedAnimation _shown = CurvedAnimation(
+    parent: _show,
+    curve: SomnaMotion.smooth,
+  );
+  late final Animation<Offset> _slide = Tween(
+    begin: const Offset(0, -8 / 50),
+    end: Offset.zero,
+  ).animate(_shown);
   late SomnaToast? _toast = widget.toast;
 
   void _settled(AnimationStatus status) {
@@ -41,6 +49,7 @@ class _IslandState extends State<Island> with SingleTickerProviderStateMixin {
 
   @override
   void dispose() {
+    _shown.dispose();
     _show.dispose();
     super.dispose();
   }
@@ -50,7 +59,6 @@ class _IslandState extends State<Island> with SingleTickerProviderStateMixin {
     final toast = _toast;
     if (toast == null) return const SizedBox.shrink();
     final still = MediaQuery.disableAnimationsOf(context);
-    final shown = CurvedAnimation(parent: _show, curve: SomnaMotion.smooth);
     final top = MediaQuery.paddingOf(context).top;
     return Align(
       alignment: Alignment.topCenter,
@@ -58,12 +66,9 @@ class _IslandState extends State<Island> with SingleTickerProviderStateMixin {
         padding: EdgeInsets.fromLTRB(12, top < 10 ? 10 : top, 12, 0),
         child: IgnorePointer(
           child: FadeTransition(
-            opacity: shown,
+            opacity: _shown,
             child: SlideTransition(
-              position: Tween(
-                begin: const Offset(0, -8 / 50),
-                end: Offset.zero,
-              ).animate(shown),
+              position: _slide,
               child: Semantics(
                 container: true,
                 liveRegion: true,

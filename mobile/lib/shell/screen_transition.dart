@@ -109,6 +109,14 @@ class _ScreenTransitionState extends State<ScreenTransition>
     vsync: this,
     duration: SomnaMotion.fast,
   )..addStatusListener(_finished);
+  late final CurvedAnimation _fadeCurve = CurvedAnimation(
+    parent: _fade,
+    curve: SomnaMotion.smooth,
+  );
+  late final Animation<double> _fadeOut = Tween<double>(
+    begin: 1,
+    end: 0,
+  ).animate(_fadeCurve);
   final _boundary = GlobalKey(), _chrome = GlobalKey();
   ui.FragmentShader? _shader;
   _Run? _run;
@@ -276,6 +284,7 @@ class _ScreenTransitionState extends State<ScreenTransition>
   void dispose() {
     _clear();
     _wave.dispose();
+    _fadeCurve.dispose();
     _fade.dispose();
     _shader?.dispose();
     super.dispose();
@@ -299,9 +308,7 @@ class _ScreenTransitionState extends State<ScreenTransition>
           if (faded != null)
             IgnorePointer(
               child: FadeTransition(
-                opacity: Tween<double>(begin: 1, end: 0).animate(
-                  CurvedAnimation(parent: _fade, curve: SomnaMotion.smooth),
-                ),
+                opacity: _fadeOut,
                 child: RawImage(image: faded, fit: BoxFit.fill),
               ),
             ),
