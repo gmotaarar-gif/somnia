@@ -178,6 +178,7 @@ abstract interface class SoundOutput {
 
 class JustAudioOutput implements SoundOutput {
   AudioPlayer? _player;
+  double _volume = 1;
   @override
   Future<void> loop(String mode, Uint8List wav) async {
     final file = File(
@@ -188,11 +189,16 @@ class JustAudioOutput implements SoundOutput {
     await player.stop();
     await player.setFilePath(file.path);
     await player.setLoopMode(LoopMode.one);
+    await player.setVolume(_volume);
     unawaited(player.play());
   }
 
   @override
-  Future<void> setVolume(double volume) async => _player?.setVolume(volume);
+  Future<void> setVolume(double volume) async {
+    _volume = volume;
+    await _player?.setVolume(volume);
+  }
+
   @override
   Future<void> stop() async => _player?.stop();
   @override
