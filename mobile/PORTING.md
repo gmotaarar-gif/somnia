@@ -28,10 +28,10 @@ Order: piece 1 first (shared charts), then 2-8 in parallel.
 | 1 | Charts kit — done | `ui/SleepStages.tsx`, `ui/MoodTrend.tsx`, `ui/charts.tsx`, calendars in Sleep/Mind | `lib/ui/charts/` | Native CustomPainter charts, stage geometry, current-web empty states, dark/light, reduced-motion reveals and tests |
 | 2 | Today + widgets | `screens/Today.tsx`, `TodayExtras.tsx`, `widgets/*`, `sheets/GallerySheet.tsx`, `sheets/RecapSheet.tsx` | `lib/screens/today.dart`, `lib/widgets/`, gallery + recap sheets | 13 widget kinds, 1x1/2x1 grid, long-press edit with drag reorder and jiggle, water/counter taps, custom counter creator, 5-page weekly recap stories |
 | 3 | Sleep | `screens/Sleep.tsx`, `sheets/SleepSheet.tsx`, `Extras.tsx` (Cycles, Night detail), `shell/NightMode.tsx`, `lib/audio.ts` | `lib/screens/sleep.dart`, sleep/cycles/night sheets, `lib/native/audio.dart` | Sleep entry form (duration rule −8 min per awakening), cycle calculator, night detail + delete, full-screen night mode; procedural pink/rain/drone sound (generate PCM in Dart, play with a native audio package) with sleep timer |
-| 4 | Mind | `screens/Mind.tsx`, mood sheet in `sheets/`, `Extras.tsx` (WellbeingSheet) | `lib/screens/mind.dart`, mood + WHO-5 sheets | Mood entry (valence slider + MoodOrb, max 3 emotions, 5 factors), 14-day trend/calendar, insights carousel, factors vs emotions, WHO-5 (sum×4, advice below 52) |
+| 4 | Mind — done | `screens/Mind.tsx`, mood sheet in `sheets/`, `Extras.tsx` (WellbeingSheet) | `lib/screens/mind.dart`, mood + WHO-5 sheets | Mood entry (valence slider + MoodOrb, max 3 emotions, 5 factors), 14-day trend/calendar, insights carousel, factors vs emotions, WHO-5 (sum×4, advice below 52) |
 | 5 | Practices | `screens/Practices.tsx`, `sheets/PracticeSheets.tsx`, `sheets/ArticleSheet.tsx`, `lib/articles.ts` | `lib/screens/practices.dart`, practice + article sheets, `lib/data/articles.dart` | 8 articles + reader, topic filters, evening ritual checklist, grounding 5-4-3-2-1, Plus body scan 5×36 s (replaces current placeholder), worry diary |
 | 6 | Onboarding | `screens/Onboarding.tsx` | `lib/shell/onboarding.dart` | 9 stages (name, goals, sleep, chronotype/schedule, first mood, widgets, building animation, plan + reminder permission + registration offer) |
-| 7 | Profile, account, Plus | `sheets/ProfileSheet.tsx`, `account/*`, `sheets/SubscriptionSheet.tsx`, `Extras.tsx` (AwardsSheet) | `lib/shell/profile_sheet.dart`, account/subscription/awards sheets | Stats, achievements (11), sleep target, chronotype, volume, restore widgets, restart onboarding, reset with confirm; local registration; demo Plus monthly 299 / yearly 1990 (not Play Billing) |
+| 7 | Profile, account, Plus — done | `sheets/ProfileSheet.tsx`, `account/*`, `sheets/SubscriptionSheet.tsx`, `Extras.tsx` (AwardsSheet) | `lib/shell/profile_sheet.dart`, account/subscription/awards sheets | Stats, achievements (11), sleep target, chronotype, volume, restore widgets, restart onboarding, reset with confirm; local registration; demo Plus monthly 299 / yearly 1990 (not Play Billing) |
 | 8 | Motion polish | `ui/ScreenTransition.tsx` (DistortionWave), `shell/Aurora.tsx` + `meshDrift.glsl.ts`, `shell/Island.tsx` | `shaders/`, `lib/shell/aurora.dart`, transitions | FragmentProgram ports of the mesh-drift aura and the wave tab transition (crossfade fallback, reduced motion), island toast; check on a real phone (Impeller) |
 
 ## Charts kit API (piece 1)
@@ -57,6 +57,14 @@ Current web was rechecked with `git diff 2f6ef46 origin/main -- src/` (base `d88
 All widgets also accept `key`. `StageSegment`, `stageMinutes`, `stageDisplayMinutes`, `hypnogramPoints`, `smoothPath`, `sleepCalendarDays` and `moodCalendarDays` are exported by the barrel. Reveal animations honor `MediaQuery.disableAnimations`; chart colors derive from the current Somna theme. Place charts in a finite-width parent; `Wave.height` is its SVG/view-box height, while `Bars.height` is a logical layout height.
 
 Debug-only gallery: `flutter run -t lib/dev/charts_gallery.dart`. Four tabs cover every chart; app-bar controls switch dark/light and populated/empty inputs. No production navigation changes are needed.
+
+## Profile, account, Plus (piece 7)
+
+- Sheets `profile`, `awards` and `subscription` are registered in `SomnaApp`. Open Plus with `store.openSheet('subscription')`; pass the arg `'profile'` to return to the profile on close.
+- Registration stacks above the current sheet: `showRegistrationSheet(context)` from `lib/profile/account.dart`; `RegistrationForm(onClose: ...)` is the bare form for onboarding.
+- Piece 5 gates the body scan with `PlusGate(child: ...)` from `lib/profile/subscription_sheet.dart`: non-members see the Plus offer in its place.
+- `lib/profile/controls.dart` holds the sheet header, field, button, toggle, segmented control, time field and settings rows; `CometDial` and `SlideToConfirm` sit beside it.
+- Copy that says "в этом браузере" on the web says "на этом устройстве" here.
 
 ## Remaining platform decisions
 

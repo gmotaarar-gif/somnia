@@ -122,7 +122,7 @@ void main() {
     expect(s.theme, 'system');
     expect(s.morningReminderTime, '09:15');
     expect(s.volume, 60);
-    expect(s.nights.length, 14);
+    expect(s.nights, isEmpty);
     final valid = create(
       MemoryPersistence.json({
         'theme': 'light',
@@ -132,6 +132,60 @@ void main() {
     expect(valid.theme, 'light');
     expect(valid.morningReminderTime, '06:30');
   });
+  test('a fresh install starts with an empty journal', () async {
+    final p = MemoryPersistence(), s = create(p);
+    expect(s.onboarded, false);
+    expect(s.nights, isEmpty);
+    expect(s.moods, isEmpty);
+    expect(s.sessions, isEmpty);
+    expect(s.worries, isEmpty);
+    expect(s.wellbeing, isEmpty);
+    expect(s.spectrum, isEmpty);
+    expect(s.readArticles, isEmpty);
+    expect(s.water.ml, 0);
+    expect(s.ritual.done, isEmpty);
+    await s.flush();
+    expect(p.json['nights'], isEmpty);
+    expect(p.json['moods'], isEmpty);
+    expect(p.json['sessions'], isEmpty);
+    expect(p.json['wellbeing'], isEmpty);
+  });
+  test(
+    'saved demo entries from earlier builds are removed, user entries kept',
+    () async {
+      final realNight = night('2030-01-01').copyWith(id: 'real-night'),
+          realMood = mood(1, 0.4),
+          realSession = session(1);
+      final wellbeing = [
+        {'at': '2030-01-01T07:00:00.000Z', 'score': 64},
+      ];
+      final p = MemoryPersistence.json({
+        'nights': [
+          realNight.copyWith(id: 'demo-n-0', dateKey: '2029-12-31').toJson(),
+          realNight.toJson(),
+        ],
+        'moods': [
+          {...realMood.toJson(), 'id': 'demo-m-0'},
+          realMood.toJson(),
+        ],
+        'sessions': [
+          {...realSession.toJson(), 'id': 'demo-s-0'},
+          realSession.toJson(),
+        ],
+        'wellbeing': wellbeing,
+      });
+      final first = create(p);
+      expect(first.nights.map((n) => n.toJson()), [realNight.toJson()]);
+      expect(first.moods.map((m) => m.toJson()), [realMood.toJson()]);
+      expect(first.sessions.map((x) => x.toJson()), [realSession.toJson()]);
+      expect(first.wellbeing.map((w) => w.toJson()), wellbeing);
+      await first.flush();
+      final second = create(p);
+      expect(second.nights.map((n) => n.id), ['real-night']);
+      expect(second.moods.map((m) => m.id), [realMood.id]);
+      expect(second.sessions.map((x) => x.id), [realSession.id]);
+    },
+  );
   test('one night per morning, ordered, stamped mood', () {
     final s = create(),
         before = defaultState(now).nights.length,
@@ -303,14 +357,19 @@ void main() {
     expect(s.water.ml, 4000);
     s.addWater(-9000);
     expect(s.water.ml, 0);
+    s.patch({
+      'spectrum': [
+        {'id': 'calm', 'left': 'Тревога', 'right': 'Спокойствие', 'value': 0.5},
+      ],
+    });
     s.setSpectrum('calm', -1);
     expect(s.spectrum.first.value, 0);
     s.setSpectrum('calm', 2);
     expect(s.spectrum.first.value, 1);
     s.toggleRitual('dim');
-    expect(s.ritual.done, isEmpty);
-    s.toggleRitual('dim');
     expect(s.ritual.done, ['dim']);
+    s.toggleRitual('dim');
+    expect(s.ritual.done, isEmpty);
     s.markArticleRead('a');
     s.markArticleRead('a');
     expect(s.readArticles, ['a']);

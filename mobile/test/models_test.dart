@@ -5,6 +5,8 @@ import 'package:somna/data/defaults.dart';
 import 'package:somna/data/models.dart';
 import 'package:somna/data/store.dart';
 
+import 'helpers.dart';
+
 void main() {
   test(
     'web state JSON round-trips every persisted contract and optional field',
@@ -46,6 +48,25 @@ void main() {
           },
         ],
         'readArticles': ['article-1'],
+        'nights': [night('2030-01-01').toJson()],
+        'moods': [mood(1, 0.4).toJson()],
+        'sessions': [session(1).toJson()],
+        'spectrum': [
+          {
+            'id': 'calm',
+            'left': 'Тревога',
+            'right': 'Спокойствие',
+            'value': 0.5,
+          },
+        ],
+        'wellbeing': [
+          {'at': '2030-01-01T07:00:00.000Z', 'score': 64},
+        ],
+        'ritual': {
+          'day': '2030-01-02',
+          'done': ['dim'],
+        },
+        'water': {'day': '2030-01-02', 'ml': 750},
         'morningReminder': true,
         'morningReminderTime': '08:00',
         'soundTimer': 45,
@@ -81,6 +102,20 @@ void main() {
       loadState(jsonEncode(state.toJson()), now: at).toJson(),
       state.toJson(),
     );
+  });
+  test('a fresh install has no journal entries, counters or results', () {
+    final state = defaultState(DateTime(2030, 1, 2));
+    expect(state.nights, isEmpty);
+    expect(state.moods, isEmpty);
+    expect(state.sessions, isEmpty);
+    expect(state.worries, isEmpty);
+    expect(state.wellbeing, isEmpty);
+    expect(state.spectrum, isEmpty);
+    expect(state.readArticles, isEmpty);
+    expect(state.weeklyGoal, isNull);
+    expect(state.ritual.toJson(), {'day': '2030-01-02', 'done': []});
+    expect(state.water.toJson(), {'day': '2030-01-02', 'ml': 0});
+    expect(state.onboarded, false);
   });
   test(
     'empty journal arrays remain empty rather than acquiring demo entries',

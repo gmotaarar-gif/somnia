@@ -65,6 +65,15 @@ SomnaState rollDay(SomnaState state, String day) {
   });
 }
 
+List _withoutDemo(Object? entries, String kind) {
+  final demoId = RegExp('^demo-$kind-\\d+\$');
+  return (entries as List)
+      .where(
+        (e) => !(e is Map && e['id'] is String && demoId.hasMatch(e['id'])),
+      )
+      .toList();
+}
+
 SomnaState loadState(String? raw, {DateTime? now}) {
   final at = now ?? DateTime.now(), base = defaultState(now);
   if (raw == null || raw.isEmpty) return base;
@@ -104,8 +113,11 @@ SomnaState loadState(String? raw, {DateTime? now}) {
         .where((id) => id != 'breath')
         .toList();
     merged['ritual'] = ritual;
+    // Earlier builds seeded a demo journal; drop those entries from saved data.
+    merged['moods'] = _withoutDemo(merged['moods'], 'm');
+    merged['sessions'] = _withoutDemo(merged['sessions'], 's');
     merged['nights'] = normalizeNights(
-      (merged['nights'] as List)
+      _withoutDemo(merged['nights'], 'n')
           .where(
             (n) =>
                 n is Map &&

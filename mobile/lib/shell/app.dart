@@ -9,6 +9,8 @@ import '../ui/sheets.dart';
 import '../native/android_reminders.dart';
 import '../native/reminders.dart';
 import '../native/export.dart';
+import '../profile/awards_sheet.dart';
+import '../profile/subscription_sheet.dart';
 import 'island.dart';
 import 'onboarding.dart';
 import 'profile_sheet.dart';
@@ -48,6 +50,15 @@ class _SomnaAppState extends State<SomnaApp> {
         'profile',
         (context, arg) =>
             ProfileSheet(reminders: _reminders, exporter: _exporter),
+      );
+    }
+    if (!_registry.contains('awards')) {
+      _registry.register('awards', (context, arg) => const AwardsSheet());
+    }
+    if (!_registry.contains('subscription')) {
+      _registry.register(
+        'subscription',
+        (context, arg) => SubscriptionSheet(arg: arg),
       );
     }
     _store = widget.store;
