@@ -121,6 +121,7 @@ class _TodayScreenState extends State<TodayScreen> {
           button: true,
           label: 'Читать: ${article.$3}',
           excludeSemantics: true,
+          onTap: () => s.openSheet('article', article.$1),
           child: SomnaCard(
             tone: article.$5,
             padding: const EdgeInsets.all(20),

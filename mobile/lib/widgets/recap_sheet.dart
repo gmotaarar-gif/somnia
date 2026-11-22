@@ -172,6 +172,7 @@ class _RecapSheetState extends State<RecapSheet> {
                                       selected: n == index,
                                       label: '${n + 1}. ${story.$1}',
                                       excludeSemantics: true,
+                                      onTap: () => _go(n),
                                       child: GestureDetector(
                                         behavior: HitTestBehavior.opaque,
                                         onTap: () => _go(n),
