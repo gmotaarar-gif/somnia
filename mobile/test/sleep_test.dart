@@ -1,41 +1,19 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
-import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:somna/data/defaults.dart';
 import 'package:somna/data/models.dart';
 import 'package:somna/data/store.dart';
 import 'package:somna/logic/time.dart';
-import 'package:somna/native/audio.dart';
+import 'package:somna/profile/journal_sheet.dart';
 import 'package:somna/screens/sleep.dart';
-import 'package:somna/shell/app.dart';
 import 'package:somna/sleep/mascot.dart';
 import 'package:somna/sleep/night_line.dart';
-import 'package:somna/sleep/night_mode.dart';
-import 'package:somna/sleep/night_session.dart';
 import 'package:somna/sleep/sheets.dart';
 import 'package:somna/sleep/sleep_sheet.dart';
 import 'package:somna/sleep/time_scrubber.dart';
 import 'package:somna/theme/theme.dart';
 import 'package:somna/ui/dots.dart';
 import 'package:somna/ui/sheets.dart';
-
-class FakeOutput implements SoundOutput {
-  final log = <String>[];
-  double volume = -1;
-  @override
-  Future<void> loop(String mode, Uint8List wav) async =>
-      log.add('loop $mode ${wav.length}');
-  @override
-  Future<void> setVolume(double value) async => volume = value;
-  @override
-  Future<void> stop() async => log.add('stop');
-  @override
-  Future<void> dispose() async => log.add('dispose');
-}
 
 SleepNight recorded(
   int daysBack, {
@@ -75,15 +53,15 @@ void main() {
   }
 
   /// The Sleep tab with its sheets and night overlay, without the rest of the shell.
-  Future<FakeOutput> boot(WidgetTester tester, SomnaStore s) async {
+  Future<void> boot(WidgetTester tester, SomnaStore s) async {
     tester.view.physicalSize = const Size(1080, 2340);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    final output = FakeOutput();
     final registry = SheetRegistry();
     addTearDown(registry.dispose);
     registerSleepSheets(registry);
+    registry.register('journal', (context, arg) => JournalSheet(arg: arg));
     await tester.pumpWidget(
       SomnaScope(
         store: s,
@@ -93,13 +71,6 @@ void main() {
             theme: somnaTheme(Brightness.light),
             darkTheme: somnaTheme(Brightness.dark),
             themeMode: somnaThemeMode(s.theme),
-            builder: (context, child) => Stack(
-              fit: StackFit.expand,
-              children: [
-                child!,
-                NightModeHost(output: output),
-              ],
-            ),
             home: SheetHost(
               store: s,
               registry: registry,
@@ -110,7 +81,6 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    return output;
   }
 
   Finder dots(String value) =>
@@ -169,106 +139,6 @@ void main() {
     });
   });
 
-  group('audio', () {
-    test('renders bounded loops for each sound and nothing for silence', () {
-      expect(renderSound('off'), isEmpty);
-      for (final (mode, seconds) in [
-        ('pink', 6.0),
-        ('rain', 50 / 7),
-        ('drone', 4.0),
-      ]) {
-        final samples = renderSound(mode);
-        expect(samples.length, (seconds * sampleRate).round(), reason: mode);
-        final peak = samples.fold<double>(
-          0,
-          (m, v) => v.abs() > m ? v.abs() : m,
-        );
-        expect(peak, greaterThan(.01), reason: mode);
-        expect(peak, lessThanOrEqualTo(1), reason: mode);
-      }
-    });
-    test('the drone repeats without a step at the loop point', () {
-      final drone = renderSound('drone');
-      final inside = (drone[1] - drone[0]).abs();
-      expect((drone.first - drone.last).abs(), lessThan(inside * 3 + 1e-3));
-    });
-    test('wav header describes 16-bit mono at 44.1 kHz', () {
-      final wav = encodeWav(Float64List.fromList([0, 1, -1, 2]));
-      final data = ByteData.sublistView(wav);
-      expect(String.fromCharCodes(wav.sublist(0, 4)), 'RIFF');
-      expect(String.fromCharCodes(wav.sublist(8, 16)), 'WAVEfmt ');
-      expect(data.getUint16(22, Endian.little), 1);
-      expect(data.getUint32(24, Endian.little), 44100);
-      expect(data.getUint16(34, Endian.little), 16);
-      expect(data.getUint32(40, Endian.little), 8);
-      expect(data.getInt16(46, Endian.little), 32767);
-      expect(data.getInt16(48, Endian.little), -32767);
-      expect(data.getInt16(50, Endian.little), 32767);
-    });
-    test('picking the playing sound again does not restart its timer', () {
-      fakeAsync((async) {
-        final s = SomnaStore(
-          initialState: defaultState().patch({'soundTimer': 15}),
-          autoRefresh: false,
-        );
-        s.setNightSound('rain');
-        s.startNight();
-        async.elapse(const Duration(minutes: 10));
-        s.setNightSound('rain');
-        async.elapse(const Duration(minutes: 6));
-        expect(s.nightSound, 'off');
-        s.endNight(false);
-      });
-    });
-    test(
-      'plays only during the night, follows the picked sound, volume and timer',
-      () {
-        fakeAsync((async) {
-          final s = SomnaStore(
-            initialState: defaultState().patch({
-              'volume': 60,
-              'soundTimer': 15,
-            }),
-            autoRefresh: false,
-          );
-          final out = FakeOutput();
-          final audio = SleepAudio(
-            s,
-            output: out,
-            render: (_) => Float64List(4),
-          );
-          s.setNightSound('rain');
-          async.elapse(const Duration(seconds: 1));
-          expect(out.log, isEmpty);
-          s.startNight();
-          async.elapse(const Duration(seconds: 1));
-          expect(out.log, ['loop rain 52']);
-          expect(out.volume, closeTo(.27, 1e-9));
-          s.patch({'volume': 100});
-          async.elapse(const Duration(milliseconds: 200));
-          expect(out.volume, closeTo(.45, 1e-9));
-          s.setNightSound('drone');
-          async.elapse(const Duration(seconds: 1));
-          expect(out.log.last, 'loop drone 52');
-          async.elapse(const Duration(minutes: 15));
-          expect(s.nightSound, 'off');
-          expect(out.log.last, 'stop');
-          expect(out.volume, 0);
-          s.setNightSound('pink');
-          async.elapse(const Duration(seconds: 1));
-          expect(out.log.last, 'loop pink 52');
-          s.endNight(false);
-          async.elapse(const Duration(seconds: 1));
-          expect(out.log.last, 'stop');
-          audio.dispose();
-          s.dispose();
-          async.flushMicrotasks();
-          expect(out.log.last, 'dispose');
-        });
-      },
-    );
-  });
-
   group('sleep screen', () {
     testWidgets('empty journal shows invitations, not zeros', (tester) async {
       final s = store();
@@ -282,7 +152,10 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.text('Лучший подъём в 07:14, если лечь в 23:30'),
+        find.text(
+          'Лучший подъём в 07:14, если лечь в 23:30',
+          skipOffstage: false,
+        ),
         findsOneWidget,
       );
       await scrollTo(tester, find.text('История'), 300);
@@ -298,7 +171,7 @@ void main() {
         find.text('Пока нет данных', skipOffstage: false),
         findsNWidgets(2),
       );
-      expect(find.text('Здесь появятся ваши записи сна.'), findsOneWidget);
+      expect(find.text('Здесь появятся ваши записи сна'), findsOneWidget);
       expect(find.text('Показать все ночи'), findsNothing);
       await scrollTo(tester, find.text('Записать сон'), -300);
       await tapText(tester, 'Записать сон');
@@ -332,16 +205,13 @@ void main() {
       expect(dots('83%'), findsOneWidget);
       await tapText(tester, '30 дн');
       expect(find.byType(SleepWindows), findsOneWidget);
-      await scrollTo(tester, find.text('Показать все ночи'), 300);
-      expect(
-        find.text('Смахните ночь влево, чтобы удалить её'),
-        findsOneWidget,
-      );
+      await scrollTo(tester, find.text('Все ночи · 6'), 300);
+      expect(find.byType(Dismissible), findsNothing);
+      await tapText(tester, 'Все ночи · 6');
+      expect(s.sheet, 'journal');
+      expect(s.sheetArg, 'nights');
       expect(find.text('Сегодня'), findsOneWidget);
       expect(find.text('Вчера'), findsOneWidget);
-      expect(find.byType(Dismissible), findsNWidgets(3));
-      await tapText(tester, 'Показать все ночи');
-      expect(find.text('Свернуть'), findsOneWidget);
       expect(find.byType(Dismissible, skipOffstage: false), findsNWidgets(6));
     });
 
@@ -361,14 +231,23 @@ void main() {
         ],
       );
       await boot(tester, s);
-      await scrollTo(tester, find.text('Вчера'), 300);
+      s.openSheet('journal', 'nights');
+      await tester.pumpAndSettle();
       await tester.drag(find.text('Вчера'), const Offset(-320, 0));
       await tester.pumpAndSettle();
       expect(s.nights.map((n) => n.id), ['n0']);
       expect(find.text('Вчера'), findsNothing);
+      await tapText(tester, 'Вернуть');
+      expect(s.nights.map((n) => n.id), ['n1', 'n0']);
+      expect(find.text('Вчера'), findsOneWidget);
+      await tester.drag(find.text('Вчера'), const Offset(-320, 0));
+      await tester.pumpAndSettle();
+      expect(s.nights.map((n) => n.id), ['n0']);
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
       await tapText(tester, 'Сегодня');
       expect(s.sheet, 'night');
-      expect(find.text('23:30 → 07:30 · 7 ч 52 мин'), findsNWidgets(2));
+      expect(find.text('23:30 → 07:30 · 7 ч 52 мин'), findsOneWidget);
       expect(find.text('нет измерений'), findsOneWidget);
       expect(
         find.text(
@@ -510,6 +389,7 @@ void main() {
     testWidgets('picking an option makes it the schedule', (tester) async {
       final s = store();
       await boot(tester, s);
+      await scrollTo(tester, find.text('Циклы сна'), 300);
       await tapText(tester, 'Циклы сна');
       expect(s.sheet, 'cycles');
       expect(find.text('+14 мин на засыпание'), findsOneWidget);
@@ -531,200 +411,6 @@ void main() {
       expect(s.toast?.text, 'Режим: 23:46 → 07:30');
       expect(s.sheet, null);
       await tester.pump(const Duration(seconds: 3));
-    });
-  });
-
-  group('night session', () {
-    Future<SharedPreferences> prefs([Map<String, Object> values = const {}]) {
-      SharedPreferences.setMockInitialValues(values);
-      return SharedPreferences.getInstance();
-    }
-
-    SomnaStore plain({int soundTimer = 30}) {
-      final s = SomnaStore(
-        initialState: defaultState().patch({'soundTimer': soundTimer}),
-        autoRefresh: false,
-      );
-      addTearDown(s.dispose);
-      return s;
-    }
-
-    test('a running night is saved and removed when it ends', () async {
-      final p = await prefs(), s = plain();
-      var at = DateTime(2030, 1, 2, 23, 10);
-      final session = NightSession(s, p, now: () => at);
-      expect(p.getString(activeNightKey), null);
-      s.setNightSound('rain');
-      s.startNight();
-      final saved = jsonDecode(p.getString(activeNightKey)!) as Map;
-      expect(saved['start'], s.nightStart);
-      expect(saved['sound'], 'rain');
-      expect(saved['startedAt'], at.millisecondsSinceEpoch);
-      at = at.add(const Duration(minutes: 5));
-      s.setNightSound('drone');
-      final changed = jsonDecode(p.getString(activeNightKey)!) as Map;
-      expect(changed['startedAt'], saved['startedAt']);
-      expect(changed['soundStartedAt'], at.millisecondsSinceEpoch);
-      s.endNight(true);
-      expect(p.getString(activeNightKey), null);
-      session.dispose();
-    });
-
-    test('restores the night with only the rest of its sound timer', () {
-      fakeAsync((async) {
-        final started = DateTime(2030, 1, 2, 23, 10);
-        late SharedPreferences p;
-        prefs({
-          activeNightKey: jsonEncode({
-            'start': '23:10',
-            'sound': 'pink',
-            'startedAt': started.millisecondsSinceEpoch,
-            'soundStartedAt': started.millisecondsSinceEpoch,
-          }),
-        }).then((value) => p = value);
-        async.flushMicrotasks();
-        final s = SomnaStore(
-          initialState: defaultState().patch({'soundTimer': 30}),
-          autoRefresh: false,
-        );
-        final session = NightSession(
-          s,
-          p,
-          now: () => started.add(const Duration(minutes: 20)),
-        );
-        expect(
-          (s.nightMode, s.nightStart, s.nightSound),
-          (true, '23:10', 'pink'),
-        );
-        async.elapse(const Duration(minutes: 9));
-        expect(s.nightSound, 'pink');
-        async.elapse(const Duration(minutes: 2));
-        expect(s.nightSound, 'off');
-        session.dispose();
-        s.dispose();
-      });
-    });
-
-    test('a timer that ran out while closed resumes in silence', () async {
-      final started = DateTime(2030, 1, 2, 23, 10);
-      final p = await prefs({
-        activeNightKey: jsonEncode({
-          'start': '23:10',
-          'sound': 'pink',
-          'startedAt': started.millisecondsSinceEpoch,
-          'soundStartedAt': started.millisecondsSinceEpoch,
-        }),
-      });
-      final s = plain();
-      NightSession(s, p, now: () => started.add(const Duration(hours: 8)));
-      expect((s.nightMode, s.nightStart, s.nightSound), (true, '23:10', 'off'));
-    });
-
-    test('damaged or day-old records are not a night', () async {
-      final started = DateTime(2030, 1, 2, 23, 10);
-      for (final raw in [
-        '{bad',
-        '[]',
-        jsonEncode({
-          'start': '25:00',
-          'sound': 'pink',
-          'startedAt': 1,
-          'soundStartedAt': 1,
-        }),
-        jsonEncode({
-          'start': '23:10',
-          'sound': 'jazz',
-          'startedAt': 1,
-          'soundStartedAt': 1,
-        }),
-        jsonEncode({
-          'start': '23:10',
-          'sound': 'pink',
-          'startedAt': started.millisecondsSinceEpoch,
-          'soundStartedAt': started.millisecondsSinceEpoch,
-        }),
-      ]) {
-        final p = await prefs({activeNightKey: raw}), s = plain();
-        NightSession(s, p, now: () => started.add(const Duration(hours: 25)));
-        expect(s.nightMode, false, reason: raw);
-        expect(s.nightStart, null, reason: raw);
-      }
-    });
-  });
-
-  group('night mode', () {
-    testWidgets('runs the clock and sound, then logs the tracked night', (
-      tester,
-    ) async {
-      final s = store();
-      final output = await boot(tester, s);
-      await tester.tap(find.bySemanticsLabel('Розовый шум · 30 мин').first);
-      await tester.pumpAndSettle();
-      expect(find.text('Таймер звука, мин'), findsOneWidget);
-      await tapText(tester, 'Дождь');
-      await tapText(tester, '15');
-      expect(s.soundTimer, 15);
-      expect(find.text('Дождь · 15 мин'), findsOneWidget);
-      await tapText(tester, '∞');
-      expect(find.text('Дождь · без таймера'), findsOneWidget);
-      await tapText(tester, 'Начать');
-      await tester.pump(const Duration(seconds: 1));
-      expect(s.nightMode, true);
-      expect(find.byType(NightMode), findsOneWidget);
-      expect(find.text('Ночь началась в ${s.nightStart}'), findsOneWidget);
-      expect(find.text('Подъём в 07:30'), findsOneWidget);
-      expect(output.log.single, startsWith('loop rain'));
-      await tester.tap(find.text('Дрон').last);
-      await tester.pump(const Duration(seconds: 1));
-      expect(output.log.last, startsWith('loop drone'));
-      final started = s.nightStart!;
-      await tester.tap(find.text('Я проснулся'));
-      await tester.pumpAndSettle();
-      expect(s.nightMode, false);
-      expect(find.byType(NightMode), findsNothing);
-      expect(output.log.last, 'stop');
-      expect(s.sheet, 'sleep');
-      expect(find.text(started), findsWidgets);
-      await tester.tap(find.bySemanticsLabel('Закрыть'));
-      await tester.pumpAndSettle();
-      expect(s.sheet, null);
-      expect(s.nightStart, null);
-    });
-
-    testWidgets('cancelling forgets the night', (tester) async {
-      final s = store();
-      await boot(tester, s);
-      s.startNight();
-      await tester.pump(const Duration(seconds: 1));
-      await tester.tap(find.text('Отменить'));
-      await tester.pumpAndSettle();
-      expect(s.nightMode, false);
-      expect(s.nightStart, null);
-      expect(s.sheet, null);
-    });
-
-    testWidgets('the app shell registers the sheets and shows the overlay', (
-      tester,
-    ) async {
-      tester.view.physicalSize = const Size(1080, 2340);
-      tester.view.devicePixelRatio = 3;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final s = store();
-      await tester.pumpWidget(SomnaApp(store: s));
-      await tester.pump(const Duration(milliseconds: 600));
-      s.openSheet('cycles');
-      await tester.pumpAndSettle();
-      expect(find.text('Лучше встать в'), findsOneWidget);
-      s.openSheet(null);
-      await tester.pumpAndSettle();
-      s.setNightSound('off');
-      s.startNight();
-      await tester.pump(const Duration(seconds: 1));
-      expect(find.byType(NightMode), findsOneWidget);
-      s.endNight(false);
-      await tester.pumpAndSettle();
-      expect(find.byType(NightMode), findsNothing);
     });
   });
 }

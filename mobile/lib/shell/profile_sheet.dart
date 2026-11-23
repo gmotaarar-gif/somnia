@@ -8,7 +8,7 @@ import '../native/export.dart';
 import '../native/reminders.dart';
 import '../profile/account.dart';
 import '../profile/appearance_picker.dart';
-import '../profile/comet_dial.dart';
+import '../profile/journal_preview.dart';
 import '../profile/controls.dart';
 import '../profile/slide_to_confirm.dart';
 import '../profile/subscription_sheet.dart';
@@ -87,6 +87,8 @@ class _ProfileSheetState extends State<ProfileSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _hero(s, practiceMin),
+              const JournalPreview(),
+              const SizedBox(height: 12),
               Field(
                 label: 'Оформление',
                 child: AppearancePicker(
@@ -102,6 +104,14 @@ class _ProfileSheetState extends State<ProfileSheet> {
                     title: 'Достижения',
                     sub: 'Серии, рекорды и первые шаги',
                     onPressed: () => s.openSheet('awards'),
+                  ),
+                  SettingsRow(
+                    icon: Icons.insights_outlined,
+                    title: 'Глубокая аналитика',
+                    sub: s.isPlus
+                        ? 'Сон против настроения, ритм недели'
+                        : 'Доступно с Plus',
+                    onPressed: () => s.openSheet('insights'),
                   ),
                   if (s.weeklyGoal != null)
                     SettingsRow(
@@ -156,17 +166,6 @@ class _ProfileSheetState extends State<ProfileSheet> {
                     ('balanced', 'Голубь'),
                     ('night', 'Сова'),
                   ],
-                ),
-              ),
-              Field(
-                label: 'Громкость звуков',
-                hint: 'поверните кольцо',
-                child: Center(
-                  child: CometDial(
-                    label: 'Громкость звуков',
-                    value: s.volume,
-                    onChanged: (volume) => s.patch({'volume': volume}),
-                  ),
                 ),
               ),
               Field(

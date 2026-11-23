@@ -17,13 +17,8 @@ import '../ui/charts/charts.dart';
 import '../ui/dots.dart';
 import '../ui/press_scale.dart';
 import '../ui/surfaces.dart';
-
-const sleepSounds = [
-  ('off', 'Тишина'),
-  ('pink', 'Розовый шум'),
-  ('rain', 'Дождь'),
-  ('drone', 'Дрон'),
-];
+import '../data/facts.dart';
+import '../ui/info_cards.dart';
 
 String _planNote(int minutes) => minutes == 0
     ? 'по плану'
@@ -37,7 +32,7 @@ class SleepScreen extends StatefulWidget {
 
 class _SleepScreenState extends State<SleepScreen> {
   int _period = 7;
-  bool _hours = true, _tune = false, _allNights = false;
+  bool _hours = true;
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +48,6 @@ class _SleepScreenState extends State<SleepScreen> {
     );
     final last = sum.last, shown = sum.week;
     final best = wakeOptions(bedGoal).where((o) => o.best).firstOrNull;
-    final journal = nights.reversed.take(_allNights ? nights.length : 3);
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 140),
       children: [
@@ -63,7 +57,13 @@ class _SleepScreenState extends State<SleepScreen> {
         ),
         _RiseIn(index: 0, child: _hero(store, last)),
         const SizedBox(height: 12),
-        _RiseIn(index: 1, child: _nightCard(store)),
+        _RiseIn(
+          index: 1,
+          child: FactPlate(
+            fact: factOfDay(DateTime.now(), topic: 'sleep'),
+            palette: 'dusk',
+          ),
+        ),
         if (best != null) ...[
           const SizedBox(height: 12),
           _RiseIn(
@@ -158,37 +158,19 @@ class _SleepScreenState extends State<SleepScreen> {
                   onNightTap: (n) => store.openSheet('night', n.id),
                 ),
               ),
-              if (nights.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(
-                    'Здесь появятся ваши записи сна.',
-                    style: TextStyle(fontSize: 14, color: c.ink2),
-                  ),
-                )
-              else
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 12, 4, 0),
-                  child: Text(
-                    'Смахните ночь влево, чтобы удалить её',
-                    style: TextStyle(fontSize: 12, color: c.ink3),
-                  ),
-                ),
               const SizedBox(height: 12),
-              for (final n in journal) _journalRow(store, n),
-              if (nights.length > 3)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: SomnaButton(
-                    label: _allNights ? 'Свернуть' : 'Показать все ночи',
-                    variant: SomnaButtonVariant.ghost,
-                    expand: true,
-                    onPressed: () => setState(() => _allNights = !_allNights),
-                  ),
-                ),
+              JournalLink(
+                kind: 'nights',
+                title: nights.isEmpty
+                    ? 'Здесь появятся ваши записи сна'
+                    : 'Все ночи · ${nights.length}',
+                sub: 'Просмотр, правка и удаление в профиле',
+              ),
             ],
           ),
         ),
+        const SizedBox(height: 40),
+        const _RiseIn(index: 5, child: SleepExplainer()),
       ],
     );
   }
@@ -363,150 +345,6 @@ class _SleepScreenState extends State<SleepScreen> {
     );
   }
 
-  Widget _nightCard(SomnaStore store) {
-    final sound = sleepSounds
-        .firstWhere(
-          (s) => s.$1 == store.nightSound,
-          orElse: () => sleepSounds.first,
-        )
-        .$2;
-    return SomnaCard(
-      tone: 'cobalt',
-      padding: const EdgeInsets.all(20),
-      child: Builder(
-        builder: (context) {
-          final c = SomnaColors.of(context);
-          final reduce = MediaQuery.disableAnimationsOf(context);
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Ночной режим',
-                          style: TextStyle(
-                            fontSize: 17,
-                            height: 1.25,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: -.34,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Semantics(
-                          expanded: _tune,
-                          child: PressScale(
-                            onPressed: () => setState(() => _tune = !_tune),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    '$sound · ${store.soundTimer > 0 ? '${store.soundTimer} мин' : 'без таймера'}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: c.ink2,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                AnimatedRotation(
-                                  turns: _tune ? .5 : 0,
-                                  duration: reduce
-                                      ? Duration.zero
-                                      : SomnaMotion.fast,
-                                  child: Icon(
-                                    Icons.keyboard_arrow_down_rounded,
-                                    size: 16,
-                                    color: c.ink2,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  SomnaButton(
-                    label: 'Начать',
-                    icon: Icons.nights_stay_outlined,
-                    horizontal: 20,
-                    onPressed: store.startNight,
-                  ),
-                ],
-              ),
-              AnimatedSize(
-                duration: reduce ? Duration.zero : SomnaMotion.fast,
-                curve: SomnaMotion.smooth,
-                alignment: Alignment.topCenter,
-                child: !_tune
-                    ? const SizedBox(width: double.infinity)
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const SizedBox(height: 20),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              for (final (id, label) in sleepSounds)
-                                SomnaChip(
-                                  label: label,
-                                  active: store.nightSound == id,
-                                  onPressed: () => store.setNightSound(id),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  'Таймер звука, мин',
-                                  style: TextStyle(fontSize: 13, color: c.ink2),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Segmented<int>(
-                                label: 'Таймер звука',
-                                value: store.soundTimer,
-                                onChanged: (v) =>
-                                    store.patch({'soundTimer': v}),
-                                options: const [
-                                  (15, '15'),
-                                  (30, '30'),
-                                  (60, '60'),
-                                  (0, '∞'),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Утром нажмите «Я проснулся»: отбой и подъём подставятся в запись сами.',
-                            style: TextStyle(
-                              fontSize: 13,
-                              height: 1.625,
-                              color: c.ink3,
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
   Widget _dynamics(BuildContext context, Summary sum, List<SleepNight> shown) {
     final store = SomnaScope.of(context), c = SomnaColors.of(context);
     final labelEvery = shown.length > 14
@@ -631,123 +469,6 @@ class _SleepScreenState extends State<SleepScreen> {
           ],
         ),
       ],
-    );
-  }
-
-  Widget _journalRow(SomnaStore store, SleepNight n) {
-    final c = SomnaColors.of(context);
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(26),
-        child: Dismissible(
-          key: ValueKey('night-${n.id}'),
-          direction: DismissDirection.endToStart,
-          dismissThresholds: const {DismissDirection.endToStart: .5},
-          onDismissed: (_) => store.removeNight(n.id),
-          background: ColoredBox(
-            color: const Color(0xffff5d5d).withValues(alpha: .18),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 24),
-                child: Icon(
-                  Icons.delete_outline_rounded,
-                  size: 20,
-                  color: c.danger,
-                ),
-              ),
-            ),
-          ),
-          child: PressScale(
-            onPressed: () => store.openSheet('night', n.id),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: Color.alphaBlend(c.glass, c.bg),
-                borderRadius: BorderRadius.circular(26),
-                border: Border(top: BorderSide(color: c.glassEdge)),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-                child: Row(
-                  children: [
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: (dark ? Colors.black : Colors.white).withValues(
-                          alpha: .45,
-                        ),
-                        shape: BoxShape.circle,
-                      ),
-                      child: SizedBox.square(
-                        dimension: 44,
-                        child: Center(
-                          child: Dots(
-                            value: nightScore(n, store.bedGoal, store.wakeGoal),
-                            size: 14,
-                            color: c.ink,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: [
-                              Text(
-                                relativeDay(n.dateKey),
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              if (n.dateKey.compareTo(dateKey(daysAgo(1))) >=
-                                  0) ...[
-                                const SizedBox(width: 8),
-                                Flexible(
-                                  child: Text(
-                                    dayMonthShort(parseKey(n.dateKey)),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: c.ink3,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${n.bedtime} → ${n.wakeTime} · ${durationRu(n.durationMin)}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 13, color: c.ink2),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: Icon(
-                        Icons.chevron_right_rounded,
-                        size: 20,
-                        color: c.ink3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

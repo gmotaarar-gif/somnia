@@ -43,28 +43,6 @@ void main() {
     final s = create();
     s.handleReminder('mood');
     expect(s.sheet, 'mood');
-    expect(s.nightMode, false);
-  });
-  test('morning tap during night session uses wake-up path', () {
-    final s = create();
-    s.startNight();
-    final started = s.nightStart;
-    expect(started, '09:05');
-    s.handleReminder('mood');
-    expect(s.nightMode, false);
-    expect(s.sheet, 'sleep');
-    expect(s.nightStart, started);
-  });
-  test('wake-up path remains while night awaits logging', () {
-    final s = create();
-    s.startNight();
-    s.endNight(true);
-    s.openSheet(null);
-    s.handleReminder('mood');
-    expect(s.sheet, 'sleep');
-    expect(s.nightMode, false);
-    s.endNight(false);
-    expect(s.nightStart, null);
   });
   test('restores settings but not transient sheets', () async {
     final p = MemoryPersistence(), first = create();
@@ -550,7 +528,7 @@ void main() {
     expect(prefs.getKeys(), {storageKey});
     final restored = create(MemoryPersistence(prefs.getString(storageKey)));
     expect(restored.theme, 'dark');
-    expect(restored.soundTimer, 15);
+    expect(restored.state.soundTimer, 15);
   });
   testWidgets('scope subscribes and rejects missing ancestors', (tester) async {
     final s = create();
@@ -578,17 +556,8 @@ void main() {
     );
     expect(tester.takeException(), isA<FlutterError>());
   });
-  testWidgets('night sound timer and navigation stay transient', (
-    tester,
-  ) async {
+  testWidgets('navigation stays transient', (tester) async {
     final s = create();
-    s.patch({'soundTimer': 1});
-    s.startNight();
-    await tester.pump(const Duration(minutes: 1));
-    expect(s.nightSound, 'off');
-    expect(s.nightMode, true);
-    s.clearNightStart();
-    expect(s.nightStart, null);
     s.setTab('practices');
     expect(s.tabDir, 1);
     s.setTab('today');

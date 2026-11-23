@@ -33,18 +33,15 @@ Future<void> settle(WidgetTester tester) async {
 void main() {
   group('mascot', () {
     test('sleeps at night, works during a practice, otherwise rests', () {
-      expect(mascotState(true, true, 12), MascotState.sleeping);
-      expect(mascotState(false, true, 2), MascotState.working);
-      expect(mascotState(false, false, 23), MascotState.sleeping);
-      expect(mascotState(false, false, 0), MascotState.sleeping);
-      expect(mascotState(false, false, 5), MascotState.sleeping);
-      expect(mascotState(false, false, 6), MascotState.idle);
-      expect(mascotState(false, false, 22), MascotState.idle);
+      expect(mascotState(true, 2), MascotState.working);
+      expect(mascotState(false, 23), MascotState.sleeping);
+      expect(mascotState(false, 0), MascotState.sleeping);
+      expect(mascotState(false, 5), MascotState.sleeping);
+      expect(mascotState(false, 6), MascotState.idle);
+      expect(mascotState(false, 22), MascotState.idle);
     });
 
-    testWidgets('follows night mode, the grounding sheet and the hour', (
-      tester,
-    ) async {
+    testWidgets('follows the worry diary and the hour', (tester) async {
       final s = SomnaStore(
         initialState: defaultState(DateTime(2030, 1, 2)),
         autoRefresh: false,
@@ -64,17 +61,10 @@ void main() {
       expect(shown(), MascotState.idle);
       expect(tester.getSize(find.byType(CloudAvatar)), const Size(64, 64));
 
-      s.openSheet('grounding');
+      s.openSheet('worry');
       await tester.pump();
       expect(shown(), MascotState.working);
       s.openSheet(null);
-      await tester.pump();
-      expect(shown(), MascotState.idle);
-
-      s.startNight();
-      await tester.pump();
-      expect(shown(), MascotState.sleeping);
-      s.endNight(false);
       await tester.pump();
       expect(shown(), MascotState.idle);
 

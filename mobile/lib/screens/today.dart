@@ -9,6 +9,10 @@ import '../logic/time.dart';
 import '../logic/valence.dart';
 import '../shell/top_bar.dart';
 import '../theme/tokens.dart';
+import '../data/facts.dart';
+import '../ui/buddies.dart';
+import '../ui/glow.dart';
+import '../ui/info_cards.dart';
 import '../ui/charts/charts.dart';
 import '../ui/dots.dart';
 import '../ui/press_scale.dart';
@@ -60,56 +64,72 @@ class _TodayScreenState extends State<TodayScreen> {
               '${greeting(now)}${s.userName.isEmpty ? '' : ', ${s.userName}'}',
           sub: '${weekdayShort(now)}, ${dayMonth(now)}',
         ),
-        SomnaCard(
-          tone: 'nightfall',
-          radius: SomnaRadii.large,
-          padding: EdgeInsets.zero,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _LastNight(sum: sum),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _Tile(
-                        title: 'Состояние',
-                        label: 'Состояние. Сделать чек-ин',
-                        icon: 'plus',
-                        note: mood == null
-                            ? 'Сделайте чек-ин'
-                            : getValenceLabel(mood.valence),
-                        value: mood == null
-                            ? null
-                            : Dots(
-                                value: '${moodPct(mood.valence)}%',
-                                size: 30,
-                              ),
-                        onPressed: () => s.openSheet('mood'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _Tile(
-                        title: 'Неделя',
-                        label: 'Индекс недели. Открыть итоги',
-                        icon: 'arrowUpRight',
-                        note: sum.week.isEmpty
-                            ? 'Пока нет данных'
-                            : '${indexLabel(sum.index)}${sum.indexDelta == 0 ? '' : ', ${sum.indexDelta > 0 ? '+' : ''}${sum.indexDelta}'}',
-                        value: sum.week.isEmpty
-                            ? null
-                            : Dots(value: sum.index, size: 30, square: true),
-                        onPressed: () => s.openSheet('recap'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        Reveal(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: BuddyTip(
+              kind: now.hour >= 21 || now.hour < 6
+                  ? BuddyKind.moon
+                  : BuddyKind.cloud,
+              text: companionLine(s, now),
+            ),
           ),
         ),
+        Reveal(
+          index: 1,
+          child: SomnaCard(
+            tone: 'nightfall',
+            radius: SomnaRadii.large,
+            padding: EdgeInsets.zero,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _LastNight(sum: sum),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _Tile(
+                          title: 'Состояние',
+                          label: 'Состояние. Сделать чек-ин',
+                          icon: 'plus',
+                          note: mood == null
+                              ? 'Сделайте чек-ин'
+                              : getValenceLabel(mood.valence),
+                          value: mood == null
+                              ? null
+                              : Dots(
+                                  value: '${moodPct(mood.valence)}%',
+                                  size: 30,
+                                ),
+                          onPressed: () => s.openSheet('mood'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _Tile(
+                          title: 'Неделя',
+                          label: 'Индекс недели. Открыть итоги',
+                          icon: 'arrowUpRight',
+                          note: sum.week.isEmpty
+                              ? 'Пока нет данных'
+                              : '${indexLabel(sum.index)}${sum.indexDelta == 0 ? '' : ', ${sum.indexDelta > 0 ? '+' : ''}${sum.indexDelta}'}',
+                          value: sum.week.isEmpty
+                              ? null
+                              : Dots(value: sum.index, size: 30, square: true),
+                          onPressed: () => s.openSheet('recap'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Reveal(index: 2, child: _Bento(streak: computeStreak(s.nights))),
         const SizedBox(height: 40),
         const _DayPlan(),
         const SizedBox(height: 40),
@@ -153,6 +173,8 @@ class _TodayScreenState extends State<TodayScreen> {
             ),
           ),
         ),
+        const SizedBox(height: 12),
+        FactPlate(fact: factOfDay(now), palette: 'sky'),
         const SizedBox(height: 40),
         SectionHead(
           title: 'Виджеты',
@@ -175,6 +197,117 @@ class _TodayScreenState extends State<TodayScreen> {
         ),
         const WidgetGrid(),
       ],
+    );
+  }
+}
+
+/// What the companion says: depends on the hour and on what is logged.
+String companionLine(SomnaStore s, DateTime now) {
+  final today = dateKey(now);
+  final slept = s.nights.any((n) => n.dateKey == today);
+  final checked = s.moods.any(
+    (m) => dateKey(DateTime.tryParse(m.at)?.toLocal() ?? now) == today,
+  );
+  final left = bedtimeCountdown(s.bedGoal, s.wakeGoal, now);
+  if (now.hour < 12 && !slept) {
+    return 'Доброе утро! Как спалось? Запишите ночь, пока помните детали.';
+  }
+  if (!checked && now.hour < 21) {
+    return 'Загляните в себя на 20 секунд: отметьте настроение.';
+  }
+  if (!left.past && left.minutes <= 90) {
+    return 'До отбоя ${durationRu(left.minutes)}. Самое время приглушить свет.';
+  }
+  if (left.past) return 'Пора отдыхать. Телефон подождёт до утра.';
+  final streak = computeStreak(s.nights);
+  return streak > 1
+      ? 'Серия $streak ${pluralRu(streak, const ['ночь', 'ночи', 'ночей'])} подряд. Так держать!'
+      : 'Всё записано. Хорошего дня!';
+}
+
+/// Quick bento row: log a night on a warm plate, the streak on a sweet one.
+class _Bento extends StatelessWidget {
+  final int streak;
+  const _Bento({required this.streak});
+  @override
+  Widget build(BuildContext context) {
+    final s = SomnaScope.of(context);
+    return SizedBox(
+      height: 132,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: TiltPress(
+              label: 'Записать сон',
+              onPressed: () => s.openSheet('sleep'),
+              child: GlowPlate.named(
+                'ember',
+                radius: SomnaRadii.small + 4,
+                padding: const EdgeInsets.all(16),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Color(0x40ffffff),
+                        shape: BoxShape.circle,
+                      ),
+                      child: SizedBox.square(
+                        dimension: 40,
+                        child: Icon(Icons.add_rounded, size: 22),
+                      ),
+                    ),
+                    Text(
+                      'Записать сон',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TiltPress(
+              label: 'Серия ночей: $streak',
+              onPressed: () => s.openSheet('journal', 'nights'),
+              child: GlowPlate.named(
+                'candy',
+                radius: SomnaRadii.small + 4,
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Серия',
+                      style: TextStyle(fontSize: 13, color: Color(0xb315151c)),
+                    ),
+                    Text(
+                      '$streak',
+                      style: const TextStyle(
+                        fontSize: 52,
+                        height: .95,
+                        letterSpacing: -2,
+                        fontWeight: FontWeight.w200,
+                        color: Colors.white,
+                        shadows: [
+                          Shadow(color: Color(0x80ff0f83), blurRadius: 18),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

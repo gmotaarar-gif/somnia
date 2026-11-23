@@ -38,11 +38,11 @@ and `deactivate` return `Future<bool>` and expose failures via
 authentication or payment authorization**. Journal reset preserves both.
 
 Platform notification scheduling/permission requests are implemented for
-Android by `lib/native/`; sound playback remains deferred.
+Android by `lib/native/`. There is no audio: night mode and sleep sounds were removed in the redesign.
 Inject `requestReminderPermission` into store creation
 when wiring notifications (the default permits the plain-Dart flow), and
-dispatch reminder taps with `handleReminder`. Night sound selection/timer and
-navigation are transient store state; screens and playback adapters come later.
+dispatch reminder taps with `handleReminder` (bedtime opens the cycle calculator,
+morning opens the check-in). Navigation is transient store state; screens and playback adapters come later.
 There are no browser storage events on native: `reloadFromStorage()` explicitly
 accepts external snapshots only when there are no unsaved local edits.
 
@@ -97,8 +97,7 @@ allow-while-idle alarms; no exact-alarm permission is declared. Android can
 delay inexact delivery beyond the selected minute, especially during Doze.
 The plugin restores alarms after reboot/package updates; app resume resyncs
 settings and timezone. A force-stop suppresses alarms until the app is opened.
-Tap handling covers running/background and cold launch; night-session state
-is intentionally transient, as on web. Android 13+ permission is requested
+Tap handling covers running/background and cold launch. Android 13+ permission is requested
 when enabling a reminder, not automatically on app launch.
 The notification plugin is constrained to 22.x for the scaffold's SDK 36;
 23.x requires Android compile SDK 37.
@@ -107,8 +106,42 @@ Profile export shares `somna-export.json` from cache with exactly the web's
 export subset; it is not a full settings/account backup. Share cancellation
 and share/storage errors use the web's failure toast.
 
-CI `.github/workflows/flutter-android.yml` pins Flutter 3.50.1 and publishes
-the tester-signed release APK as artifact `somna-apk` for mobile changes.
+## Run, test, deploy
+
+Requirements: Flutter 3.50.1 (Dart 3.14), Java 17 for Android, Xcode for iOS.
+
+```sh
+cd mobile
+flutter pub get
+flutter run                      # device or emulator
+flutter run -t lib/dev/charts_gallery.dart   # chart gallery
+dart format lib test             # CI fails on unformatted code
+flutter analyze
+flutter test                     # 300+ widget and unit tests
+flutter build apk --release      # Android APK
+flutter build appbundle --release   # Play Store bundle
+flutter build ios --release --no-codesign
+```
+
+Widget tests run with ambient loops off (`lib/ui/ambient.dart`): drifting
+plates, the breathing orb and bobbing buddies stop under `FLUTTER_TEST` and
+with the system "remove animations" setting, so `pumpAndSettle` settles.
+
+CI/CD (`.github/workflows/flutter-android.yml`):
+
+1. `verify`: format check, `flutter analyze`, `flutter test --coverage`.
+2. `android`: release APK and AAB (artifacts `somna-apk`, `somna-aab`). With
+   repository secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
+   `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` the build is signed with the
+   upload key; without them it uses the debug key (testers only).
+3. `ios`: unsigned `Runner.app` zip (artifact `somna-ios-unsigned`). Store
+   builds need a signing identity and provisioning profile on a Mac.
+4. `release`: on a `v*` tag, attaches all three artifacts to a GitHub release.
+
+Release: bump `version:` in `pubspec.yaml`, then `git tag v1.1.0 && git push
+--tags`. The build number comes from the CI run number.
+
+Design notes and the critique behind the redesign: `DESIGN.md`.
 
 ## Checks
 

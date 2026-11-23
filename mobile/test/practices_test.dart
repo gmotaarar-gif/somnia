@@ -4,12 +4,10 @@ import 'package:somna/data/articles.dart';
 import 'package:somna/data/defaults.dart';
 import 'package:somna/data/store.dart';
 import 'package:somna/logic/time.dart';
-import 'package:somna/profile/subscription_sheet.dart' show SubscriptionSheet;
+import 'package:somna/data/models.dart';
 import 'package:somna/screens/practices.dart';
-import 'package:somna/sheets/practice_sheets.dart';
 import 'package:somna/shell/app.dart';
 import 'package:somna/theme/tokens.dart';
-import 'package:somna/ui/dots.dart';
 import 'package:somna/ui/sheets.dart';
 
 import 'helpers.dart';
@@ -56,6 +54,16 @@ void main() {
     for (var i = 0; i < 8; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
+  }
+
+  Future<void> tapChip(WidgetTester tester, String text) async {
+    await Scrollable.ensureVisible(
+      tester.element(find.text(text).last),
+      alignment: .5,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(text).last);
+    await tester.pumpAndSettle();
   }
 
   Future<void> tapText(WidgetTester tester, String text) async {
@@ -110,9 +118,15 @@ void main() {
     await boot(tester, s);
     expect(find.byType(PracticesScreen).hitTestable(), findsOneWidget);
     expect(find.text('0 из 8 статей прочитано'), findsOneWidget);
-    expect(find.text(articles.first.title), findsOneWidget);
     expect(
-      find.text('${articles.first.tag} · ${articles.first.min} мин'),
+      find.text(articles.first.title, skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        '${articles.first.tag} · ${articles.first.min} мин',
+        skipOffstage: false,
+      ),
       findsOneWidget,
     );
     for (final a in articles.skip(1).take(3)) {
@@ -126,11 +140,6 @@ void main() {
     );
     expect(
       find.text('0 из 5 шагов перед сном', skipOffstage: false),
-      findsOneWidget,
-    );
-    expect(find.text('Plus', skipOffstage: false), findsOneWidget);
-    expect(
-      find.byIcon(Icons.lock_outline, skipOffstage: false),
       findsOneWidget,
     );
     expect(
@@ -156,14 +165,14 @@ void main() {
     await tapText(tester, 'Свернуть');
     expect(find.text(articles[4].title, skipOffstage: false), findsNothing);
 
-    await tapText(tester, 'Состояние');
+    await tapChip(tester, 'Состояние');
     expect(find.text(articleById('worry-time')!.title), findsOneWidget);
     expect(find.text(articleById('name-it')!.title), findsOneWidget);
     expect(find.text(articleById('caffeine')!.title), findsNothing);
     expect(find.textContaining('Все статьи'), findsNothing);
 
     // The featured sleep article stays in the hero, so three remain.
-    await tapText(tester, 'Сон');
+    await tapChip(tester, 'Сон');
     for (final id in ['twenty-minutes', 'cool-room', 'sleep-debt']) {
       expect(
         find.text(articleById(id)!.title, skipOffstage: false),
@@ -172,7 +181,7 @@ void main() {
     }
     expect(find.textContaining('Все статьи'), findsNothing);
 
-    await tapText(tester, 'Привычки');
+    await tapChip(tester, 'Привычки');
     expect(find.text(articleById('morning-light')!.title), findsOneWidget);
     expect(find.text(articleById('caffeine')!.title), findsOneWidget);
     expect(find.text(articleById('cool-room')!.title), findsNothing);
@@ -280,7 +289,7 @@ void main() {
   testWidgets('session summary appears only with sessions', (tester) async {
     final s = store();
     await boot(tester, s);
-    s.addSession('grounding', 3);
+    s.addSession('worry', 3);
     s.addSession('worry', 2);
     await tester.pumpAndSettle();
     expect(
@@ -289,123 +298,46 @@ void main() {
     );
   });
 
-  testWidgets('grounding counts 5-4-3-2-1 and records a session', (
-    tester,
-  ) async {
-    final s = store();
-    await boot(tester, s);
-    await tester.ensureVisible(find.text('Заземление'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Заземление'));
-    await settle(tester);
-    expect(s.sheet, 'grounding');
-    expect(find.text('5 вещей, которые видите'), findsOneWidget);
-    var taps = 0;
-    for (final sense in groundingSenses) {
-      expect(find.text('${sense.n} ${sense.title}'), findsOneWidget);
-      expect(find.text(sense.hint), findsOneWidget);
-      for (var i = 0; i < sense.n; i++) {
-        expect(s.sessions, isEmpty);
-        await tester.tap(
-          find.bySemanticsLabel('Отметить: ${i + 1} из ${sense.n}'),
-        );
-        taps++;
-        await settle(tester);
-      }
-    }
-    expect(taps, 15);
-    expect(s.sheet, null);
-    expect(s.sessions.single.kind, 'grounding');
-    expect(s.sessions.single.min, 3);
-    expect(find.text('Заземление завершено'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 3));
-    await tester.pumpAndSettle();
-    expect(
-      find.text('1 сессия · 3 мин практики всего', skipOffstage: false),
-      findsOneWidget,
-    );
+  test('practice week sums minutes per day, oldest first', () {
+    final now = DateTime(2030, 1, 10, 12);
+    final week = practiceWeek([
+      PracticeSession(
+        id: 'a',
+        at: DateTime(2030, 1, 10, 9).toUtc().toIso8601String(),
+        kind: 'worry',
+        min: 2,
+      ),
+      PracticeSession(
+        id: 'b',
+        at: DateTime(2030, 1, 4, 22).toUtc().toIso8601String(),
+        kind: 'worry',
+        min: 3,
+      ),
+      PracticeSession(
+        id: 'c',
+        at: DateTime(2029, 12, 1).toUtc().toIso8601String(),
+        kind: 'worry',
+        min: 9,
+      ),
+    ], now);
+    expect(week, [3, 0, 0, 0, 0, 0, 2]);
   });
 
-  testWidgets('body scan is locked without Plus', (tester) async {
-    final s = store();
-    await boot(tester, s);
-    await tester.ensureVisible(find.text('Скан тела'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Скан тела'));
-    await tester.pumpAndSettle();
-    expect(s.sheet, 'bodyscan');
-    expect(find.byType(SubscriptionSheet), findsOneWidget);
-    expect(find.text('Начать'), findsNothing);
-    await tester.tap(find.text('Продолжить бесплатно'));
-    await tester.pumpAndSettle();
-    expect(s.sheet, null);
-    expect(s.sessions, isEmpty);
+  test('reading minutes split by topic count only read articles', () {
+    final first = articles.first;
+    final split = readMinutesByTopic([first.id]);
+    expect(split.length, 3);
+    expect(split.fold<double>(0, (a, b) => a + b), first.min);
   });
 
-  testWidgets('locked body scan hands over to a registered Plus sheet', (
-    tester,
-  ) async {
+  testWidgets('reading stats and the removed practices', (tester) async {
     final s = store();
-    final registry = SheetRegistry()
-      ..register('subscription', (context, arg) => const Text('plus sheet'));
-    await boot(tester, s, registry: registry);
-    s.openSheet('bodyscan');
-    await tester.pumpAndSettle();
-    expect(find.text('plus sheet'), findsOneWidget);
-    expect(find.byType(PlusGate), findsNothing);
-  });
-
-  testWidgets('Plus body scan runs 5 x 36 s, pauses and records 3 min', (
-    tester,
-  ) async {
-    final s = store();
-    expect(await s.activate('monthly'), true);
     await boot(tester, s);
-    expect(find.byIcon(Icons.lock_outline, skipOffstage: false), findsNothing);
-    s.openSheet('bodyscan');
-    await settle(tester);
-    expect(find.text('Шаг 1 из 5'), findsOneWidget);
-    expect(find.text(bodyScanParts.first.part), findsOneWidget);
-    expect(
-      find.byWidgetPredicate((w) => w is Dots && w.value == '3:00'),
-      findsOneWidget,
-    );
-
-    await tester.tap(find.text('Начать'));
-    await tester.pump();
-    expect(find.text('Пауза'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 36));
-    await settle(tester);
-    expect(find.text('Шаг 2 из 5'), findsOneWidget);
-    expect(find.text(bodyScanParts[1].part), findsOneWidget);
-    expect(find.text(bodyScanParts[1].text), findsOneWidget);
-
-    await tester.tap(find.text('Пауза'));
-    await tester.pump();
-    expect(find.text('Продолжить'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 60));
-    await settle(tester);
-    expect(find.text('Шаг 2 из 5'), findsOneWidget);
-
-    await tester.tap(find.text('Продолжить'));
-    await tester.pump();
-    for (var i = 2; i < bodyScanParts.length; i++) {
-      await tester.pump(const Duration(seconds: 36));
-      await settle(tester);
-      if (i < bodyScanParts.length - 1) {
-        expect(find.text('Шаг ${i + 1} из 5'), findsOneWidget);
-      }
-    }
-    for (var i = 0; i < 40 && s.sheet != null; i++) {
-      await tester.pump(const Duration(seconds: 1));
-    }
-    await settle(tester);
-    expect(s.sheet, null);
-    expect(s.sessions.single.kind, 'bodyscan');
-    expect(s.sessions.single.min, 3);
-    expect(find.text('Сканирование тела завершено'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 3));
-    expect(tester.takeException(), null);
+    expect(find.text('Ваше чтение'), findsOneWidget);
+    expect(find.text('из ${articles.length}'), findsOneWidget);
+    expect(find.text('Заземление', skipOffstage: false), findsNothing);
+    expect(find.text('Скан тела', skipOffstage: false), findsNothing);
+    expect(find.text('Ваша неделя', skipOffstage: false), findsOneWidget);
   });
 
   testWidgets('worry diary saves, resolves and deletes', (tester) async {
@@ -482,8 +414,9 @@ void main() {
     expect(find.text('Практики'), findsWidgets);
     for (final (id, arg) in [
       ('article', 'caffeine'),
-      ('grounding', null),
-      ('bodyscan', null),
+      ('insights', null),
+      ('journal', 'moods'),
+      ('journal', 'nights'),
       ('worry', null),
     ]) {
       s.openSheet(id, arg);
@@ -513,8 +446,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
     for (final (id, arg) in [
       ('article', 'wake-anchor'),
-      ('grounding', null),
-      ('bodyscan', null),
+      ('insights', null),
+      ('journal', 'moods'),
+      ('journal', 'nights'),
       ('worry', null),
     ]) {
       s.openSheet(id, arg);

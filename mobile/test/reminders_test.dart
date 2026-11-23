@@ -231,32 +231,25 @@ void main() {
       ]);
     },
   );
-  test(
-    'taps route bedtime, morning, unknown, night-active and disposed callbacks',
-    () async {
-      final s = store();
-      await service.start(s);
-      fake.tap!(1001);
-      expect(s.sheet, 'bodyscan');
-      fake.tap!(1002);
-      expect(s.sheet, 'mood');
-      fake.tap!(9999);
-      expect(s.sheet, 'mood');
-      s.startNight();
-      fake.tap!(1002);
-      expect(s.nightMode, false);
-      expect(s.sheet, 'sleep');
-      service.dispose();
-      s.openSheet(null);
-      fake.tap!(1001);
-      expect(s.sheet, null);
-    },
-  );
+  test('taps route bedtime, morning, unknown and disposed callbacks', () async {
+    final s = store();
+    await service.start(s);
+    fake.tap!(1001);
+    expect(s.sheet, 'cycles');
+    fake.tap!(1002);
+    expect(s.sheet, 'mood');
+    fake.tap!(9999);
+    expect(s.sheet, 'mood');
+    service.dispose();
+    s.openSheet(null);
+    fake.tap!(1001);
+    expect(s.sheet, null);
+  });
   test('cold notification launch routes after store attachment', () async {
     fake.launchId = 1001;
     final s = store();
     await service.start(s);
-    expect(s.sheet, 'bodyscan');
+    expect(s.sheet, 'cycles');
   });
   test('toggle cancel permission reschedule is serialized and denied updates/toasts match web', () async {
     final s = store();

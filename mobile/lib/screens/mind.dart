@@ -14,8 +14,8 @@ import '../ui/dots.dart';
 import '../ui/mood_orb.dart';
 import '../ui/press_scale.dart';
 import '../ui/surfaces.dart';
-
-Color _rgb(RGB c) => Color.fromARGB(255, c[0], c[1], c[2]);
+import '../ui/buddies.dart';
+import '../ui/info_cards.dart';
 
 /// Mean valence of the check-ins made on [key]; null when there were none.
 double? moodDayAverage(List<MoodEntry> moods, String key) {
@@ -40,7 +40,6 @@ class MindScreen extends StatefulWidget {
 class _MindScreenState extends State<MindScreen> {
   String _view = 'trend', _pattern = 'factors';
   int _insightAt = 0;
-  bool _allEntries = false;
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +75,6 @@ class _MindScreenState extends State<MindScreen> {
     final insight = insights.isEmpty
         ? null
         : insights[_insightAt % insights.length];
-    final diary = moods.reversed.take(_allEntries ? moods.length : 3).toList();
     String when(MoodEntry m) =>
         '${relativeDay(dateKey(DateTime.parse(m.at)), now)}, ${clockOf(m.at)}';
 
@@ -501,45 +499,15 @@ class _MindScreenState extends State<MindScreen> {
             children: [
               const MindSectionHead(title: 'Дневник'),
               const SizedBox(height: 16),
-              if (diary.isEmpty)
-                GlassSurface(
-                  radius: 26,
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    children: [
-                      const ExcludeSemantics(
-                        child: CustomPaint(
-                          size: Size.square(64),
-                          painter: _MascotPainter(),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Здесь появятся ваши чек-ины.',
-                          style: TextStyle(
-                            fontSize: 14,
-                            height: 1.625,
-                            color: c.ink2,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                for (final (i, m) in diary.indexed) ...[
-                  if (i > 0) const SizedBox(height: 8),
-                  _DiaryEntry(key: ValueKey(m.id), entry: m, when: when(m)),
-                ],
-              if (moods.length > 3) ...[
-                const SizedBox(height: 8),
-                MindButton(
-                  kind: MindButtonKind.ghost,
-                  label: _allEntries ? 'Свернуть' : 'Показать все записи',
-                  onPressed: () => setState(() => _allEntries = !_allEntries),
-                ),
-              ],
+              JournalLink(
+                kind: 'moods',
+                title: moods.isEmpty
+                    ? 'Здесь появятся ваши чек-ины'
+                    : 'Все чек-ины · ${moods.length}',
+                sub: 'История настроения теперь в профиле',
+              ),
+              const SizedBox(height: 24),
+              const TipCarousel(topic: 'mind', buddy: BuddyKind.star),
             ],
           ),
         ),
@@ -780,155 +748,4 @@ class _Emotions extends StatelessWidget {
       ],
     );
   }
-}
-
-/// One check-in: a compact row that opens to the full tags and note.
-class _DiaryEntry extends StatefulWidget {
-  final MoodEntry entry;
-  final String when;
-  const _DiaryEntry({super.key, required this.entry, required this.when});
-  @override
-  State<_DiaryEntry> createState() => _DiaryEntryState();
-}
-
-class _DiaryEntryState extends State<_DiaryEntry> {
-  bool _open = false;
-  @override
-  Widget build(BuildContext context) {
-    final c = SomnaColors.of(context), m = widget.entry;
-    final pal = sampleValencePalette(m.valence);
-    final tags = [...m.emotions, ...m.factors].join(' · ');
-    final note = m.note?.trim() ?? '';
-    final more = tags.isNotEmpty || note.isNotEmpty;
-    final detail = TextStyle(fontSize: 13, height: 1.375, color: c.ink2);
-    final row = GlassSurface(
-      radius: 26,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                center: const Alignment(-.28, -.4),
-                radius: .8,
-                colors: [_rgb(pal.core), _rgb(pal.mid), _rgb(pal.outer)],
-                stops: const [0, .48, 1],
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        getValenceLabel(m.valence),
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          height: 1.375,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      '${moodPct(m.valence)}%',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                        color: c.ink2,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  widget.when,
-                  style: TextStyle(fontSize: 12, color: c.ink3),
-                ),
-                if (tags.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    tags,
-                    maxLines: _open ? null : 1,
-                    overflow: _open ? null : TextOverflow.ellipsis,
-                    style: detail,
-                  ),
-                ],
-                if (note.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    '«$note»',
-                    maxLines: _open ? null : 1,
-                    overflow: _open ? null : TextOverflow.ellipsis,
-                    style: detail,
-                  ),
-                ],
-              ],
-            ),
-          ),
-          if (more) ...[
-            const SizedBox(width: 16),
-            Padding(
-              padding: const EdgeInsets.only(top: 14),
-              child: AnimatedRotation(
-                turns: _open ? .5 : 0,
-                duration: MediaQuery.disableAnimationsOf(context)
-                    ? Duration.zero
-                    : SomnaMotion.fast,
-                child: Icon(Icons.expand_more, size: 16, color: c.ink3),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-    if (!more) return row;
-    return Semantics(
-      expanded: _open,
-      child: PressScale(
-        onPressed: () => setState(() => _open = !_open),
-        child: row,
-      ),
-    );
-  }
-}
-
-/// The cloud that keeps empty lists company on web.
-class _MascotPainter extends CustomPainter {
-  const _MascotPainter();
-  @override
-  void paint(Canvas canvas, Size size) {
-    final u = size.width / 64;
-    final body = Path()
-      ..addOval(Rect.fromCircle(center: Offset(22 * u, 36 * u), radius: 13 * u))
-      ..addOval(Rect.fromCircle(center: Offset(34 * u, 27 * u), radius: 16 * u))
-      ..addOval(Rect.fromCircle(center: Offset(46 * u, 37 * u), radius: 11 * u))
-      ..addRRect(
-        RRect.fromLTRBR(12 * u, 34 * u, 54 * u, 50 * u, Radius.circular(8 * u)),
-      );
-    canvas.drawPath(body, Paint()..color = const Color(0xffc4cafa));
-    final eye = Paint()..color = const Color(0xff23264a);
-    canvas.drawRRect(
-      RRect.fromLTRBR(26 * u, 33 * u, 29 * u, 40 * u, Radius.circular(2 * u)),
-      eye,
-    );
-    canvas.drawRRect(
-      RRect.fromLTRBR(37 * u, 33 * u, 40 * u, 40 * u, Radius.circular(2 * u)),
-      eye,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_MascotPainter old) => false;
 }

@@ -12,7 +12,8 @@ import '../native/export.dart';
 import '../profile/awards_sheet.dart';
 import '../profile/subscription_sheet.dart';
 import 'island.dart';
-import '../sleep/night_mode.dart';
+import '../profile/insights_sheet.dart';
+import '../profile/journal_sheet.dart';
 import '../sleep/sheets.dart';
 import 'onboarding.dart';
 import 'profile_sheet.dart';
@@ -57,6 +58,15 @@ class _SomnaAppState extends State<SomnaApp> {
     registerSleepSheets(_registry);
     if (!_registry.contains('awards')) {
       _registry.register('awards', (context, arg) => const AwardsSheet());
+    }
+    if (!_registry.contains('journal')) {
+      _registry.register('journal', (context, arg) => JournalSheet(arg: arg));
+    }
+    if (!_registry.contains('insights')) {
+      _registry.register(
+        'insights',
+        (context, arg) => const PlusGate(child: InsightsSheet()),
+      );
     }
     if (!_registry.contains('subscription')) {
       _registry.register(
@@ -120,7 +130,6 @@ class _SomnaAppState extends State<SomnaApp> {
           fit: StackFit.expand,
           children: [
             child!,
-            if (store != null) const NightModeHost(),
             Island(toast: store?.toast),
           ],
         ),

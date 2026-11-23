@@ -10,16 +10,14 @@ import '../data/store.dart';
 
 enum MascotState { idle, working, sleeping }
 
-/// Asleep through night mode and from 23:00 to 06:00, busy while a practice
-/// runs, otherwise idle (Mascot.tsx).
-MascotState mascotState(bool nightMode, bool active, int hour) {
-  if (nightMode) return MascotState.sleeping;
+/// Asleep from 23:00 to 06:00, busy while a practice runs, otherwise idle.
+MascotState mascotState(bool active, int hour) {
   if (active) return MascotState.working;
   return hour >= 23 || hour < 6 ? MascotState.sleeping : MascotState.idle;
 }
 
 /// Somna's cloud. It follows the app: asleep at night, hopping while a
-/// practice is on ([active], or the grounding sheet is open).
+/// practice is on ([active], or the worry diary is open).
 class Mascot extends StatefulWidget {
   final double size;
   final bool active;
@@ -58,8 +56,7 @@ class _MascotState extends State<Mascot> {
     return CloudAvatar(
       size: widget.size,
       state: mascotState(
-        store.nightMode,
-        widget.active || store.sheet == 'grounding',
+        widget.active || store.sheet == 'worry',
         widget.clock().hour,
       ),
     );

@@ -148,7 +148,7 @@ class SubscriptionCard extends StatelessWidget {
 }
 
 /// Shows [child] to Plus members and the Plus offer to everyone else, so a
-/// locked practice can register `PlusGate(child: ...)` as its sheet.
+/// locked report can register `PlusGate(child: ...)` as its sheet.
 class PlusGate extends StatelessWidget {
   final Widget child;
   const PlusGate({super.key, required this.child});
@@ -209,7 +209,7 @@ class _SubscriptionSheetState extends State<SubscriptionSheet> {
     if (ok) {
       store.notify('Somna Plus включён · без списаний');
       // Move to the explicit sheet so the confirmation survives the unlock.
-      if (fromPractice) store.openSheet('subscription', 'bodyscan');
+      if (fromPractice) store.openSheet('subscription', 'insights');
     }
     if (mounted) setState(() => _busy = false);
   }
@@ -410,7 +410,7 @@ class _SubscriptionSheetState extends State<SubscriptionSheet> {
           child: Text(
             isPlus
                 ? 'Plus уже включён на этом устройстве. Никаких списаний и автоматического продления.'
-                : 'Откройте сканирование тела — мягкую практику, чтобы замедлиться и отпустить день.',
+                : 'Откройте глубокую аналитику: связь сна и настроения, ритм по дням недели и лучшие ночи.',
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 13,
@@ -488,15 +488,15 @@ class _SubscriptionSheetState extends State<SubscriptionSheet> {
     ),
     const SizedBox(height: 12),
     PressScale(
-      label: 'Сканирование тела. Ваша Plus-практика · 3 минуты',
-      onPressed: () => _store!.openSheet('bodyscan'),
+      label: 'Глубокая аналитика. Ваш Plus-отчёт',
+      onPressed: () => _store!.openSheet('insights'),
       child: GlassSurface(
         radius: 24,
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             const Icon(
-              Icons.document_scanner_outlined,
+              Icons.insights_outlined,
               size: 20,
               color: Color(0xffb794f0),
             ),
@@ -506,12 +506,12 @@ class _SubscriptionSheetState extends State<SubscriptionSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Сканирование тела',
+                    'Глубокая аналитика',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Ваша Plus-практика · 3 минуты',
+                    'Ваш Plus-отчёт · обновляется каждый день',
                     style: TextStyle(fontSize: 12, color: c.ink3),
                   ),
                 ],
@@ -544,7 +544,7 @@ class _SubscriptionSheetState extends State<SubscriptionSheet> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Сканирование тела снова станет недоступно. Журнал и история практик останутся с вами.',
+              'Глубокая аналитика снова станет недоступна. Журнал и все записи останутся с вами.',
               style: TextStyle(fontSize: 12, height: 1.625, color: c.ink2),
             ),
             const SizedBox(height: 16),
@@ -595,7 +595,7 @@ class _SubscriptionSheetState extends State<SubscriptionSheet> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Сканирование тела доступно с Plus',
+                'Глубокая аналитика доступна с Plus',
                 style: TextStyle(fontSize: 13, color: mark),
               ),
             ),
@@ -604,8 +604,8 @@ class _SubscriptionSheetState extends State<SubscriptionSheet> {
       ],
       const SizedBox(height: 8),
       for (final (title, text) in const [
-        ('Сканирование тела', '3 минуты внимания от стоп до макушки'),
-        ('В своём ритме', 'Пауза и продолжение в любой момент'),
+        ('Глубокая аналитика', 'Сон против настроения, ритм недели, рекорды'),
+        ('Только на устройстве', 'Расчёты идут локально, без сервера'),
       ])
         Padding(
           padding: const EdgeInsets.only(top: 12),
