@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -18,7 +17,11 @@ import '../ui/charts/charts.dart';
 import '../ui/dots.dart';
 import '../ui/press_scale.dart';
 import '../ui/surfaces.dart';
+import '../ui/buddies.dart';
+import '../ui/glow.dart';
+import '../ui/mood_orb.dart';
 import 'aurora.dart';
+import 'onboarding_story.dart';
 import 'onboarding_controls.dart';
 import 'onboarding_widgets.dart';
 
@@ -199,6 +202,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _header(c, building),
+                    if (!building && _step > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 14),
+                        child: AnimatedSwitcher(
+                          duration: MediaQuery.disableAnimationsOf(context)
+                              ? Duration.zero
+                              : SomnaMotion.medium,
+                          switchInCurve: SomnaMotion.smooth,
+                          transitionBuilder: (child, a) => FadeTransition(
+                            opacity: a,
+                            child: ScaleTransition(
+                              scale: Tween(begin: .96, end: 1.0).animate(a),
+                              alignment: Alignment.centerLeft,
+                              child: child,
+                            ),
+                          ),
+                          child: BuddyTip(
+                            key: ValueKey(_step),
+                            kind: stepBuddies[_step % stepBuddies.length],
+                            size: 44,
+                            text: stepLines[_step % stepLines.length],
+                          ),
+                        ),
+                      ),
                     Expanded(
                       child: _StepSwitcher(
                         step: _step,
@@ -217,8 +244,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                         ),
                       SizedBox(height: _error == null ? 28 : 12),
-                      SomnaButton(
-                        height: 56,
+                      ActionPill(
+                        glow: stepGlows[_step % stepGlows.length],
                         label: _step == 0
                             ? 'Начать'
                             : !last
@@ -226,7 +253,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             : _registered
                             ? 'Открыть Somna'
                             : 'Создать профиль',
-                        icon: Icons.arrow_forward_rounded,
                         onPressed: _canNext && !_finishing ? _next : null,
                       ),
                       if (last && !_registered) ...[
@@ -283,38 +309,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: Semantics(
                   container: true,
                   label: 'Шаг ${_step + 1} из $_steps',
-                  child: Row(
-                    children: [
-                      for (var i = 0; i < _steps; i++)
-                        Expanded(
-                          child: Container(
-                            height: 4,
-                            margin: EdgeInsets.only(left: i == 0 ? 0 : 4),
-                            clipBehavior: Clip.antiAlias,
-                            alignment: Alignment.centerLeft,
-                            decoration: BoxDecoration(
-                              color: c.ink.withValues(alpha: .15),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                            child: AnimatedFractionallySizedBox(
-                              duration: reduce
-                                  ? Duration.zero
-                                  : SomnaMotion.verySlow,
-                              curve: SomnaMotion.smooth,
-                              alignment: Alignment.centerLeft,
-                              widthFactor: i <= _step ? 1 : 0,
-                              heightFactor: 1,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: c.ink,
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                  child: StepLeds(step: _step, count: _steps),
                 ),
               ),
               const SizedBox(width: 16),
@@ -365,8 +360,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Widget _intro(BuildContext context) => Column(
     children: [
-      const _IntroStack(),
-      const SizedBox(height: 40),
+      const IntroStory(),
+      const SizedBox(height: 32),
       ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 270),
         child: const BlurWords(
@@ -747,7 +742,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Widget _moodStep(BuildContext context) {
     final c = SomnaColors.of(context);
-    final mid = sampleValencePalette(_valence).mid;
     final hint = TextStyle(fontSize: 12, color: c.ink3);
     return Column(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -758,12 +752,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           'Первый чек-ин: дальше будем сравнивать с ним.',
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 24),
+          padding: const EdgeInsets.symmetric(vertical: 8),
           child: Column(
             children: [
-              _PulseOrb(color: Color.fromARGB(255, mid[0], mid[1], mid[2])),
-              const SizedBox(height: 36),
-              Dots(value: '${moodPct(_valence)}%', size: 40, color: c.ink),
+              MoodOrb(
+                valence: _valence,
+                size: 144,
+                onChanged: (v) => setState(() {
+                  _valence = v;
+                  _moodAnswered = true;
+                }),
+              ),
+              const SizedBox(height: 16),
+              Dots(value: '${moodPct(_valence)}%', size: 36, color: c.ink),
               const SizedBox(height: 12),
               Text(
                 getValenceLabel(_valence),
@@ -1256,207 +1257,6 @@ class _AppearState extends State<_Appear> with SingleTickerProviderStateMixin {
 }
 
 /// Intro: three cards fanned out, shuffling every few seconds.
-class _IntroStack extends StatefulWidget {
-  const _IntroStack();
-  @override
-  State<_IntroStack> createState() => _IntroStackState();
-}
-
-class _IntroStackState extends State<_IntroStack> {
-  static const _cards = <(String, String)>[
-    ('violet', 'Сон'),
-    ('sunset', 'Состояние'),
-    ('night', 'Неделя'),
-  ];
-  static const _note = TextStyle(
-    fontSize: 13,
-    color: Color.fromRGBO(255, 255, 255, .7),
-  );
-  late final Timer _timer = Timer.periodic(
-    const Duration(milliseconds: 2600),
-    (_) => setState(() => _top = (_top + 1) % _cards.length),
-  );
-  int _top = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer;
-  }
-
-  @override
-  void dispose() {
-    _timer.cancel();
-    super.dispose();
-  }
-
-  Widget _foot(String tone) => switch (tone) {
-    'violet' => LayoutBuilder(
-      builder: (context, constraints) => OverflowBox(
-        fit: OverflowBoxFit.deferToChild,
-        minWidth: constraints.maxWidth + 40,
-        maxWidth: constraints.maxWidth + 40,
-        child: const Orbits(),
-      ),
-    ),
-    'sunset' => const Text('После первого чек-ина', style: _note),
-    _ => const SizedBox(
-      height: 84,
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: Text('Пока нет данных', style: _note),
-      ),
-    ),
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final duration = MediaQuery.disableAnimationsOf(context)
-        ? Duration.zero
-        : const Duration(milliseconds: 700);
-    int pos(int i) => (i - _top + _cards.length) % _cards.length;
-    final order = [for (var i = 0; i < _cards.length; i++) i]
-      ..sort((a, b) => (pos(a) == 0 ? 1 : 0) - (pos(b) == 0 ? 1 : 0));
-    return ExcludeSemantics(
-      child: SizedBox(
-        width: 236,
-        height: 310,
-        child: Stack(
-          clipBehavior: Clip.none,
-          fit: StackFit.expand,
-          children: [
-            for (final i in order)
-              AnimatedContainer(
-                key: ValueKey(_cards[i].$1),
-                duration: duration,
-                curve: Curves.easeOutCubic,
-                transformAlignment: Alignment.center,
-                transform: switch (pos(i)) {
-                  0 => Matrix4.identity(),
-                  final p =>
-                    Matrix4.translationValues(p == 1 ? 54 : -54, 18, 0)
-                      ..multiply(
-                        Matrix4.rotationZ((p == 1 ? 9 : -9) * math.pi / 180),
-                      )
-                      ..multiply(Matrix4.diagonal3Values(.86, .86, 1)),
-                },
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(SomnaRadii.large),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color.fromRGBO(0, 0, 0, .8),
-                      blurRadius: 60,
-                      spreadRadius: -20,
-                      offset: Offset(0, 30),
-                    ),
-                  ],
-                ),
-                child: AnimatedOpacity(
-                  duration: duration,
-                  opacity: pos(i) == 0 ? 1 : .55,
-                  child: SomnaCard(
-                    tone: _cards[i].$1,
-                    radius: SomnaRadii.large,
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            _cards[i].$2,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
-                          '—',
-                          style: TextStyle(fontSize: 52, height: 1),
-                        ),
-                        const Spacer(),
-                        _foot(_cards[i].$1),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// First check-in orb: takes the colour of the picked state and breathes.
-class _PulseOrb extends StatefulWidget {
-  final Color color;
-  const _PulseOrb({required this.color});
-  @override
-  State<_PulseOrb> createState() => _PulseOrbState();
-}
-
-class _PulseOrbState extends State<_PulseOrb>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 2250),
-  );
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _c.value = 0;
-    } else if (!_c.isAnimating) {
-      _c.repeat(reverse: true);
-    }
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => ExcludeSemantics(
-    child: ScaleTransition(
-      scale: Tween(
-        begin: 1.0,
-        end: 1.06,
-      ).animate(CurvedAnimation(parent: _c, curve: Curves.easeInOut)),
-      child: AnimatedContainer(
-        duration: MediaQuery.disableAnimationsOf(context)
-            ? Duration.zero
-            : const Duration(milliseconds: 300),
-        width: 190,
-        height: 190,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            center: const Alignment(-.3, -.44),
-            radius: .97,
-            colors: [
-              const Color.fromRGBO(255, 255, 255, .85),
-              widget.color,
-              widget.color.withValues(alpha: .5),
-            ],
-            stops: const [0, .42, 1],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: widget.color.withValues(alpha: .8),
-              blurRadius: 90,
-              spreadRadius: -10,
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
 class _Building extends StatefulWidget {
   final VoidCallback onDone;
   const _Building({required this.onDone});

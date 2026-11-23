@@ -99,7 +99,7 @@ class ReminderService with WidgetsBindingObserver {
 
   void routeTap(int id) {
     if (_disposed) return;
-    if (id == 1001) _store?.handleReminder('bodyscan');
+    if (id == 1001) _store?.handleReminder('cycles');
     if (id == 1002) _store?.handleReminder('mood');
   }
 

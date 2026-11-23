@@ -300,7 +300,11 @@ class _MoodSheetState extends State<MoodSheet> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        MoodOrb(valence: _valence, size: 184),
+                        MoodOrb(
+                          valence: _valence,
+                          size: 184,
+                          onChanged: _setValence,
+                        ),
                         const SizedBox(height: 28),
                         ExcludeSemantics(
                           child: Text(

@@ -29,18 +29,7 @@ class SheetRegistry extends ChangeNotifier {
     );
     register('wellbeing', (context, arg) => const WellbeingSheet());
     register('article', (context, arg) => ArticleSheet(id: arg));
-    register('grounding', (context, arg) => const GroundingSheet());
     register('worry', (context, arg) => const WorrySheet());
-    // Without Plus the body scan hands over to the Plus sheet once that is
-    // registered (web: SubscriptionSheet opens for a locked practice).
-    register(
-      'bodyscan',
-      (context, arg) => BodyScanSheet(
-        locked: (context) => contains('subscription')
-            ? build(context, 'subscription', arg)
-            : const PlusGate(),
-      ),
-    );
   }
   final Map<String, SomnaSheetBuilder> _builders = {};
   final Map<String, Color> _darkSurfaces = {};

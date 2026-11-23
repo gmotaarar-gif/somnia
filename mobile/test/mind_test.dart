@@ -143,7 +143,7 @@ void main() {
         'Индекс благополучия WHO-5',
         '5 вопросов, одна минута',
         'Дневник',
-        'Здесь появятся ваши чек-ины.',
+        'Здесь появятся ваши чек-ины',
       ]) {
         expect(find.text(text), findsOneWidget, reason: text);
       }
@@ -190,7 +190,7 @@ void main() {
     );
     await pumpMind(tester, s, brightness: Brightness.light);
     expect(find.text('6 чек-инов за неделю'), findsOneWidget);
-    expect(find.text('Сегодня, 09:05'), findsNWidgets(2));
+    expect(find.text('Сегодня, 09:05'), findsOneWidget);
     expect(find.bySemanticsLabel('75%'), findsOneWidget);
     expect(find.text('Ясность · Радость · Лёгкость'), findsOneWidget);
     expect(find.text('Работа'), findsOneWidget);
@@ -198,27 +198,13 @@ void main() {
     expect(find.text('Сон'), findsNothing);
     expect(find.text('Хорошее самочувствие · +16 к прошлому'), findsOneWidget);
     expect(find.text('64'), findsOneWidget);
-    // Neutral is a recorded zero, not an empty day.
-    expect(find.text('Нейтрально'), findsOneWidget);
-    expect(find.text('50%'), findsOneWidget);
-    expect(find.text('«Хорошее утро»'), findsOneWidget);
-    final tags = find.text('Ясность · Радость · Лёгкость · Уверенность · Сон');
-    expect(tester.widget<Text>(tags).maxLines, 1);
-    await tester.tap(tags);
-    await tester.pumpAndSettle();
-    expect(tester.widget<Text>(tags).maxLines, isNull);
-    expect(find.text('Неприятно'), findsNothing);
-    await tester.tap(find.text('Показать все записи'));
-    await tester.pumpAndSettle();
-    expect(find.text('Неприятно'), findsNWidgets(2));
-    expect(find.text('Свернуть'), findsOneWidget);
+    expect(find.text('Все чек-ины · 6', skipOffstage: false), findsOneWidget);
     await tester.tap(find.text('Эмоции'));
     await tester.pumpAndSettle();
     expect(find.text('Радость'), findsOneWidget);
     expect(find.text('Чем крупнее, тем чаще отмечаете'), findsOneWidget);
     s.addMood(const MoodEntry(valence: -1));
     await tester.pumpAndSettle();
-    expect(find.text('без уточнений'), findsOneWidget);
     expect(find.bySemanticsLabel('0%'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

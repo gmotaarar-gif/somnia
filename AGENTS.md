@@ -17,3 +17,11 @@
 - Lime is a marker only: current position, lit LED, done state. Actions are white (`bg-white text-black`), which flips by itself in the light theme outside `.card`.
 - Titles are `font-medium` in sentence case; headline numbers are `Dots`.
 - Instruments: `DotTrack`, `Bars` (LED columns), `Ruler` in `src/ui/charts.tsx`, `NightLine` in `src/ui/NightLine.tsx`.
+
+## Flutter app (`mobile/`)
+
+- SDK: Flutter 3.50.1 at `~/flutter/bin/flutter` (not on PATH). Verify from `mobile/`: `dart format lib test`, `flutter analyze`, `flutter test`.
+- Endless decorative loops must go through `ambientMotion(context)` (`lib/ui/ambient.dart`); otherwise `pumpAndSettle` hangs in widget tests.
+- Records (nights, check-ins) are browsed and deleted only in `JournalSheet` (sheet id `journal`, arg `nights`/`moods`); Sleep and Mind show statistics.
+- Shared surfaces: `lib/ui/glow.dart` (GlowPlate, BevelGlass, TiltPress, Reveal, LedMeter, ActionPill), companions in `lib/ui/buddies.dart`, haptics in `lib/ui/feedback.dart`.
+- Large files: write with the file tool; shell heredocs get truncated.

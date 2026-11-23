@@ -6,7 +6,6 @@ import 'package:somna/data/models.dart';
 import 'package:somna/data/store.dart';
 import 'package:somna/logic/time.dart';
 import 'package:somna/native/export.dart';
-import 'package:somna/profile/comet_dial.dart';
 import 'package:somna/profile/slide_to_confirm.dart';
 import 'package:somna/profile/subscription_sheet.dart';
 import 'package:somna/shell/app.dart';
@@ -132,9 +131,7 @@ void main() {
       expect(_inProfile('М'), findsOneWidget);
     });
 
-    testWidgets('theme, chronotype, sleep goal and volume are saved', (
-      tester,
-    ) async {
+    testWidgets('theme, chronotype and sleep goal are saved', (tester) async {
       final store = _store();
       await _boot(tester, store, sheet: 'profile');
       expect(
@@ -160,25 +157,6 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(TimePickerDialog), findsNothing);
 
-      final dial = find.byType(CometDial);
-      await tester.ensureVisible(dial);
-      await tester.pumpAndSettle();
-      final center = tester.getCenter(dial);
-      await tester.tapAt(center + const Offset(0, -80));
-      await tester.pumpAndSettle();
-      expect(store.volume, 50);
-      expect(find.text('50'), findsOneWidget);
-      final drag = await tester.startGesture(center + const Offset(0, -80));
-      await drag.moveTo(center + const Offset(80, 0));
-      await drag.moveTo(center + const Offset(20, 80));
-      await drag.moveTo(center + const Offset(-20, 80));
-      await drag.up();
-      await tester.pumpAndSettle();
-      expect(store.volume, 100, reason: 'the ring does not wrap past its end');
-      final corner = tester.getTopLeft(dial) + const Offset(6, 6);
-      await tester.dragFrom(corner, const Offset(0, 40));
-      await tester.pumpAndSettle();
-      expect(store.volume, 100, reason: 'a swipe off the ring scrolls instead');
       expect(tester.takeException(), null);
     });
 
@@ -227,9 +205,7 @@ void main() {
       expect(find.byType(SlideToConfirm), findsNothing);
     });
 
-    testWidgets('toggle, volume ring and reset slider work from a keyboard', (
-      tester,
-    ) async {
+    testWidgets('toggle and reset slider work from a keyboard', (tester) async {
       final store = _store({
         'nights': [night('2026-11-21').toJson()],
       });
@@ -250,15 +226,6 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.space);
       await tester.pumpAndSettle();
       expect(store.morningReminder, !morning);
-
-      final volume = store.volume;
-      await focus(find.byType(CometDial));
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-      await tester.pumpAndSettle();
-      expect(store.volume, greaterThan(volume));
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-      await tester.pumpAndSettle();
-      expect(store.volume, volume);
 
       await _tap(tester, find.text('Сбросить журнал'));
       await focus(find.byType(SlideToConfirm));
@@ -428,25 +395,25 @@ void main() {
       expect(find.text('Профиль'), findsOneWidget);
     });
 
-    testWidgets('a locked practice shows the offer, then keeps the receipt', (
+    testWidgets('locked analytics shows the offer, then keeps the receipt', (
       tester,
     ) async {
       final store = _store({}, MemoryPersistence());
       final registry = SheetRegistry()
         ..register(
-          'bodyscan',
+          'insights',
           (context, arg) => const PlusGate(child: Text('Практика')),
         );
       addTearDown(registry.dispose);
-      await _boot(tester, store, sheet: 'bodyscan', registry: registry);
-      expect(find.text('Сканирование тела доступно с Plus'), findsOneWidget);
+      await _boot(tester, store, sheet: 'insights', registry: registry);
+      expect(find.text('Глубокая аналитика доступна с Plus'), findsOneWidget);
       expect(find.text('Практика'), findsNothing);
       await _tap(tester, find.text('Включить Plus бесплатно'));
       expect(store.sheet, 'subscription');
-      expect(store.sheetArg, 'bodyscan');
+      expect(store.sheetArg, 'insights');
       expect(find.text('Ваше время для себя'), findsOneWidget);
-      await _tap(tester, find.text('Сканирование тела'));
-      expect(store.sheet, 'bodyscan');
+      await _tap(tester, find.text('Глубокая аналитика').first);
+      expect(store.sheet, 'insights');
       expect(find.text('Практика'), findsOneWidget);
       await tester.pump(const Duration(seconds: 3));
     });

@@ -145,7 +145,7 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
   final SomnaPersistence? _persistence;
   final Duration saveDebounce;
   final Future<bool> Function() _requestReminderPermission;
-  Timer? _saveTimer, _dayTimer, _toastTimer, _soundTimer, _membershipTimer;
+  Timer? _saveTimer, _dayTimer, _toastTimer, _membershipTimer;
   Future<void> _writes = Future.value();
   String? _lastSaved;
   bool _disposed = false;
@@ -251,7 +251,6 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
   List<Worry> get worries => _state.worries;
   List<String> get readArticles => _state.readArticles;
   List<WellbeingResult> get wellbeing => _state.wellbeing;
-  int get soundTimer => _state.soundTimer;
   int get layout => _state.layout;
 
   TabId _tab = 'today';
@@ -259,18 +258,13 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
   SheetId? _sheet;
   String? _sheetArg;
   SomnaToast? _toast;
-  bool _editing = false, _nightMode = false;
-  String? _nightStart;
-  String _nightSound = 'pink';
+  bool _editing = false;
   TabId get tab => _tab;
   int get tabDir => _tabDir;
   SheetId? get sheet => _sheet;
   String? get sheetArg => _sheetArg;
   SomnaToast? get toast => _toast;
   bool get editing => _editing;
-  bool get nightMode => _nightMode;
-  String? get nightStart => _nightStart;
-  String get nightSound => _nightSound;
 
   void _setState(SomnaState value) {
     _state = value;
@@ -279,9 +273,7 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void patch(JsonMap changes) {
-    final previousTimer = soundTimer;
     _setState(_state.patch(changes));
-    if (previousTimer != soundTimer) _scheduleSoundTimer();
     if (changes.containsKey('membership')) _scheduleMembershipExpiry();
   }
 
@@ -378,62 +370,7 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
-  void startNight() {
-    final at = _now().toLocal();
-    _nightStart = minutesToTime(at.hour * 60 + at.minute);
-    _nightMode = true;
-    _scheduleSoundTimer();
-    notifyListeners();
-  }
-
-  /// Puts back a night that was running when the app was closed.
-  void resumeNight(String start, String sound, {Duration? soundLeft}) {
-    _nightStart = start;
-    _nightSound = sound;
-    _nightMode = true;
-    _scheduleSoundTimer(soundLeft);
-    notifyListeners();
-  }
-
-  void clearNightStart() {
-    _nightStart = null;
-    notifyListeners();
-  }
-
-  void endNight(bool log) {
-    _nightMode = false;
-    _soundTimer?.cancel();
-    if (log) {
-      openSheet('sleep');
-    } else {
-      _nightStart = null;
-      notifyListeners();
-    }
-  }
-
-  void handleReminder(SheetId target) {
-    if (target == 'mood' && (nightMode || nightStart != null)) {
-      endNight(true);
-    } else {
-      openSheet(target);
-    }
-  }
-
-  void setNightSound(String sound) {
-    if (sound == _nightSound) return;
-    _nightSound = sound;
-    _scheduleSoundTimer();
-    notifyListeners();
-  }
-
-  void _scheduleSoundTimer([Duration? left]) {
-    _soundTimer?.cancel();
-    if (!_nightMode || _nightSound == 'off' || soundTimer == 0) return;
-    _soundTimer = Timer(
-      left ?? Duration(minutes: soundTimer),
-      () => setNightSound('off'),
-    );
-  }
+  void handleReminder(SheetId target) => openSheet(target);
 
   Future<bool> finishOnboarding(JsonMap changes) async {
     final granted =
@@ -456,6 +393,24 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
   });
   void removeNight(String id) => patch({
     'nights': nights.where((n) => n.id != id).map((n) => n.toJson()).toList(),
+  });
+
+  /// Puts a deleted night back with its original id (undo).
+  void restoreNight(SleepNight night) => patch({
+    'nights': normalizeNights([...nights, night])
+        .map((n) => n.toJson())
+        .toList(),
+  });
+  void removeMood(String id) => patch({
+    'moods': moods.where((m) => m.id != id).map((m) => m.toJson()).toList(),
+  });
+
+  /// Puts a deleted check-in back in its place by time (undo).
+  void restoreMood(MoodEntry mood) => patch({
+    'moods': ([
+      ...moods,
+      mood,
+    ]..sort((a, b) => a.at.compareTo(b.at))).map((m) => m.toJson()).toList(),
   });
   void addMood(MoodEntry mood) => patch({
     'moods': tail([
@@ -583,7 +538,6 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
         'membership': membership?.toJson(),
       }),
     );
-    _scheduleSoundTimer();
   }
 
   Future<void> registerLocalProfile(RegistrationInput input) async {
@@ -650,7 +604,6 @@ class SomnaStore extends ChangeNotifier with WidgetsBindingObserver {
       _saveTimer,
       _dayTimer,
       _toastTimer,
-      _soundTimer,
       _membershipTimer,
     ]) {
       timer?.cancel();

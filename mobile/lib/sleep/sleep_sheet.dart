@@ -80,7 +80,7 @@ class _SleepSheetState extends State<SleepSheet> {
     super.didChangeDependencies();
     if (_ready) return;
     _ready = true;
-    _load(_days.first, SomnaScope.of(context).nightStart);
+    _load(_days.first, null);
   }
 
   /// A morning that already has a night opens that night, to be corrected
@@ -133,15 +133,11 @@ class _SleepSheetState extends State<SleepSheet> {
           note: note.isEmpty ? null : note,
         ),
       );
-      store.clearNightStart();
       store.notify(exists ? 'Ночь обновлена' : 'Ночь записана');
       store.openSheet(null);
     }
 
     return PopScope(
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) store.clearNightStart();
-      },
       child: SizedBox(
         height: sleepSheetHeight(context),
         child: Column(

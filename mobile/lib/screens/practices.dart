@@ -8,6 +8,13 @@ import '../theme/tokens.dart';
 import '../ui/charts/charts.dart';
 import '../ui/press_scale.dart';
 import '../ui/surfaces.dart';
+import '../data/facts.dart';
+import '../data/models.dart';
+import '../ui/buddies.dart';
+import '../ui/dots.dart';
+import '../ui/feedback.dart';
+import '../ui/glow.dart';
+import '../ui/info_cards.dart';
 
 const _preview = 3;
 
@@ -20,25 +27,26 @@ const ritualSteps = <({String id, String label, String hint})>[
   (id: 'notes', label: 'Выгрузить мысли', hint: 'три строки на бумаге'),
 ];
 
-const _library =
-    <({String id, String tone, IconData icon, String title, String sub})>[
-      (
-        id: 'grounding',
-        tone: 'moss',
-        icon: Icons.visibility_outlined,
-        title: 'Заземление',
-        sub: '5-4-3-2-1 · 3 мин',
-      ),
-      (
-        id: 'bodyscan',
-        tone: 'plum',
-        icon: Icons.accessibility_new,
-        title: 'Скан тела',
-        sub: 'Расслабление · 3 мин',
-      ),
-    ];
-
 const _white14 = Color.fromRGBO(255, 255, 255, .14);
+
+/// Minutes of reading per topic: read articles only.
+List<double> readMinutesByTopic(List<String> read) => [
+  for (final t in articleTopics.skip(1))
+    articles
+        .where((a) => a.topic == t.id && read.contains(a.id))
+        .fold<double>(0, (s, a) => s + a.min),
+];
+
+/// Practice minutes for each of the last seven days, oldest first.
+List<double> practiceWeek(List<PracticeSession> sessions, DateTime now) => [
+  for (var i = 6; i >= 0; i--)
+    sessions
+        .where((x) {
+          final at = DateTime.tryParse(x.at)?.toLocal();
+          return at != null && dateKey(at) == dateKey(daysAgo(i, now));
+        })
+        .fold<double>(0, (s, x) => s + x.min),
+];
 
 class PracticesScreen extends StatefulWidget {
   const PracticesScreen({super.key});
@@ -53,8 +61,12 @@ class _PracticesScreenState extends State<PracticesScreen> {
   @override
   Widget build(BuildContext context) {
     final store = SomnaScope.of(context), c = SomnaColors.of(context);
+    final now = DateTime.now();
     final read = store.readArticles;
     final readCount = articles.where((a) => read.contains(a.id)).length;
+    final readMin = articles
+        .where((a) => read.contains(a.id))
+        .fold<int>(0, (s, a) => s + a.min);
     final featured = articles.firstWhere(
       (a) => !read.contains(a.id),
       orElse: () => articles.first,
@@ -69,6 +81,8 @@ class _PracticesScreenState extends State<PracticesScreen> {
     final totalMin = jsRound(sessions.fold<double>(0, (s, x) => s + x.min));
     final openWorries = store.worries.where((w) => !w.done).length;
     final done = store.ritual.done;
+    final byTopic = readMinutesByTopic(read);
+    final week = practiceWeek(sessions, now);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 140),
@@ -80,9 +94,21 @@ class _PracticesScreenState extends State<PracticesScreen> {
             sub:
                 '$readCount из ${articles.length} ${pluralRu(articles.length, const ['статьи', 'статей', 'статей'])} прочитано',
           ),
-          _Featured(
-            article: featured,
-            onOpen: () => store.openSheet('article', featured.id),
+          Reveal(
+            child: _ReadingStats(
+              read: readCount,
+              total: articles.length,
+              minutes: readMin,
+              byTopic: byTopic,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Reveal(
+            index: 1,
+            child: _Featured(
+              article: featured,
+              onOpen: () => store.openSheet('article', featured.id),
+            ),
           ),
           const SizedBox(height: 40),
           const _SectionHead(
@@ -122,10 +148,14 @@ class _PracticesScreenState extends State<PracticesScreen> {
               children: [
                 for (final (i, a) in shown.indexed) ...[
                   if (i > 0) const SizedBox(height: 10),
-                  _ArticleRow(
-                    article: a,
-                    read: read.contains(a.id),
-                    onOpen: () => store.openSheet('article', a.id),
+                  Reveal(
+                    index: i,
+                    distance: 10,
+                    child: _ArticleRow(
+                      article: a,
+                      read: read.contains(a.id),
+                      onOpen: () => store.openSheet('article', a.id),
+                    ),
                   ),
                 ],
               ],
@@ -149,26 +179,54 @@ class _PracticesScreenState extends State<PracticesScreen> {
               ),
             ),
           ],
+          const SizedBox(height: 24),
+          FactPlate(
+            fact: factOfDay(now, topic: 'habits'),
+            palette: 'lime',
+          ),
           const SizedBox(height: 40),
           const _SectionHead(
-            title: 'Короткие практики',
-            hint: 'Три минуты, чтобы замедлиться',
+            title: 'Ваша неделя',
+            hint: 'Минуты практик за последние семь дней',
           ),
           const SizedBox(height: 16),
-          IntrinsicHeight(
-            child: Row(
+          SomnaCard(
+            tone: 'forest',
+            padding: const EdgeInsets.all(20),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (final (i, x) in _library.indexed) ...[
-                  if (i > 0) const SizedBox(width: 12),
-                  Expanded(
-                    child: _PracticeCard(
-                      item: x,
-                      locked: x.id == 'bodyscan' && !store.isPlus,
-                      onOpen: () => store.openSheet(x.id),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Dots(
+                      value: jsRound(week.fold<double>(0, (s, x) => s + x)),
+                      size: 32,
+                      color: Colors.white,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 2),
+                      child: Text(
+                        'мин за неделю',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xb3ffffff),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Bars(
+                  values: week,
+                  labels: [
+                    for (var i = 6; i >= 0; i--) weekdayShort(daysAgo(i, now)),
+                  ],
+                  highlight: 6,
+                  height: 120,
+                  format: (v) => '${jsRound(v)} мин',
+                ),
               ],
             ),
           ),
@@ -181,16 +239,8 @@ class _PracticesScreenState extends State<PracticesScreen> {
               padding: const EdgeInsets.fromLTRB(12, 12, 16, 12),
               child: Row(
                 children: [
-                  const GlassSurface(
-                    inset: true,
-                    radius: 22,
-                    child: SizedBox(
-                      width: 44,
-                      height: 44,
-                      child: Icon(Icons.edit_note, size: 20),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
+                  const Buddy(kind: BuddyKind.sprout, size: 48),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,17 +279,30 @@ class _PracticesScreenState extends State<PracticesScreen> {
             padding: const EdgeInsets.fromLTRB(0, 20, 0, 12),
             child: Column(
               children: [
-                DotTrack(value: done.length / ritualSteps.length, count: 44),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: LedMeter(
+                    value: done.length / ritualSteps.length,
+                    count: 25,
+                    height: 28,
+                    color: SomnaColors.lime,
+                  ),
+                ),
                 const SizedBox(height: 12),
                 for (final r in ritualSteps)
                   _RitualRow(
                     step: r,
                     done: done.contains(r.id),
-                    onToggle: () => store.toggleRitual(r.id),
+                    onToggle: () {
+                      Feel.tick();
+                      store.toggleRitual(r.id);
+                    },
                   ),
               ],
             ),
           ),
+          const SizedBox(height: 32),
+          const TipCarousel(topic: 'habits', buddy: BuddyKind.book),
           if (sessions.isNotEmpty) ...[
             const SizedBox(height: 24),
             Text(
@@ -251,6 +314,98 @@ class _PracticesScreenState extends State<PracticesScreen> {
         ],
       ),
     );
+  }
+}
+
+/// Reading at a glance: a ring of read articles, minutes read and how the
+/// reading splits by topic.
+class _ReadingStats extends StatelessWidget {
+  final int read, total, minutes;
+  final List<double> byTopic;
+  const _ReadingStats({
+    required this.read,
+    required this.total,
+    required this.minutes,
+    required this.byTopic,
+  });
+  @override
+  Widget build(BuildContext context) => BevelGlass(
+    glow: const Color(0xffa6e22e),
+    intensity: .8,
+    child: Row(
+      children: [
+        Ring(
+          value: total == 0 ? 0 : read / total,
+          size: 104,
+          stroke: 5,
+          color: SomnaColors.lime,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Dots(value: read, size: 26, color: Colors.white),
+              const SizedBox(height: 4),
+              Text(
+                'из $total',
+                style: const TextStyle(fontSize: 11, color: Color(0xb3ffffff)),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 20),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Ваше чтение',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                minutes == 0
+                    ? 'Начните с рекомендованной статьи'
+                    : '≈ $minutes мин прочитано',
+                style: const TextStyle(fontSize: 12, color: Color(0xb3ffffff)),
+              ),
+              const SizedBox(height: 12),
+              for (final (i, t) in articleTopics.skip(1).indexed)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 76,
+                        child: Text(
+                          t.label,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xccffffff),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: LedMeter(
+                          value: _share(i),
+                          count: 12,
+                          height: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+
+  double _share(int i) {
+    final topic = articleTopics[i + 1].id;
+    final all = articles
+        .where((a) => a.topic == topic)
+        .fold<int>(0, (s, a) => s + a.min);
+    return all == 0 ? 0 : byTopic[i] / all;
   }
 }
 
@@ -362,9 +517,7 @@ class _Featured extends StatelessWidget {
 
 class _Pill extends StatelessWidget {
   final String text;
-  final IconData? icon;
-  final double fontSize;
-  const _Pill(this.text, {this.icon, this.fontSize = 12});
+  const _Pill(this.text);
   @override
   Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
@@ -372,23 +525,8 @@ class _Pill extends StatelessWidget {
       borderRadius: BorderRadius.circular(999),
     ),
     child: Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: fontSize < 12 ? 10 : 12,
-        vertical: fontSize < 12 ? 4 : 6,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[Icon(icon, size: 12), const SizedBox(width: 4)],
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: fontSize,
-              fontWeight: fontSize < 12 ? FontWeight.w500 : FontWeight.w400,
-            ),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Text(text, style: const TextStyle(fontSize: 12)),
     ),
   );
 }
@@ -526,86 +664,6 @@ class _ArticleRow extends StatelessWidget {
       ),
     );
   }
-}
-
-class _PracticeCard extends StatelessWidget {
-  final ({String id, String tone, IconData icon, String title, String sub})
-  item;
-  final bool locked;
-  final VoidCallback onOpen;
-  const _PracticeCard({
-    required this.item,
-    required this.locked,
-    required this.onOpen,
-  });
-  @override
-  Widget build(BuildContext context) => PressScale(
-    label: locked ? '${item.title} · Plus' : item.title,
-    onPressed: onOpen,
-    child: SomnaCard(
-      tone: item.tone,
-      padding: const EdgeInsets.all(20),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 116),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                DecoratedBox(
-                  decoration: const BoxDecoration(
-                    color: _white14,
-                    shape: BoxShape.circle,
-                  ),
-                  child: SizedBox(
-                    width: 40,
-                    height: 40,
-                    child: Icon(item.icon, size: 18),
-                  ),
-                ),
-                if (item.id == 'bodyscan')
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: _Pill(
-                        'Plus',
-                        icon: locked ? Icons.lock_outline : null,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.title,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    letterSpacing: -.34,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.sub,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    height: 1.375,
-                    color: Color.fromRGBO(255, 255, 255, .65),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
 }
 
 class _RitualRow extends StatelessWidget {

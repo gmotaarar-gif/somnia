@@ -370,6 +370,12 @@ void main() {
     t,
   ) async {
     await boot(t, const TodayScreen());
+    await t.scrollUntilVisible(
+      find.textContaining('из 4 выполнено'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await t.pumpAndSettle();
     expect(find.textContaining('из 4 выполнено'), findsOneWidget);
     final water = find.byKey(const ValueKey('plan-water'));
     await t.ensureVisible(water);
